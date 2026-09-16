@@ -163,6 +163,34 @@ export default async function AdminDashboardPage() {
     prisma.inquiry.count(),
   ]);
 
+  // 5b. Content inventory — how many rows exist in each admin section, so
+  // the curator can see what's actually filled in at a glance instead of
+  // opening every page. Kept in sync with /api/admin/nav-counts, which
+  // powers the same counts as sidebar badges.
+  const [
+    paintingsCount,
+    artistsCount,
+    categoriesCount,
+    discountsCount,
+    accessoriesCount,
+    servicesCount,
+    messagesCount,
+    customersCount,
+    reviewsCount,
+    staffCount,
+  ] = await Promise.all([
+    prisma.painting.count(),
+    prisma.artist.count(),
+    prisma.category.count(),
+    prisma.discount.count(),
+    prisma.accessory.count(),
+    prisma.serviceRequest.count(),
+    prisma.contactMessage.count(),
+    prisma.user.count(),
+    prisma.review.count(),
+    prisma.user.count({ where: { role: 'ADMIN' } }),
+  ]);
+
   // 6. Recent inquiries
   const recentInquiries = await prisma.inquiry.findMany({
     take: 5,
@@ -202,6 +230,19 @@ export default async function AdminDashboardPage() {
       initialArtistStats={artistStats}
       recentInquiries={recentInquiries}
       topViewedPaintings={topViewedPaintings}
+      contentCounts={{
+        paintings: paintingsCount,
+        artists: artistsCount,
+        categories: categoriesCount,
+        discounts: discountsCount,
+        accessories: accessoriesCount,
+        inquiries: totalInquiriesCount,
+        services: servicesCount,
+        messages: messagesCount,
+        customers: customersCount,
+        reviews: reviewsCount,
+        staff: staffCount,
+      }}
     />
   );
 }

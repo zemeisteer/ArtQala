@@ -185,6 +185,7 @@ export const translations = {
     // Admin Panel
     admin: {
       dashboard: 'Dashboard',
+      contentInventory: 'Content Overview',
       paintings: 'Paintings',
       artists: 'Artists',
       categories: 'Categories',
@@ -657,6 +658,7 @@ export const translations = {
     // Admin Panel
     admin: {
       dashboard: 'Панель управления',
+      contentInventory: 'Обзор контента',
       paintings: 'Картины',
       artists: 'Художники',
       categories: 'Категории',
@@ -1129,6 +1131,7 @@ export const translations = {
     // Admin Panel
     admin: {
       dashboard: 'Boshqaruv paneli',
+      contentInventory: "Kontent ko'rinishi",
       paintings: 'Kartinalar',
       artists: 'Rassomlar',
       categories: 'Kategoriyalar',

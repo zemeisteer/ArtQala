@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -36,6 +36,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const isLoginPage = pathname === '/admin/login';
 
+  // How many rows exist in each section — shown as a badge next to its
+  // sidebar item so the admin can see at a glance what's actually filled
+  // in without opening every page.
+  const [navCounts, setNavCounts] = useState<Record<string, number>>({});
+
   // 1. Guard: redirect non-admin users to /admin/login (called unconditionally)
   useEffect(() => {
     if (!isLoginPage && !authLoading) {
@@ -44,6 +49,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
     }
   }, [isLoginPage, user, authLoading, router]);
+
+  useEffect(() => {
+    if (isLoginPage || authLoading || !user || user.role !== 'ADMIN') return;
+    fetch('/api/admin/nav-counts')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.counts) setNavCounts(data.counts);
+      })
+      .catch(() => {});
+  }, [isLoginPage, authLoading, user]);
 
   // 2. If on /admin/login, bypass the sidebar layout completely
   if (isLoginPage) {
@@ -72,19 +87,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   const navItems = [
-    { href: '/admin', label: t.admin.dashboard, icon: LayoutDashboard },
-    { href: '/admin/paintings', label: t.admin.paintings, icon: Palette },
-    { href: '/admin/artists', label: t.admin.artists, icon: Users },
-    { href: '/admin/categories', label: t.admin.categories, icon: Layers },
-    { href: '/admin/discounts', label: t.admin.discounts, icon: Percent },
-    { href: '/admin/accessories', label: t.admin.accessories, icon: Gem },
-    { href: '/admin/inquiries', label: t.admin.inquiries, icon: MessageSquare },
-    { href: '/admin/services', label: t.admin.services, icon: Wrench },
-    { href: '/admin/messages', label: t.admin.messages, icon: Mail },
-    { href: '/admin/customers', label: t.admin.customers, icon: Users2 },
-    { href: '/admin/reviews', label: t.admin.reviews, icon: Star },
-    { href: '/admin/staff', label: t.admin.staff, icon: UserCog },
-    { href: '/admin/settings', label: t.admin.settings, icon: Settings },
+    { href: '/admin', label: t.admin.dashboard, icon: LayoutDashboard, countKey: null },
+    { href: '/admin/paintings', label: t.admin.paintings, icon: Palette, countKey: 'paintings' },
+    { href: '/admin/artists', label: t.admin.artists, icon: Users, countKey: 'artists' },
+    { href: '/admin/categories', label: t.admin.categories, icon: Layers, countKey: 'categories' },
+    { href: '/admin/discounts', label: t.admin.discounts, icon: Percent, countKey: 'discounts' },
+    { href: '/admin/accessories', label: t.admin.accessories, icon: Gem, countKey: 'accessories' },
+    { href: '/admin/inquiries', label: t.admin.inquiries, icon: MessageSquare, countKey: 'inquiries' },
+    { href: '/admin/services', label: t.admin.services, icon: Wrench, countKey: 'services' },
+    { href: '/admin/messages', label: t.admin.messages, icon: Mail, countKey: 'messages' },
+    { href: '/admin/customers', label: t.admin.customers, icon: Users2, countKey: 'customers' },
+    { href: '/admin/reviews', label: t.admin.reviews, icon: Star, countKey: 'reviews' },
+    { href: '/admin/staff', label: t.admin.staff, icon: UserCog, countKey: 'staff' },
+    { href: '/admin/settings', label: t.admin.settings, icon: Settings, countKey: null },
   ];
 
   const getActiveTitle = () => {
@@ -142,6 +157,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 ? pathname === '/admin'
                 : pathname.startsWith(item.href);
 
+            const count = item.countKey ? navCounts[item.countKey] : undefined;
+
             return (
               <Link
                 key={item.href}
@@ -153,7 +170,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-[#BA4E25]' : 'text-[#8F7E73]'}`} />
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {count !== undefined && (
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${
+                      isActive
+                        ? 'bg-[#BA4E25] text-white'
+                        : 'bg-[#382620] text-[#B5A599]'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
               </Link>
             );
           })}

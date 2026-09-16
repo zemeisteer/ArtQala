@@ -15,6 +15,13 @@ import {
   Calendar,
   Layers,
   Palette,
+  Percent,
+  Gem,
+  Wrench,
+  Mail,
+  Users2,
+  Star,
+  UserCog,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -63,6 +70,20 @@ interface SummaryData {
   totalSales: number;
 }
 
+interface ContentCounts {
+  paintings: number;
+  artists: number;
+  categories: number;
+  discounts: number;
+  accessories: number;
+  inquiries: number;
+  services: number;
+  messages: number;
+  customers: number;
+  reviews: number;
+  staff: number;
+}
+
 interface AdminDashboardClientProps {
   initialSummary: SummaryData;
   initialTimeline: TimelineItem[];
@@ -70,6 +91,7 @@ interface AdminDashboardClientProps {
   initialArtistStats: ArtistStat[];
   recentInquiries: any[];
   topViewedPaintings: any[];
+  contentCounts: ContentCounts;
 }
 
 export default function AdminDashboardClient({
@@ -79,6 +101,7 @@ export default function AdminDashboardClient({
   initialArtistStats,
   recentInquiries,
   topViewedPaintings,
+  contentCounts,
 }: AdminDashboardClientProps) {
   const { t, lang, formatPrice } = useApp();
   const [isMounted, setIsMounted] = useState(false);
@@ -254,6 +277,47 @@ export default function AdminDashboardClient({
           <div className="text-xs text-[#8F8178] mt-1">
             {t.admin.inquiries}
           </div>
+        </div>
+      </div>
+
+      {/* 1b. Content Inventory — how many rows exist in each section, at a
+          glance, matching the same counts shown as sidebar badges. */}
+      <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 shadow-xs">
+        <div className="flex items-center gap-2 pb-4 mb-4 border-b border-[#F0EAE1]">
+          <Layers className="w-5 h-5 text-[#BA4E25]" />
+          <h2 className="font-serif text-xl font-semibold text-[#281C18]">
+            {t.admin.contentInventory}
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { href: '/admin/paintings', label: t.admin.paintings, icon: Palette, value: contentCounts.paintings },
+            { href: '/admin/artists', label: t.admin.artists, icon: Users, value: contentCounts.artists },
+            { href: '/admin/categories', label: t.admin.categories, icon: Layers, value: contentCounts.categories },
+            { href: '/admin/discounts', label: t.admin.discounts, icon: Percent, value: contentCounts.discounts },
+            { href: '/admin/accessories', label: t.admin.accessories, icon: Gem, value: contentCounts.accessories },
+            { href: '/admin/inquiries', label: t.admin.inquiries, icon: MessageSquare, value: contentCounts.inquiries },
+            { href: '/admin/services', label: t.admin.services, icon: Wrench, value: contentCounts.services },
+            { href: '/admin/messages', label: t.admin.messages, icon: Mail, value: contentCounts.messages },
+            { href: '/admin/customers', label: t.admin.customers, icon: Users2, value: contentCounts.customers },
+            { href: '/admin/reviews', label: t.admin.reviews, icon: Star, value: contentCounts.reviews },
+            { href: '/admin/staff', label: t.admin.staff, icon: UserCog, value: contentCounts.staff },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col items-center gap-1.5 p-3.5 rounded-[3px] border border-[#E7E0D8] bg-white hover:border-[#BA4E25]/50 hover:shadow-xs transition-all text-center"
+            >
+              <item.icon className="w-4 h-4 text-[#BA4E25]" />
+              <span className="font-serif text-2xl font-semibold text-[#281C18]">
+                {item.value}
+              </span>
+              <span className="text-[10.5px] font-bold tracking-wide text-[#8F8178] uppercase">
+                {item.label}
+              </span>
+            </Link>
+          ))}
         </div>
       </div>
 
