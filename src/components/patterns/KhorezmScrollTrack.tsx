@@ -2,13 +2,19 @@
 
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
+import { usePathname } from 'next/navigation';
 
 // Xiva Ustun Buramasi (to'lqinsimon spiral) — footer usti / bo'lim chegarasi.
 // Pastga scroll qilganda lenta chapdan o'ngga uzluksiz oqadi.
 export default function KhorezmScrollTrack() {
+  const pathname = usePathname();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
   const x = useTransform(scrollYProgress, [0, 1], [-140, 70]);
+
+  // Purely decorative, sits right above the public footer — the admin
+  // panel has neither.
+  if (pathname.startsWith('/admin')) return null;
 
   return (
     <div

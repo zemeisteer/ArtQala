@@ -3,11 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { parsePhones, formatWorkingHours, getAboutText, parseSocialLinks, normalizeSocialUrl, parseLocations } from '@/lib/settingsUtils';
 
 export default function Footer() {
+  const pathname = usePathname();
   const { t, lang, settings } = useApp();
+
+  // The admin panel has its own layout — the public site footer never
+  // belongs underneath it.
+  if (pathname.startsWith('/admin')) return null;
 
   const phones = parsePhones(settings?.phone);
   const workingHoursText = formatWorkingHours(settings?.working_hours, lang);

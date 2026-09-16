@@ -22,6 +22,12 @@ export default function Header() {
   const { lang, setLang, currency, setCurrency, wishlist, t, user } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // The admin panel has its own sidebar/topbar (including its own language
+  // switcher) — rendering the public site's header on top of it was the
+  // second, redundant "EN RU UZ" switcher, and it only translated its own
+  // nav labels, not the admin content underneath it.
+  if (pathname.startsWith('/admin')) return null;
+
   const isActive = (path: string) => {
     if (path === '/' && pathname === '/') return true;
     if (path !== '/' && pathname.startsWith(path)) return true;
