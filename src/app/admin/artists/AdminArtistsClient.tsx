@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Trash2, Pencil, X, Loader2, Upload, Languages } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
+import Pagination from '@/components/Pagination';
+
+const PAGE_SIZE = 15;
 
 interface ArtistItem {
   id: string;
@@ -35,6 +38,20 @@ export default function AdminArtistsClient({
   categories: CategoryOption[];
 }) {
   const [artists, setArtists] = useState<ArtistItem[]>(initialArtists);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(artists.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedArtists = useMemo(
+    () => artists.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [artists, safePage]
+  );
+
+  // Adding/deleting an artist can push the current page past the new
+  // total — clamp back instead of showing an empty page.
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
   
   // Create / Edit modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -293,7 +310,7 @@ export default function AdminArtistsClient({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {artists.map((a) => (
+        {pagedArtists.map((a) => (
           <div
             key={a.id}
             className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 space-y-4 shadow-xs relative group"
@@ -357,6 +374,18 @@ export default function AdminArtistsClient({
           </div>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] shadow-xs">
+          <Pagination
+            page={safePage}
+            totalPages={totalPages}
+            onChange={setPage}
+            totalItems={artists.length}
+            pageSize={PAGE_SIZE}
+          />
+        </div>
+      )}
 
       {/* Modal: Create or Edit Artist */}
       {isModalOpen && (

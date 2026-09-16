@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Search, Pencil, Trash2, Palette } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
+import Pagination from '@/components/Pagination';
+
+const PAGE_SIZE = 15;
 
 interface AdminPaintingsClientProps {
   initialPaintings: any[];
@@ -21,10 +24,19 @@ export default function AdminPaintingsClient({
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [artistFilter, setArtistFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+
+  // The filter dropdown only lists product types (ota kategoriya) — a
+  // painting's own category can be a theme underneath one, so matching
+  // must check both the exact category and its parent, not just an exact
+  // id match against a flat list that mixed ota and bola together.
+  const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
 
   const filtered = useMemo(() => {
     return paintings.filter((p) => {
-      if (categoryFilter !== 'ALL' && p.category_id !== categoryFilter) return false;
+      if (categoryFilter !== 'ALL' && p.category_id !== categoryFilter && p.category?.parent_id !== categoryFilter) {
+        return false;
+      }
       if (artistFilter !== 'ALL' && p.artist_id !== artistFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -35,6 +47,17 @@ export default function AdminPaintingsClient({
       return true;
     });
   }, [paintings, search, categoryFilter, artistFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, categoryFilter, artistFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filtered, safePage]
+  );
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
@@ -96,7 +119,7 @@ export default function AdminPaintingsClient({
           allLabel="All categories"
           className="w-44"
           buttonClassName="!rounded-[3px] !py-2"
-          options={categories.map((c) => ({ value: c.id, label: c.name_en }))}
+          options={topLevelCategories.map((c) => ({ value: c.id, label: c.name_en }))}
         />
 
         <FilterSelect
@@ -145,7 +168,7 @@ export default function AdminPaintingsClient({
                   </td>
                 </tr>
               )}
-              {filtered.map((p) => {
+              {paged.map((p) => {
                 let thumb = '/assets/p-arch.svg';
                 try {
                   const imgs = JSON.parse(p.images);
@@ -224,6 +247,14 @@ export default function AdminPaintingsClient({
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          page={safePage}
+          totalPages={totalPages}
+          onChange={setPage}
+          totalItems={filtered.length}
+          pageSize={PAGE_SIZE}
+        />
       </div>
     </div>
   );
