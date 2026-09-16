@@ -32,6 +32,26 @@ export default function AdminPaintingsClient({
   // id match against a flat list that mixed ota and bola together.
   const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
 
+  // Scope the artist dropdown to whichever product type is selected —
+  // otherwise picking "Somon" still offered every artist, including ones
+  // whose default category is a completely different product type
+  // (Artist.category_id, the same field the Paintings form auto-fills
+  // from). Artists with no category set stay visible everywhere, since
+  // nothing rules them out of any product type.
+  const artistOptions = useMemo(() => {
+    if (categoryFilter === 'ALL') return artists;
+    return artists.filter((a) => !a.category_id || a.category_id === categoryFilter);
+  }, [artists, categoryFilter]);
+
+  // If switching category makes the current artist selection invalid,
+  // reset it instead of silently filtering everything to zero results.
+  useEffect(() => {
+    if (artistFilter !== 'ALL' && !artistOptions.some((a) => a.id === artistFilter)) {
+      setArtistFilter('ALL');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryFilter]);
+
   const filtered = useMemo(() => {
     return paintings.filter((p) => {
       if (categoryFilter !== 'ALL' && p.category_id !== categoryFilter && p.category?.parent_id !== categoryFilter) {
@@ -130,7 +150,7 @@ export default function AdminPaintingsClient({
           searchable
           className="w-44"
           buttonClassName="!rounded-[3px] !py-2"
-          options={artists.map((a) => ({ value: a.id, label: a.name }))}
+          options={artistOptions.map((a) => ({ value: a.id, label: a.name }))}
         />
       </div>
 
