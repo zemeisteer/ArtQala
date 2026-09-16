@@ -32,16 +32,32 @@ export default function AdminPaintingsClient({
   // id match against a flat list that mixed ota and bola together.
   const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
 
-  // Scope the artist dropdown to whichever product type is selected —
-  // otherwise picking "Somon" still offered every artist, including ones
-  // whose default category is a completely different product type
-  // (Artist.category_id, the same field the Paintings form auto-fills
-  // from). Artists with no category set stay visible everywhere, since
-  // nothing rules them out of any product type.
+  // Scope the artist dropdown to whichever product type is selected.
+  // Artist.category_id (the field the Paintings form auto-fills from) is
+  // only a "default for new paintings" hint and is often unset, so an
+  // artist also counts as belonging to a product type if they actually
+  // have a painting there — otherwise an artist with no category_id but
+  // real paintings elsewhere (e.g. under Painting/Portrait) would still
+  // show up under an unrelated filter like Somon. An artist with neither
+  // a category_id nor any paintings yet has no signal either way, so
+  // stays visible everywhere.
   const artistOptions = useMemo(() => {
     if (categoryFilter === 'ALL') return artists;
-    return artists.filter((a) => !a.category_id || a.category_id === categoryFilter);
-  }, [artists, categoryFilter]);
+
+    const artistIdsWithPaintingHere = new Set(
+      paintings
+        .filter((p) => p.category_id === categoryFilter || p.category?.parent_id === categoryFilter)
+        .map((p) => p.artist_id)
+    );
+    const artistIdsWithAnyPainting = new Set(paintings.map((p) => p.artist_id));
+
+    return artists.filter((a) => {
+      if (a.category_id === categoryFilter) return true;
+      if (artistIdsWithPaintingHere.has(a.id)) return true;
+      if (!a.category_id && !artistIdsWithAnyPainting.has(a.id)) return true;
+      return false;
+    });
+  }, [artists, paintings, categoryFilter]);
 
   // If switching category makes the current artist selection invalid,
   // reset it instead of silently filtering everything to zero results.
