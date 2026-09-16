@@ -307,9 +307,14 @@ export default function AdminCategoriesClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
-            Kategoriyalar Boshqaruvi
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
+              Kategoriyalar Boshqaruvi
+            </h2>
+            <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
+              {categories.length}
+            </span>
+          </div>
           <p className="text-xs text-[#726861] mt-0.5">
             <strong>Ota kategoriya</strong> — mahsulot turi (Kartina, Kulolchilik...). <strong>Bola kategoriya</strong> — shu turdagi mavzu (Tabiat, Portretlar...).
           </p>

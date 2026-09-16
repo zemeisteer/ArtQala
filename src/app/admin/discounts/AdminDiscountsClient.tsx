@@ -73,9 +73,14 @@ export default function AdminDiscountsClient({
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
-          Discount &amp; Promotion Engine
-        </h2>
+        <div className="flex items-center gap-2.5">
+          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
+            Discount &amp; Promotion Engine
+          </h2>
+          <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
+            {discounts.length}
+          </span>
+        </div>
         <p className="text-xs text-[#726861] mt-0.5">
           Manage 4-tier discount rules with automatic priority resolution
         </p>

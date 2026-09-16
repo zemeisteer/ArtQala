@@ -180,6 +180,9 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
           <h2 className="font-serif text-3xl font-semibold text-[#281C18] flex items-center gap-2.5">
             <Gem className="w-6 h-6 text-[#BA4E25]" />
             Qo'shimcha mahsulotlar (Aksessuarlar)
+            <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
+              {accessories.length}
+            </span>
           </h2>
           <p className="text-xs text-[#726861] mt-1">
             Mijozlar so'rov yuborayotganda tanlashi mumkin bo'lgan ixtiyoriy qo'shimcha xizmatlar (futlyar va h.k.).

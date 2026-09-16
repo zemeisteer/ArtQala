@@ -55,9 +55,14 @@ export default function AdminPaintingsClient({
       {/* Top action row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
-            Paintings
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
+              Paintings
+            </h2>
+            <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
+              {paintings.length}
+            </span>
+          </div>
           <p className="text-xs text-[#726861] mt-0.5">
             Manage your gallery collection, prices, and availability
           </p>

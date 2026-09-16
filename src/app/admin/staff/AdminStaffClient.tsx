@@ -77,9 +77,14 @@ export default function AdminStaffClient({ initialStaff }: { initialStaff: Staff
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
-            Xodimlar (Admin huquqi)
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
+              Xodimlar (Admin huquqi)
+            </h2>
+            <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
+              {staff.length}
+            </span>
+          </div>
           <p className="text-xs text-[#726861] mt-0.5">
             Admin panelga kirish huquqiga ega hisoblar ro'yxati
           </p>

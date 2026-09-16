@@ -15,13 +15,6 @@ import {
   Calendar,
   Layers,
   Palette,
-  Percent,
-  Gem,
-  Wrench,
-  Mail,
-  Users2,
-  Star,
-  UserCog,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -74,14 +67,6 @@ interface ContentCounts {
   paintings: number;
   artists: number;
   categories: number;
-  discounts: number;
-  accessories: number;
-  inquiries: number;
-  services: number;
-  messages: number;
-  customers: number;
-  reviews: number;
-  staff: number;
 }
 
 interface AdminDashboardClientProps {
@@ -280,8 +265,7 @@ export default function AdminDashboardClient({
         </div>
       </div>
 
-      {/* 1b. Content Inventory — how many rows exist in each section, at a
-          glance, matching the same counts shown as sidebar badges. */}
+      {/* 1b. Content Inventory — just the three main catalog counts. */}
       <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 shadow-xs">
         <div className="flex items-center gap-2 pb-4 mb-4 border-b border-[#F0EAE1]">
           <Layers className="w-5 h-5 text-[#BA4E25]" />
@@ -290,19 +274,11 @@ export default function AdminDashboardClient({
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {[
             { href: '/admin/paintings', label: t.admin.paintings, icon: Palette, value: contentCounts.paintings },
             { href: '/admin/artists', label: t.admin.artists, icon: Users, value: contentCounts.artists },
             { href: '/admin/categories', label: t.admin.categories, icon: Layers, value: contentCounts.categories },
-            { href: '/admin/discounts', label: t.admin.discounts, icon: Percent, value: contentCounts.discounts },
-            { href: '/admin/accessories', label: t.admin.accessories, icon: Gem, value: contentCounts.accessories },
-            { href: '/admin/inquiries', label: t.admin.inquiries, icon: MessageSquare, value: contentCounts.inquiries },
-            { href: '/admin/services', label: t.admin.services, icon: Wrench, value: contentCounts.services },
-            { href: '/admin/messages', label: t.admin.messages, icon: Mail, value: contentCounts.messages },
-            { href: '/admin/customers', label: t.admin.customers, icon: Users2, value: contentCounts.customers },
-            { href: '/admin/reviews', label: t.admin.reviews, icon: Star, value: contentCounts.reviews },
-            { href: '/admin/staff', label: t.admin.staff, icon: UserCog, value: contentCounts.staff },
           ].map((item) => (
             <Link
               key={item.href}

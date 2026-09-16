@@ -21,9 +21,14 @@ export default async function AdminCustomersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
-          Registered Customers
-        </h2>
+        <div className="flex items-center gap-2.5">
+          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
+            Registered Customers
+          </h2>
+          <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
+            {customers.length}
+          </span>
+        </div>
         <p className="text-xs text-[#726861] mt-0.5">
           Tourist and collector accounts, verified emails, and inquiry activity
         </p>

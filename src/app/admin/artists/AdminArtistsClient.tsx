@@ -270,9 +270,14 @@ export default function AdminArtistsClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
-            Rassomlar Boshqaruvi
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-serif text-3xl font-semibold text-[#281C18]">
+              Rassomlar Boshqaruvi
+            </h2>
+            <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
+              {artists.length}
+            </span>
+          </div>
           <p className="text-xs text-[#726861] mt-0.5">
             Galereyada ro'yxatdan o'tgan ustalar va rassomlar ro'yxati (PostgreSQL)
           </p>
