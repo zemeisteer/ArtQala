@@ -117,7 +117,11 @@ task to do).
 
 ## Deployment
 
-Vercel, auto-deploys `main` from `github.com/zemeisteer/ArtQala`. Database is Neon Postgres —
+Vercel, auto-deploys `main` from `github.com/zemeisteer/ArtQala`. The canonical domain is
+`https://artqala.com` (`NEXTAUTH_URL` must match it — sitemap, robots, JSON-LD, canonical tags and
+email links all derive from it); `www.artqala.com` 308-redirects to it at the Vercel domain level,
+and `src/middleware.ts` 308-redirects the legacy `art-qala.vercel.app` host to it, which is why
+its matcher covers every route, not just `/admin`. Database is Neon Postgres —
 `DATABASE_URL` (plus `NEXTAUTH_SECRET`, `ADMIN_PASSWORD`, `RESEND_API_KEY`,
 `GEMINI_API_KEY`/`GEMINI_TEXT_MODEL`/`GEMINI_IMAGE_MODEL`, `GOOGLE_CLIENT_ID/SECRET`) live in
 Vercel's env vars, not `.env`. See `DEPLOYMENT.md` for the full first-time setup walkthrough.
