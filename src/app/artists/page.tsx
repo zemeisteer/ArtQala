@@ -9,7 +9,7 @@ import ArtistsClient from './ArtistsClient';
 // force-dynamic.
 export const revalidate = 30;
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.uz';
+const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
 const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Artists', path: '/artists' }], siteUrl);
 
 export const metadata: Metadata = {

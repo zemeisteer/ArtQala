@@ -4,7 +4,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbJsonLd';
 import { safeJsonLdString } from '@/lib/jsonLd';
 import ContactClient from './ContactClient';
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.uz';
+const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
 const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Contact', path: '/contact' }], siteUrl);
 
 export const metadata: Metadata = {

@@ -9,7 +9,7 @@ const CONTENT = {
     title: 'Terms of Service',
     effectiveDate: 'Effective Date: September 2026 · Art Qala Gallery, Tashkent',
     intro:
-      'By browsing artqala.uz, creating an account, or submitting an inquiry, you agree to the following terms. Please read them carefully; they govern your relationship with Art Qala Gallery ("Art Qala", "we", "us").',
+      'By browsing artqala.com, creating an account, or submitting an inquiry, you agree to the following terms. Please read them carefully; they govern your relationship with Art Qala Gallery ("Art Qala", "we", "us").',
     sections: [
       {
         heading: '1. Original Artworks & Authenticity',
@@ -58,7 +58,7 @@ const CONTENT = {
       {
         heading: '12. Contact Us',
         bodyPrefix: 'Questions about these Terms can be sent to: ',
-        highlight: 'info@artqala.uz',
+        highlight: 'info@artqala.com',
         bodySuffix: ' or in person at our gallery at Barakhon Madrasah, Tashkent.',
       },
     ],
@@ -68,7 +68,7 @@ const CONTENT = {
     title: 'Условия обслуживания',
     effectiveDate: 'Дата вступления в силу: сентябрь 2026 г. · Галерея Art Qala, Ташкент',
     intro:
-      'Используя artqala.uz, создавая аккаунт или отправляя запрос, вы соглашаетесь со следующими условиями. Пожалуйста, внимательно прочитайте их — они регулируют ваши отношения с галереей Art Qala («Art Qala», «мы»).',
+      'Используя artqala.com, создавая аккаунт или отправляя запрос, вы соглашаетесь со следующими условиями. Пожалуйста, внимательно прочитайте их — они регулируют ваши отношения с галереей Art Qala («Art Qala», «мы»).',
     sections: [
       {
         heading: '1. Оригинальные работы и подлинность',
@@ -117,7 +117,7 @@ const CONTENT = {
       {
         heading: '12. Свяжитесь с нами',
         bodyPrefix: 'Вопросы по настоящим Условиям можно направить на: ',
-        highlight: 'info@artqala.uz',
+        highlight: 'info@artqala.com',
         bodySuffix: ' или лично в нашей галерее в медресе Баракхан, Ташкент.',
       },
     ],
@@ -127,7 +127,7 @@ const CONTENT = {
     title: "Xizmat ko'rsatish shartlari",
     effectiveDate: "Kuchga kirgan sana: 2026-yil sentyabr · Art Qala galereyasi, Toshkent",
     intro:
-      "artqala.uz saytidan foydalanish, hisob ochish yoki so'rov yuborish orqali siz quyidagi shartlarga rozilik bildirasiz. Iltimos, ularni diqqat bilan o'qing — ular sizning Art Qala galereyasi (\"Art Qala\", \"biz\") bilan munosabatlaringizni belgilaydi.",
+      "artqala.com saytidan foydalanish, hisob ochish yoki so'rov yuborish orqali siz quyidagi shartlarga rozilik bildirasiz. Iltimos, ularni diqqat bilan o'qing — ular sizning Art Qala galereyasi (\"Art Qala\", \"biz\") bilan munosabatlaringizni belgilaydi.",
     sections: [
       {
         heading: '1. Asl asarlar va asillik',
@@ -176,7 +176,7 @@ const CONTENT = {
       {
         heading: "12. Biz bilan bog'lanish",
         bodyPrefix: "Ushbu Shartlar bo'yicha savollarni quyidagi manzilga yuborishingiz mumkin: ",
-        highlight: 'info@artqala.uz',
+        highlight: 'info@artqala.com',
         bodySuffix: " yoki Toshkentdagi Baraxon madrasasidagi galereyamizga shaxsan tashrif buyurib.",
       },
     ],

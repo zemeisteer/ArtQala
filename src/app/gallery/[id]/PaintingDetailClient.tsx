@@ -23,7 +23,9 @@ import {
   Sparkles,
   Lock,
   Info,
+  ZoomIn,
 } from 'lucide-react';
+import ImageLightbox from '@/components/ImageLightbox';
 
 interface PaintingDetailClientProps {
   painting: any;
@@ -33,6 +35,8 @@ interface PaintingDetailClientProps {
 export default function PaintingDetailClient({ painting, relatedPaintings = [] }: PaintingDetailClientProps) {
   const { lang, formatPrice, wishlist, toggleWishlist, t, user } = useApp();
 
+  const [activeImage, setActiveImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
@@ -142,17 +146,18 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
       ? painting.category.name_uz
       : painting.category.name_en;
 
-  let imageSrc = '/assets/p-arch.svg';
+  let imageList: string[] = ['/assets/p-arch.svg'];
   try {
     const parsed = JSON.parse(painting.images);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      imageSrc = parsed[0];
+      imageList = parsed;
     }
   } catch {
     if (painting.images && !painting.images.startsWith('[')) {
-      imageSrc = painting.images;
+      imageList = [painting.images];
     }
   }
+  const imageSrc = imageList[Math.min(activeImage, imageList.length - 1)];
 
   const isFavorited = wishlist.includes(painting.id);
   const hasDiscount = !!painting.discount_price && painting.discount_price < painting.price;
@@ -252,13 +257,27 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
           {/* Left Art View */}
           <div className="lg:col-span-7 space-y-6">
             <div className="relative aspect-square w-full rounded-[4px] overflow-hidden border border-[#E7E0D8] bg-[#F4ECE1] shadow-md">
-              <Image
-                src={imageSrc}
-                alt={title}
-                fill
-                priority
-                className="object-cover"
-              />
+              {/* The whole artwork is always visible (contain, not cover) —
+                  a tall or wide painting used to get its edges cropped off.
+                  Clicking opens the full-screen viewer. */}
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="absolute inset-0 cursor-zoom-in"
+                aria-label={t.painting.enlarge}
+              >
+                <Image
+                  src={imageSrc}
+                  alt={title}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 58vw"
+                  className="object-contain p-3 sm:p-5"
+                />
+              </button>
+              <span className="pointer-events-none absolute top-4 left-4 w-9 h-9 rounded-full bg-white/85 text-[#4D3F38] flex items-center justify-center shadow-sm">
+                <ZoomIn className="w-4 h-4" />
+              </span>
 
               {/* Wishlist toggle button */}
               <button
@@ -287,6 +306,33 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                 </div>
               )}
             </div>
+
+            {imageList.length > 1 && (
+              <div className="flex gap-2.5 overflow-x-auto pb-1">
+                {imageList.map((src, idx) => (
+                  <button
+                    key={src + idx}
+                    type="button"
+                    onClick={() => setActiveImage(idx)}
+                    className={`relative w-20 h-20 shrink-0 rounded-[3px] overflow-hidden border-2 bg-[#F4ECE1] transition-colors cursor-pointer ${
+                      idx === activeImage ? 'border-[#BA4E25]' : 'border-[#E7E0D8] hover:border-[#D2C5BA]'
+                    }`}
+                    aria-label={`${title} — ${idx + 1}`}
+                  >
+                    <Image src={src} alt="" fill sizes="80px" className="object-contain p-1" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {lightboxOpen && (
+              <ImageLightbox
+                images={imageList}
+                startIndex={Math.min(activeImage, imageList.length - 1)}
+                alt={title}
+                onClose={() => setLightboxOpen(false)}
+              />
+            )}
 
             {/* Certificate of Authenticity Info Box */}
             <div className="bg-[#FAF4EC] border border-[#E7E0D8] rounded-[3px] p-5 flex items-start gap-3.5">

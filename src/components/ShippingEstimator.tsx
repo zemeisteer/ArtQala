@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { getCountries, type CountryCode } from 'libphonenumber-js';
 import { useApp } from '@/context/AppContext';
-import { estimateShipping, estimatePaintingWeightKg, POSILKA_RATES_UZS, EMS_ZONE_BY_COUNTRY } from '@/lib/shipping';
+import {
+  estimateShipping,
+  estimatePaintingWeightKg,
+  POSILKA_RATES_UZS,
+  EMS_ZONE_BY_COUNTRY,
+  DOMESTIC_COUNTRY,
+} from '@/lib/shipping';
 import { Truck, Info } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
 
@@ -24,13 +30,20 @@ function parseSizeToCm(sizeString: string): { widthCm: number; heightCm: number 
   };
 }
 
+const isSupported = (c: string) =>
+  c === DOMESTIC_COUNTRY || !!POSILKA_RATES_UZS[c] || !!EMS_ZONE_BY_COUNTRY[c];
+
+// The visitor's own country when we have a tariff for it — "uz"/"uz-UZ"
+// browsers used to land on Uzbekistan, which had no tariff, and see
+// "not available" before picking anything. Otherwise Uzbekistan itself.
 function guessDefaultCountry(): CountryCode {
-  const countries = getCountries();
   try {
-    const region = (navigator.language || '').split('-')[1]?.toUpperCase();
-    if (region && countries.includes(region as CountryCode)) return region as CountryCode;
+    const locale = navigator.language || '';
+    const region = locale.split('-')[1]?.toUpperCase();
+    if (region && isSupported(region)) return region as CountryCode;
+    if (/^ru\b/i.test(locale) && isSupported('RU')) return 'RU' as CountryCode;
   } catch {}
-  return countries.includes('US' as CountryCode) ? ('US' as CountryCode) : countries[0];
+  return DOMESTIC_COUNTRY as CountryCode;
 }
 
 const countryDisplayNames = (() => {
@@ -44,10 +57,21 @@ const countryDisplayNames = (() => {
 export default function ShippingEstimator({ sizeString }: ShippingEstimatorProps) {
   const { t, settings } = useApp();
   const countries = useMemo(
-    () => getCountries().filter((c) => POSILKA_RATES_UZS[c] || EMS_ZONE_BY_COUNTRY[c]).sort(),
+    () => {
+      const list = getCountries().filter((c) => c !== DOMESTIC_COUNTRY && isSupported(c));
+      list.sort((a, b) => (countryDisplayNames?.of(a) || a).localeCompare(countryDisplayNames?.of(b) || b));
+      return [DOMESTIC_COUNTRY as CountryCode, ...list];
+    },
     []
   );
-  const [country, setCountry] = useState<CountryCode>(guessDefaultCountry());
+  // Picked after mount — navigator isn't available during server rendering,
+  // and reading it in the initial state caused a hydration mismatch.
+  const [country, setCountry] = useState<CountryCode>(DOMESTIC_COUNTRY as CountryCode);
+  useEffect(() => {
+    // Browser-only value, deliberately applied after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCountry(guessDefaultCountry());
+  }, []);
 
   const parsedSize = parseSizeToCm(sizeString);
   const somPerUsd = settings?.rate_usd;

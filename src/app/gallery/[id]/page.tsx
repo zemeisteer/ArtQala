@@ -115,7 +115,7 @@ export default async function PaintingDetailPage({ params }: PageProps) {
     painting.category_id
   );
 
-  const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.uz';
+  const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
   const productJsonLd = buildProductJsonLd(painting, siteUrl);
   const breadcrumbJsonLd = buildBreadcrumbJsonLd(
     [

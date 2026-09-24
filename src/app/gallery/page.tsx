@@ -10,7 +10,7 @@ import GalleryClient from './GalleryClient';
 // this was the single biggest contributor to slow page loads.
 export const revalidate = 30;
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.uz';
+const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
 const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Gallery', path: '/gallery' }], siteUrl);
 
 export const metadata: Metadata = {

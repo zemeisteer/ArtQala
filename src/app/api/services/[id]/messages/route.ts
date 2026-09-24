@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
+import { FROM_EMAIL } from '@/lib/email';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -134,7 +135,7 @@ export async function POST(request: Request, context: RouteContext) {
             </div>
             <hr style="border: 0; border-top: 1px solid #E7E0D8; margin: 24px 0 16px 0;" />
             <p style="font-size: 11px; color: #8F8178; text-align: center; margin: 0;">
-              Art Qala Gallery & Studio · Barakhon Madrasah, Tashkent · info@artqala.uz
+              Art Qala Gallery & Studio · Barakhon Madrasah, Tashkent · info@artqala.com
             </p>
           </div>
         `;
@@ -148,7 +149,7 @@ export async function POST(request: Request, context: RouteContext) {
                 Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
               },
               body: JSON.stringify({
-                from: 'Art Qala Gallery <onboarding@resend.dev>',
+                from: FROM_EMAIL,
                 to: [recipientEmail],
                 subject: `Art Qala — Sizning xizmat so'rovingizga javob keldi (${serviceType})`,
                 html: emailHtml,

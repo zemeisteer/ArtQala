@@ -5,7 +5,10 @@ export interface EmailSendResult {
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Art Qala Gallery <onboarding@resend.dev>';
+// Resend's shared onboarding@resend.dev sender can only deliver to the
+// Resend account owner's own address — real customer emails need a sender
+// on the verified artqala.com domain, set via RESEND_FROM_EMAIL.
+export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Art Qala Gallery <onboarding@resend.dev>';
 const SITE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 // 1. Send OTP Verification Email during signup
@@ -55,7 +58,7 @@ export async function sendOtpEmail(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.uz
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
                     </p>
                   </td>
                 </tr>
@@ -121,7 +124,7 @@ export async function sendPasswordResetEmail(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.uz
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
                     </p>
                   </td>
                 </tr>
@@ -193,7 +196,7 @@ export async function sendCuratorReplyNotification(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.uz
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
                     </p>
                   </td>
                 </tr>
@@ -250,7 +253,7 @@ export async function sendContactAcknowledgmentEmail(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.uz
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
                     </p>
                   </td>
                 </tr>
@@ -368,7 +371,7 @@ export async function sendContactReplyEmail(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.uz
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
                     </p>
                   </td>
                 </tr>

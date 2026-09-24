@@ -9,7 +9,7 @@ const CONTENT = {
     title: 'Privacy Policy',
     effectiveDate: 'Effective Date: September 2026 · Art Qala Gallery, Tashkent',
     intro:
-      "Art Qala Gallery (\"Art Qala\", \"we\", \"us\") respects your privacy. This policy explains what personal information we collect through artqala.uz, why we collect it, who we share it with, and the choices you have.",
+      "Art Qala Gallery (\"Art Qala\", \"we\", \"us\") respects your privacy. This policy explains what personal information we collect through artqala.com, why we collect it, who we share it with, and the choices you have.",
     sections: [
       {
         heading: '1. Information We Collect',
@@ -70,7 +70,7 @@ const CONTENT = {
       {
         heading: '10. Contact Us',
         bodyPrefix: 'If you have questions regarding your data or wish to request deletion of your account, contact our data curator at: ',
-        highlight: 'privacy@artqala.uz',
+        highlight: 'privacy@artqala.com',
         bodySuffix: ' or visit our gallery at Barakhon Madrasah, Tashkent.',
       },
     ],
@@ -80,7 +80,7 @@ const CONTENT = {
     title: 'Политика конфиденциальности',
     effectiveDate: 'Дата вступления в силу: сентябрь 2026 г. · Галерея Art Qala, Ташкент',
     intro:
-      'Галерея Art Qala («Art Qala», «мы») уважает вашу конфиденциальность. Настоящая политика объясняет, какую персональную информацию мы собираем на artqala.uz, для чего мы её собираем, с кем делимся и какие у вас есть возможности выбора.',
+      'Галерея Art Qala («Art Qala», «мы») уважает вашу конфиденциальность. Настоящая политика объясняет, какую персональную информацию мы собираем на artqala.com, для чего мы её собираем, с кем делимся и какие у вас есть возможности выбора.',
     sections: [
       {
         heading: '1. Какую информацию мы собираем',
@@ -141,7 +141,7 @@ const CONTENT = {
       {
         heading: '10. Свяжитесь с нами',
         bodyPrefix: 'Если у вас есть вопросы о ваших данных или вы хотите удалить свой аккаунт, обратитесь к нашему куратору данных: ',
-        highlight: 'privacy@artqala.uz',
+        highlight: 'privacy@artqala.com',
         bodySuffix: ' или посетите нашу галерею в медресе Баракхан, Ташкент.',
       },
     ],
@@ -151,7 +151,7 @@ const CONTENT = {
     title: 'Maxfiylik siyosati',
     effectiveDate: "Kuchga kirgan sana: 2026-yil sentyabr · Art Qala galereyasi, Toshkent",
     intro:
-      "Art Qala galereyasi (\"Art Qala\", \"biz\") sizning maxfiyligingizni hurmat qiladi. Ushbu siyosat artqala.uz orqali qanday shaxsiy ma'lumotlarni to'plashimizni, buni nima uchun qilishimizni, kimlar bilan ulashishimizni va sizda qanday tanlov huquqlari borligini tushuntiradi.",
+      "Art Qala galereyasi (\"Art Qala\", \"biz\") sizning maxfiyligingizni hurmat qiladi. Ushbu siyosat artqala.com orqali qanday shaxsiy ma'lumotlarni to'plashimizni, buni nima uchun qilishimizni, kimlar bilan ulashishimizni va sizda qanday tanlov huquqlari borligini tushuntiradi.",
     sections: [
       {
         heading: "1. Biz qanday ma'lumotlarni to'playmiz",
@@ -212,7 +212,7 @@ const CONTENT = {
       {
         heading: "10. Biz bilan bog'lanish",
         bodyPrefix: "Ma'lumotlaringiz yuzasidan savollaringiz bo'lsa yoki hisobingizni o'chirishni so'ramoqchi bo'lsangiz, ma'lumotlar kuratorimizga murojaat qiling: ",
-        highlight: 'privacy@artqala.uz',
+        highlight: 'privacy@artqala.com',
         bodySuffix: " yoki Toshkentdagi Baraxon madrasasidagi galereyamizga tashrif buyuring.",
       },
     ],

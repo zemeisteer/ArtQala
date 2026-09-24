@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     // gallery's own inbox know a message is waiting — previously the only
     // way to find out was to remember to check /admin/messages.
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } }).catch(() => null);
-    const adminEmail = settings?.email || 'info@artqala.uz';
+    const adminEmail = settings?.email || 'info@artqala.com';
     sendContactAcknowledgmentEmail(contactMessage.email, contactMessage.name).catch((err) =>
       console.error('Failed to send contact acknowledgment email:', err)
     );

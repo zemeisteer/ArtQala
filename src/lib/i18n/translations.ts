@@ -79,6 +79,7 @@ export const translations = {
     // Painting details
     painting: {
       backToGallery: '← Back to Gallery',
+      enlarge: 'View full size',
       size: 'Size',
       technique: 'Technique',
       year: 'Year',
@@ -552,6 +553,7 @@ export const translations = {
     // Painting details
     painting: {
       backToGallery: '← Назад в галерею',
+      enlarge: 'Открыть в полном размере',
       size: 'Размер',
       technique: 'Техника',
       year: 'Год',
@@ -1025,6 +1027,7 @@ export const translations = {
     // Painting details
     painting: {
       backToGallery: '← Galereyaga qaytish',
+      enlarge: "To'liq o'lchamda ko'rish",
       size: 'O\'lchami',
       technique: 'Texnikasi',
       year: 'Yaratilgan yili',

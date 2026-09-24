@@ -192,7 +192,7 @@ export default function AdminStaffClient({ initialStaff }: { initialStaff: Staff
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="malika@artqala.uz"
+                  placeholder="malika@artqala.com"
                   className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
                 />
               </div>

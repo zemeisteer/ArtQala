@@ -1,13 +1,21 @@
 /**
  * Shipping cost estimator based on UzPost's official published tariff tables
- * for "distant foreign countries" (Uzoq xorijiy davlatlar), air transport:
+ * (uz.post -> Tariflar, served from new.pochta.uz/api/v1/public/menu-item-pages/<id>/):
+ *   - Domestic (Uzbekistan): posilka = per-piece fee + per-kg fee (page 29),
+ *     EMS = weight-bracket table with delivery (page 64).
+ *   - CIS countries (MDH davlatlari): posilka, air transport — ground-only
+ *     for Turkmenistan (page 38, "2.6. Posilkalar").
+ * And for "distant foreign countries" (Uzoq xorijiy davlatlar), air transport:
  *   - Posilka (standard parcel): flat rate per country for the first kg,
  *     plus a per-kg rate for each additional kg. Source: uz.post/uz/menu/16
  *     -> "Xalqaro xizmatlar (Uzoq xorijiy davlatlar)" -> "3.6. Posilkalar".
  *   - EMS (express): countries are grouped into 6 zones, each zone has its
  *     own weight-bracket price table. Source: same menu -> "EMS: Xalqaro
  *     tezkor pochta" (Posilkalar rows 2.1-2.33).
- * All source figures are in UZS. Fetched and transcribed 2026-09-11.
+ * All source figures are in UZS. Fetched and transcribed 2026-09-11,
+ * re-verified against the live tables 2026-09-24 (EMS zones and brackets
+ * matched; Israel's per-kg posilka rate was corrected, CIS and domestic
+ * tables were added).
  */
 
 export type CountryCode2 = string;
@@ -61,7 +69,7 @@ export const POSILKA_RATES_UZS: Record<CountryCode2, { base: number; perKg: numb
   IR: { base: 497000, perKg: 122000 },
   IN: { base: 333000, perKg: 60000 },
   JO: { base: 305000, perKg: 96000 },
-  IL: { base: 333000, perKg: 103000 },
+  IL: { base: 333000, perKg: 71000 },
   QA: { base: 242000, perKg: 57000 },
   KW: { base: 266000, perKg: 82000 },
   CN: { base: 333000, perKg: 103000 },
@@ -97,7 +105,57 @@ export const POSILKA_RATES_UZS: Record<CountryCode2, { base: number; perKg: numb
   // Australia
   AU: { base: 526000, perKg: 223000 },
   NZ: { base: 540000, perKg: 208000 },
+  // CIS (air transport; Turkmenistan only has a ground rate)
+  AZ: { base: 276000, perKg: 54000 },
+  AM: { base: 374000, perKg: 91000 },
+  BY: { base: 419000, perKg: 96000 },
+  GE: { base: 379000, perKg: 74000 },
+  KZ: { base: 433000, perKg: 94000 },
+  KG: { base: 199000, perKg: 33000 },
+  MD: { base: 427000, perKg: 149000 },
+  RU: { base: 521000, perKg: 114000 },
+  TJ: { base: 196000, perKg: 34000 },
+  TM: { base: 216000, perKg: 47000 },
+  UA: { base: 505000, perKg: 124000 },
 };
+
+const CIS_COUNTRIES = new Set(['AZ', 'AM', 'BY', 'GE', 'KZ', 'KG', 'MD', 'RU', 'TJ', 'TM', 'UA']);
+
+export const DOMESTIC_COUNTRY = 'UZ';
+
+// Domestic posilka (ground, to the post office): per piece + per kg.
+const DOMESTIC_POSILKA_UZS = { perPiece: 15000, perKg: 9000 };
+
+// Domestic EMS with door delivery, "ПОСЫЛКИ" rows 2.1-2.21 (up to 20 kg).
+const DOMESTIC_EMS_BRACKETS_UZS: { maxKg: number; price: number }[] = [
+  { maxKg: 1, price: 54000 },
+  { maxKg: 2, price: 62000 },
+  { maxKg: 3, price: 68000 },
+  { maxKg: 4, price: 75000 },
+  { maxKg: 5, price: 81000 },
+  { maxKg: 6, price: 86000 },
+  { maxKg: 7, price: 93000 },
+  { maxKg: 8, price: 99000 },
+  { maxKg: 9, price: 105000 },
+  { maxKg: 10, price: 110000 },
+  { maxKg: 11, price: 118000 },
+  { maxKg: 12, price: 124000 },
+  { maxKg: 13, price: 130000 },
+  { maxKg: 14, price: 137000 },
+  { maxKg: 15, price: 143000 },
+  { maxKg: 16, price: 155000 },
+  { maxKg: 17, price: 161000 },
+  { maxKg: 18, price: 167000 },
+  { maxKg: 19, price: 174000 },
+  { maxKg: 20, price: 177000 },
+];
+
+// UzPost rounds a partial kilogram *down* when it's at most 100 g over
+// (6.1 kg is charged as 6 kg, 6.11 kg as 7 kg).
+function chargeableKg(weightKg: number): number {
+  const whole = Math.floor(weightKg);
+  return weightKg - whole <= 0.1 + 1e-9 ? Math.max(1, whole) : whole + 1;
+}
 
 // ---- EMS: country -> zone (1-6) ----
 export const EMS_ZONE_BY_COUNTRY: Record<CountryCode2, 1 | 2 | 3 | 4 | 5 | 6> = {
@@ -179,13 +237,20 @@ export interface ShippingEstimate {
 }
 
 function posilkaCostUzs(countryCode: string, weightKg: number): number | null {
+  const kg = chargeableKg(weightKg);
+  if (countryCode === DOMESTIC_COUNTRY) {
+    return DOMESTIC_POSILKA_UZS.perPiece + kg * DOMESTIC_POSILKA_UZS.perKg;
+  }
   const rate = POSILKA_RATES_UZS[countryCode];
   if (!rate) return null;
-  const extraKg = Math.max(0, Math.ceil(weightKg - 1));
-  return rate.base + extraKg * rate.perKg;
+  return rate.base + (kg - 1) * rate.perKg;
 }
 
 function emsCostUzs(countryCode: string, weightKg: number): number | null {
+  if (countryCode === DOMESTIC_COUNTRY) {
+    const bracket = DOMESTIC_EMS_BRACKETS_UZS.find((b) => weightKg <= b.maxKg);
+    return bracket ? bracket.price : null; // over 20 kg: posilka only
+  }
   const zone = EMS_ZONE_BY_COUNTRY[countryCode];
   if (!zone) return null;
   const zoneIdx = zone - 1;
@@ -194,7 +259,7 @@ function emsCostUzs(countryCode: string, weightKg: number): number | null {
     const bracket = EMS_WEIGHT_BRACKETS_UZS.find((b) => weightKg <= b.maxKg) || lastBracket;
     return bracket.zonePrices[zoneIdx];
   }
-  const extraKg = Math.ceil(weightKg - lastBracket.maxKg);
+  const extraKg = chargeableKg(weightKg) - lastBracket.maxKg;
   return lastBracket.zonePrices[zoneIdx] + extraKg * EMS_EXTRA_PER_KG_UZS[zoneIdx];
 }
 
@@ -225,12 +290,15 @@ export function estimateShipping(
 
   const toUsd = (uzs: number) => Math.round(((uzs * SHIPPING_MULTIPLIER) / somPerUsd) * 100) / 100;
 
+  const domestic = countryCode === DOMESTIC_COUNTRY;
+  const cis = CIS_COUNTRIES.has(countryCode);
+
   return {
     posilka: posilkaUzs
-      ? { priceUsd: toUsd(posilkaUzs), estimatedDays: '15-30' }
+      ? { priceUsd: toUsd(posilkaUzs), estimatedDays: domestic ? '3-7' : cis ? '10-20' : '15-30' }
       : null,
     ems: emsUzs
-      ? { priceUsd: toUsd(emsUzs), estimatedDays: '7-15' }
+      ? { priceUsd: toUsd(emsUzs), estimatedDays: domestic ? '1-3' : cis ? '4-8' : '7-15' }
       : null,
   };
 }

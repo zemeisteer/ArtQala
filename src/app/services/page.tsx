@@ -9,7 +9,7 @@ import ServicesClient from './ServicesClient';
 // force-dynamic.
 export const revalidate = 30;
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.uz';
+const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
 const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Services', path: '/services' }], siteUrl);
 
 export const metadata: Metadata = {

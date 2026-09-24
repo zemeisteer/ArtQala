@@ -31,7 +31,7 @@ const workSans = Work_Sans({
 // just on the handful of pages that fetch their own data.
 export const revalidate = 60;
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.uz';
+const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -94,7 +94,7 @@ async function getOrganizationJsonLd() {
       url: siteUrl,
       image: `${siteUrl}/logo.png`,
       telephone: settings?.phone || '+998 66 233 44 55',
-      email: settings?.email || 'info@artqala.uz',
+      email: settings?.email || 'info@artqala.com',
       address: {
         '@type': 'PostalAddress',
         streetAddress: primaryLocation.address,
