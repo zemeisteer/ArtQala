@@ -67,8 +67,22 @@ async function verifyToken(token: string | undefined): Promise<{ role: string } 
   }
 }
 
+// The site now lives at the custom domain, but the original Vercel-assigned
+// hostname keeps working too (Vercel never lets you turn it off) — a 200
+// response there is exactly the "two live copies of the same content" setup
+// that confuses both Google's ranking and its own Change-of-Address tool
+// (which requires an actual redirect, not just a <link rel="canonical">).
+// Redirecting permanently consolidates everything onto the real domain.
+const LEGACY_VERCEL_HOST = 'art-qala.vercel.app';
+
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+
+  const host = request.headers.get('host');
+  if (host === LEGACY_VERCEL_HOST) {
+    const canonicalOrigin = process.env.NEXTAUTH_URL || 'https://artqala.com';
+    return NextResponse.redirect(new URL(`${pathname}${search}`, canonicalOrigin), 308);
+  }
 
   const isAdminApi = pathname.startsWith('/api/admin');
   const isAdminPage = pathname.startsWith('/admin') && pathname !== '/admin/login';
@@ -95,5 +109,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  // Broadened from just /admin/* so the legacy-host redirect above applies
+  // site-wide (e.g. the homepage) — Next's own static assets are excluded
+  // since they never need the domain check or the admin auth check.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
