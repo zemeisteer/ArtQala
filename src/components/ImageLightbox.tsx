@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface ImageLightboxProps {
@@ -52,7 +53,9 @@ export default function ImageLightbox({ images, startIndex, alt, onClose }: Imag
     return `${x}% ${y}%`;
   };
 
-  return (
+  // Portaled to <body> so no ancestor's layout (e.g. a `space-y-*` margin,
+  // or a transform creating a new containing block) can offset the overlay.
+  return createPortal(
     <div
       className="fixed inset-0 z-[200] bg-[#140B07]/55 backdrop-blur-md flex items-center justify-center"
       onClick={onClose}
@@ -142,6 +145,7 @@ export default function ImageLightbox({ images, startIndex, alt, onClose }: Imag
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
