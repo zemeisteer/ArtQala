@@ -60,6 +60,34 @@ export async function POST(request: Request) {
   }
 }
 
+// Edit an existing rule in place — used by the Paintings form, which
+// shows the artist/category rule a painting falls under and lets the admin
+// change its percent or dates without creating a duplicate rule.
+export async function PATCH(request: Request) {
+  const auth = await requireAdmin();
+  if (auth.errorResponse) return auth.errorResponse;
+
+  try {
+    const body = await request.json();
+    const { id, percent, starts_at, ends_at, is_active } = body;
+    if (!id) return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
+
+    const discount = await prisma.discount.update({
+      where: { id },
+      data: {
+        ...(percent !== undefined && { percent: parseFloat(percent) || 0 }),
+        ...(starts_at !== undefined && { starts_at: starts_at ? new Date(starts_at) : null }),
+        ...(ends_at !== undefined && { ends_at: ends_at ? new Date(ends_at) : null }),
+        ...(is_active !== undefined && { is_active: Boolean(is_active) }),
+      },
+    });
+    return NextResponse.json({ success: true, discount });
+  } catch (error) {
+    console.error('Discount update error:', error);
+    return NextResponse.json({ success: false, error: 'Failed to update discount' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: Request) {
   const auth = await requireAdmin();
   if (auth.errorResponse) return auth.errorResponse;

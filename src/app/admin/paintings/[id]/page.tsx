@@ -1,6 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getActiveDiscountRules } from '@/lib/discounts';
 import PaintingForm from '../PaintingForm';
 
 interface PageProps {
@@ -19,14 +20,18 @@ export default async function EditPaintingPage({ params }: PageProps) {
     notFound();
   }
 
-  const artists = await prisma.artist.findMany();
-  const categories = await prisma.category.findMany();
+  const [artists, categories, discountRules] = await Promise.all([
+    prisma.artist.findMany(),
+    prisma.category.findMany(),
+    getActiveDiscountRules(),
+  ]);
 
   return (
     <PaintingForm
       initialData={painting}
       artists={artists}
       categories={categories}
+      discountRules={discountRules}
       isNew={false}
     />
   );

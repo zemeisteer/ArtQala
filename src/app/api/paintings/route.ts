@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getBestsellerPaintingIds, withBestsellerFlag } from '@/lib/bestseller';
+import { applyDiscountRules, getActiveDiscountRules } from '@/lib/discounts';
 
 export async function GET(request: Request) {
   try {
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
       ];
     }
 
-    const [paintings, bestsellerIds] = await Promise.all([
+    const [paintings, bestsellerIds, rules] = await Promise.all([
       prisma.painting.findMany({
         where,
         include: {
@@ -38,9 +39,13 @@ export async function GET(request: Request) {
         orderBy: { created_at: 'desc' },
       }),
       getBestsellerPaintingIds(),
+      getActiveDiscountRules(),
     ]);
 
-    return NextResponse.json({ success: true, paintings: withBestsellerFlag(paintings, bestsellerIds) });
+    return NextResponse.json({
+      success: true,
+      paintings: withBestsellerFlag(applyDiscountRules(paintings, rules), bestsellerIds),
+    });
   } catch (error) {
     console.error('API paintings error:', error);
     return NextResponse.json(
