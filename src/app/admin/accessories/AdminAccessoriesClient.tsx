@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Gem, Plus, Trash2, Pencil, X, Check, Languages } from 'lucide-react';
+import { Gem, Plus, Trash2, Pencil, X, Check } from 'lucide-react';
+import TranslateStatus from '@/components/TranslateStatus';
+import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
 
 interface Accessory {
   id: string;
@@ -72,42 +74,27 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [translating, setTranslating] = useState(false);
 
-  // Typing in UZ and blurring auto-fills EN/RU via Gemini — mirrors the same
-  // pattern in the Paintings form. Never overwrites a field the admin has
-  // already typed something into.
-  const autoTranslateName = async (text: string) => {
-    if (!text.trim()) return;
-    setTranslating(true);
-    try {
-      const res = await fetch('/api/admin/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, sourceLang: 'uz' }),
-      });
-      const data = await res.json();
-      if (data.success && data.translations) {
-        setForm((prev) => ({
-          ...prev,
-          name_en: prev.name_en.trim() ? prev.name_en : data.translations.en || prev.name_en,
-          name_ru: prev.name_ru.trim() ? prev.name_ru : data.translations.ru || prev.name_ru,
-        }));
-      }
-    } catch {
-      // Silent failure — auto-translation is a convenience, not required to save.
-    } finally {
-      setTranslating(false);
-    }
+  // Edit the name in any language — the other two are translated from it
+  // (see src/lib/useAutoTranslate.ts).
+  const tr = useAutoTranslate();
+  const setName = (lang: 'uz' | 'en' | 'ru') => (value: string) =>
+    setForm((prev) => ({ ...prev, [`name_${lang}`]: value }));
+  const nameFields = {
+    uz: [form.name_uz, setName('uz')] as const,
+    en: [form.name_en, setName('en')] as const,
+    ru: [form.name_ru, setName('ru')] as const,
   };
 
   const openAddModal = () => {
+    tr.reset();
     setEditingId(null);
     setForm(emptyForm);
     setShowModal(true);
   };
 
   const openEditModal = (a: Accessory) => {
+    tr.reset();
     setEditingId(a.id);
     setForm({
       name_en: a.name_en,
@@ -137,10 +124,18 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
     try {
       const url = editingId ? `/api/admin/accessories/${editingId}` : '/api/admin/accessories';
       const method = editingId ? 'PUT' : 'POST';
+      // Safety net if saved before the blur translation finished.
+      const names = await fillMissingTranslations({ uz: form.name_uz, en: form.name_en, ru: form.name_ru });
+      const firstName = names.uz || names.en || names.ru;
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          name_uz: names.uz || firstName,
+          name_en: names.en || firstName,
+          name_ru: names.ru || firstName,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -273,13 +268,16 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#6B5E55] mb-1">Nomi (UZ) *</label>
+                  <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#6B5E55] mb-1">
+                    Nomi (UZ)
+                    <TranslateStatus translating={tr.translatingGroup === 'name'} canUndo={tr.canUndo('name')} onUndo={() => tr.undo('name')} />
+                  </label>
                   <input
                     type="text"
-                    required
+                    required={!form.name_uz.trim() && !form.name_en.trim() && !form.name_ru.trim()}
                     value={form.name_uz}
+                    {...tr.bind('name', 'uz', nameFields)}
                     onChange={(e) => setForm({ ...form, name_uz: e.target.value })}
-                    onBlur={(e) => autoTranslateName(e.target.value)}
                     placeholder="Himoya futlyari"
                     className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
                   />
@@ -287,11 +285,11 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
                 <div>
                   <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#6B5E55] mb-1">
                     Nomi (EN)
-                    {translating && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
                   </label>
                   <input
                     type="text"
                     value={form.name_en}
+                    {...tr.bind('name', 'en', nameFields)}
                     onChange={(e) => setForm({ ...form, name_en: e.target.value })}
                     placeholder="Protective Case"
                     className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
@@ -300,11 +298,11 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
                 <div>
                   <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#6B5E55] mb-1">
                     Nomi (RU)
-                    {translating && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
                   </label>
                   <input
                     type="text"
                     value={form.name_ru}
+                    {...tr.bind('name', 'ru', nameFields)}
                     onChange={(e) => setForm({ ...form, name_ru: e.target.value })}
                     placeholder="Защитный чехол"
                     className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"

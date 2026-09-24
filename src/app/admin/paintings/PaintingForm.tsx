@@ -8,31 +8,50 @@ import {
   ArrowLeft,
   Save,
   Upload,
-  Check,
-  AlertCircle,
   Plus,
   X,
   Loader2,
   Trash2,
   Sparkles,
-  Languages,
 } from 'lucide-react';
 import AiBackgroundModal from './AiBackgroundModal';
 import ImageCropModal from './ImageCropModal';
 import FilterSelect from '@/components/FilterSelect';
 import DatePicker from '@/components/DatePicker';
+import type { DiscountRule } from '@/lib/discounts';
+import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
+import TranslateStatus from '@/components/TranslateStatus';
 
 interface PaintingFormProps {
   initialData?: any;
   artists: any[];
   categories: any[];
+  // Active ARTIST/CATEGORY rules (src/lib/discounts.ts) — so the form can
+  // show which rule a painting already falls under instead of a blank field.
+  discountRules?: DiscountRule[];
   isNew?: boolean;
 }
+
+// Numeric fields are kept as strings while editing: a controlled
+// <input type="number"> bound to a number state keeps a typed leading zero
+// ("035") and lets letters like "e" through. These strip everything but
+// digits (and one decimal point where allowed) and drop leading zeros.
+const digitsOnly = (raw: string) => raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+const decimalOnly = (raw: string) => {
+  const cleaned = raw.replace(/[^\d.]/g, '');
+  const [whole, ...rest] = cleaned.split('.');
+  const intPart = whole.replace(/^0+(?=\d)/, '');
+  return rest.length ? `${intPart || '0'}.${rest.join('').slice(0, 2)}` : intPart;
+};
+
+const toDateInput = (d?: string | Date | null) =>
+  d ? new Date(d).toISOString().split('T')[0] : '';
 
 export default function PaintingForm({
   initialData,
   artists: initialArtists,
   categories: initialCategories,
+  discountRules = [],
   isNew = false,
 }: PaintingFormProps) {
   const router = useRouter();
@@ -66,18 +85,16 @@ export default function PaintingForm({
   };
 
   const initialParsedSize = parseSize(initialData?.size);
-  const [sizeWidth, setSizeWidth] = useState<number>(initialParsedSize.width);
-  const [sizeHeight, setSizeHeight] = useState<number>(initialParsedSize.height);
+  const [sizeWidth, setSizeWidth] = useState<string>(String(initialParsedSize.width));
+  const [sizeHeight, setSizeHeight] = useState<string>(String(initialParsedSize.height));
   const [sizeUnit, setSizeUnit] = useState<string>(initialParsedSize.unit);
 
-  // Empty by default (not pre-filled with the "Oil on canvas" example) so
-  // autoTranslate's "don't overwrite a field the admin already filled in"
-  // check doesn't mistake the placeholder text for a real answer and skip
-  // translating technique into EN/RU.
+  // Empty by default (not pre-filled with the "Oil on canvas" example) so a
+  // placeholder is never mistaken for real text by the auto-translation.
   const [techniqueUz, setTechniqueUz] = useState(initialData?.technique_uz || '');
   const [techniqueEn, setTechniqueEn] = useState(initialData?.technique_en || '');
   const [techniqueRu, setTechniqueRu] = useState(initialData?.technique_ru || '');
-  const [year, setYear] = useState(initialData?.year || 2024);
+  const [year, setYear] = useState<string>(String(initialData?.year || new Date().getFullYear()));
   const [artistId, setArtistId] = useState(initialData?.artist_id || initialArtists[0]?.id || '');
 
   // Category is picked in two steps — ota (product type) then bola (subject)
@@ -109,19 +126,54 @@ export default function PaintingForm({
   const [aiEditIndex, setAiEditIndex] = useState<number | null>(null);
 
   // Pricing
-  const [price, setPrice] = useState(initialData?.price || 420);
-  const [discountPercent, setDiscountPercent] = useState('15%');
-  const [discountStarts, setDiscountStarts] = useState(
-    initialData?.discount_starts_at
-      ? new Date(initialData.discount_starts_at).toISOString().split('T')[0]
-      : '2026-09-10'
+  const [price, setPrice] = useState<string>(initialData?.price ? String(initialData.price) : '');
+
+  // Which discount the painting currently gets, most specific first — its
+  // own discount_price, else an active artist rule, else a category rule
+  // (on its leaf category or the parent product type). New paintings start
+  // with no discount at all rather than a silent default percent.
+  const findRule = (scope: 'ARTIST' | 'CATEGORY', artist: string, catId: string, topId: string) =>
+    discountRules.find(
+      (r) =>
+        r.scope === scope &&
+        (scope === 'ARTIST' ? r.target_id === artist : r.target_id === catId || r.target_id === topId)
+    ) || null;
+
+  const initialDiscount = (() => {
+    const p = initialData?.price;
+    const dp = initialData?.discount_price;
+    if (p && dp && dp < p) {
+      return {
+        scope: 'PAINTING' as const,
+        percent: String(Math.round((1 - dp / p) * 100)),
+        starts: toDateInput(initialData?.discount_starts_at),
+        ends: toDateInput(initialData?.discount_ends_at),
+      };
+    }
+    const initialArtistId = initialData?.artist_id || initialArtists[0]?.id || '';
+    const initialCatId = initialData?.category_id || initialCategories[0]?.id || '';
+    const initialCat: any = initialCategories.find((c: any) => c.id === initialCatId);
+    const initialTopId = initialCat?.parent_id || initialCat?.id || '';
+    const rule =
+      findRule('ARTIST', initialArtistId, initialCatId, initialTopId) ||
+      findRule('CATEGORY', initialArtistId, initialCatId, initialTopId);
+    if (rule) {
+      return {
+        scope: rule.scope as 'ARTIST' | 'CATEGORY',
+        percent: String(rule.percent),
+        starts: toDateInput(rule.starts_at),
+        ends: toDateInput(rule.ends_at),
+      };
+    }
+    return { scope: 'PAINTING' as const, percent: '', starts: '', ends: '' };
+  })();
+
+  const [discountPercent, setDiscountPercent] = useState<string>(initialDiscount.percent);
+  const [discountStarts, setDiscountStarts] = useState(initialDiscount.starts);
+  const [discountEnds, setDiscountEnds] = useState(initialDiscount.ends);
+  const [discountScope, setDiscountScope] = useState<'PAINTING' | 'ARTIST' | 'CATEGORY'>(
+    initialDiscount.scope
   );
-  const [discountEnds, setDiscountEnds] = useState(
-    initialData?.discount_ends_at
-      ? new Date(initialData.discount_ends_at).toISOString().split('T')[0]
-      : '2026-09-20'
-  );
-  const [discountScope, setDiscountScope] = useState<'PAINTING' | 'ARTIST' | 'CATEGORY'>('PAINTING');
 
   // Toggles
   const [isSold, setIsSold] = useState(initialData?.is_sold || false);
@@ -157,10 +209,10 @@ export default function PaintingForm({
     () => topLevelCategoryOptions.find((c: any) => c.slug === 'kartina')?.id || ''
   );
 
-  // Auto-translation: typing in UZ or RU auto-fills the other two languages
-  // (via Gemini) for whichever field group was just edited. Never overwrites
-  // a field the admin has already filled in.
-  const [translatingGroup, setTranslatingGroup] = useState<string | null>(null);
+  // Auto-translation: whichever language the admin edits (UZ, RU or EN)
+  // becomes the source and the other two are re-translated from it — see
+  // src/lib/useAutoTranslate.ts for the overwrite rules.
+  const tr = useAutoTranslate();
 
   const fieldGroups = {
     title: {
@@ -197,38 +249,6 @@ export default function PaintingForm({
     },
   };
 
-  const autoTranslate = async (
-    group: keyof typeof fieldGroups,
-    sourceLang: 'uz' | 'ru',
-    text: string
-  ) => {
-    if (!text.trim()) return;
-    const groupFields = fieldGroups[group];
-    setTranslatingGroup(group);
-    try {
-      const res = await fetch('/api/admin/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, sourceLang }),
-      });
-      const data = await res.json();
-      if (data.success && data.translations) {
-        (['uz', 'ru', 'en'] as const).forEach((lang) => {
-          if (lang === sourceLang) return;
-          const value = data.translations[lang];
-          const [currentValue, setValue] = groupFields[lang];
-          if (value && !currentValue.trim()) {
-            setValue(value);
-          }
-        });
-      }
-    } catch {
-      // Silent failure — auto-translation is a convenience, not required to save the form.
-    } finally {
-      setTranslatingGroup(null);
-    }
-  };
-
   const slugify = (text: string): string => {
     return text
       .toLowerCase()
@@ -240,9 +260,70 @@ export default function PaintingForm({
   };
 
   // Calculate live preview
-  const numPercent = parseFloat(discountPercent.replace('%', '')) || 0;
+  const numPrice = parseFloat(price) || 0;
+  const numPercent = Math.min(parseFloat(discountPercent) || 0, 90);
   const calculatedDiscountPrice =
-    numPercent > 0 ? Math.round(price * (1 - numPercent / 100)) : null;
+    numPercent > 0 && numPrice > 0 ? Math.round(numPrice * (1 - numPercent / 100)) : null;
+
+  // The rule the currently selected scope points at (if any) — switching
+  // the scope pill re-reads its percent and dates so the form always shows
+  // what's actually saved for that target.
+  const activeRuleFor = (scope: 'PAINTING' | 'ARTIST' | 'CATEGORY') =>
+    scope === 'PAINTING' ? null : findRule(scope, artistId, categoryId, topCategoryId);
+
+  const selectScope = (scope: 'PAINTING' | 'ARTIST' | 'CATEGORY') => {
+    setDiscountScope(scope);
+    if (scope === 'PAINTING') {
+      const own = initialDiscount.scope === 'PAINTING' ? initialDiscount : null;
+      setDiscountPercent(own?.percent || '');
+      setDiscountStarts(own?.starts || '');
+      setDiscountEnds(own?.ends || '');
+      return;
+    }
+    const rule = activeRuleFor(scope);
+    setDiscountPercent(rule ? String(rule.percent) : '');
+    setDiscountStarts(toDateInput(rule?.starts_at));
+    setDiscountEnds(toDateInput(rule?.ends_at));
+  };
+
+  // Picking another artist/category while an artist/category scope is
+  // selected must show *that* target's rule, not the previous one's —
+  // adjusted during render (React's "reset state on prop change" pattern)
+  // rather than in an effect, so there's no stale intermediate render.
+  const scopeTargetKey = `${artistId}|${topCategoryId}|${categoryId}`;
+  const [prevScopeTargetKey, setPrevScopeTargetKey] = useState(scopeTargetKey);
+  if (prevScopeTargetKey !== scopeTargetKey) {
+    setPrevScopeTargetKey(scopeTargetKey);
+    if (discountScope !== 'PAINTING') selectScope(discountScope);
+  }
+
+  // Saves an ARTIST/CATEGORY rule: updates the existing one for that
+  // target, creates it if there is none, or removes it when the percent is
+  // cleared. Throws on failure so the painting save reports it.
+  const saveScopeRule = async () => {
+    if (discountScope === 'PAINTING') return;
+    const targetId = discountScope === 'ARTIST' ? artistId : topCategoryId;
+    const existing = activeRuleFor(discountScope);
+    const dates = { starts_at: discountStarts || null, ends_at: discountEnds || null };
+
+    let res: Response | null = null;
+    if (existing && numPercent <= 0) {
+      res = await fetch(`/api/admin/discounts?id=${existing.id}`, { method: 'DELETE' });
+    } else if (existing) {
+      res = await fetch('/api/admin/discounts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: existing.id, percent: numPercent, ...dates }),
+      });
+    } else if (numPercent > 0 && targetId) {
+      res = await fetch('/api/admin/discounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: discountScope, target_id: targetId, percent: numPercent, ...dates }),
+      });
+    }
+    if (res && !res.ok) throw new Error('discount rule save failed');
+  };
 
   // Actually POSTs a file (original or cropped) to the upload API.
   const uploadFile = async (fileToUpload: File) => {
@@ -364,31 +445,49 @@ export default function PaintingForm({
     setMessage('');
 
     const formattedSize = `${sizeWidth} × ${sizeHeight} ${sizeUnit}`;
+    const ownDiscount = discountScope === 'PAINTING';
+
+    const [title, description, technique] = await Promise.all([
+      fillMissingTranslations({ uz: titleUz, ru: titleRu, en: titleEn }),
+      fillMissingTranslations({ uz: descriptionUz, ru: descriptionRu, en: descriptionEn }),
+      fillMissingTranslations({ uz: techniqueUz, ru: techniqueRu, en: techniqueEn }),
+    ]);
+    const firstFilled = (v: Record<string, string>) => v.uz || v.en || v.ru || '';
 
     const payload = {
-      title_uz: titleUz || titleEn,
-      title_en: titleEn || titleUz,
-      title_ru: titleRu || titleUz || titleEn,
-      description_uz: descriptionUz,
-      description_en: descriptionEn || descriptionUz,
-      description_ru: descriptionRu || descriptionUz,
+      title_uz: title.uz || firstFilled(title),
+      title_en: title.en || firstFilled(title),
+      title_ru: title.ru || firstFilled(title),
+      description_uz: description.uz || firstFilled(description),
+      description_en: description.en || firstFilled(description),
+      description_ru: description.ru || firstFilled(description),
       size: formattedSize,
-      technique_uz: techniqueUz || techniqueEn,
-      technique_en: techniqueEn || techniqueUz,
-      technique_ru: techniqueRu || techniqueUz || techniqueEn,
-      year: parseInt(String(year)),
+      technique_uz: technique.uz || firstFilled(technique),
+      technique_en: technique.en || firstFilled(technique),
+      technique_ru: technique.ru || firstFilled(technique),
+      year: parseInt(year) || new Date().getFullYear(),
       artist_id: artistId,
       category_id: categoryId,
-      price: parseFloat(String(price)),
-      discount_price: calculatedDiscountPrice,
-      discount_starts_at: discountStarts ? new Date(discountStarts) : null,
-      discount_ends_at: discountEnds ? new Date(discountEnds) : null,
+      price: numPrice,
+      // An artist/category rule applies on its own at read time — the
+      // painting's own discount is cleared so it doesn't override the rule.
+      discount_price: ownDiscount ? calculatedDiscountPrice : null,
+      discount_starts_at: ownDiscount && calculatedDiscountPrice && discountStarts ? new Date(discountStarts) : null,
+      discount_ends_at: ownDiscount && calculatedDiscountPrice && discountEnds ? new Date(discountEnds) : null,
       is_sold: isSold,
       is_featured: isFeatured,
       images: JSON.stringify(images.length > 0 ? images : ['/assets/p-arch.svg']),
     };
 
     try {
+      try {
+        await saveScopeRule();
+      } catch {
+        setMessage('Chegirma qoidasini saqlashda xatolik yuz berdi.');
+        setLoading(false);
+        return;
+      }
+
       const url = isNew ? '/api/admin/paintings' : `/api/admin/paintings/${initialData.id}`;
       const method = isNew ? 'POST' : 'PUT';
 
@@ -490,35 +589,41 @@ export default function PaintingForm({
           <div className="lg:col-span-8 space-y-6">
             {/* Details Panel */}
             <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 space-y-4">
-              <h3 className="text-xs font-bold tracking-wider text-[#BA4E25] uppercase">
-                ASOSIY MA'LUMOTLAR
-              </h3>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-xs font-bold tracking-wider text-[#BA4E25] uppercase">
+                  ASOSIY MA'LUMOTLAR
+                </h3>
+                <span className="text-[10.5px] text-[#8F7E73]">
+                  Istalgan bitta tilda yozing — qolgan ikkitasi avtomatik tarjima qilinadi
+                </span>
+              </div>
 
               {/* Sarlavhalar (3 tilda) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
-                    SARLAVHA (UZ) *
-                    {translatingGroup === 'title' && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                    SARLAVHA (UZ)
+                    <TranslateStatus translating={tr.translatingGroup === 'title'} canUndo={tr.canUndo('title')} onUndo={() => tr.undo('title')} />
                   </label>
                   <input
                     type="text"
-                    required
+                    // Any one language is enough — the other two are translated from it.
+                    required={!titleUz.trim() && !titleEn.trim() && !titleRu.trim()}
                     value={titleUz}
+                    {...tr.bind('title', 'uz', fieldGroups.title)}
                     onChange={(e) => setTitleUz(e.target.value)}
-                    onBlur={(e) => autoTranslate('title', 'uz', e.target.value)}
                     placeholder="Registon shafaq paytida"
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
-                    SARLAVHA (EN) *
+                    SARLAVHA (EN)
                   </label>
                   <input
                     type="text"
-                    required
                     value={titleEn}
+                    {...tr.bind('title', 'en', fieldGroups.title)}
                     onChange={(e) => setTitleEn(e.target.value)}
                     placeholder="Registon at Dusk"
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
@@ -531,8 +636,8 @@ export default function PaintingForm({
                   <input
                     type="text"
                     value={titleRu}
+                    {...tr.bind('title', 'ru', fieldGroups.title)}
                     onChange={(e) => setTitleRu(e.target.value)}
-                    onBlur={(e) => autoTranslate('title', 'ru', e.target.value)}
                     placeholder="Регистан на закате"
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
                   />
@@ -544,13 +649,13 @@ export default function PaintingForm({
                 <div>
                   <label className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
                     TAVSIF (UZ)
-                    {translatingGroup === 'description' && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                    <TranslateStatus translating={tr.translatingGroup === 'description'} canUndo={tr.canUndo('description')} onUndo={() => tr.undo('description')} />
                   </label>
                   <textarea
                     rows={3}
                     value={descriptionUz}
+                    {...tr.bind('description', 'uz', fieldGroups.description)}
                     onChange={(e) => setDescriptionUz(e.target.value)}
-                    onBlur={(e) => autoTranslate('description', 'uz', e.target.value)}
                     placeholder="San'at asari haqida ma'lumot (O'zbekcha)..."
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25] resize-none"
                   />
@@ -562,6 +667,7 @@ export default function PaintingForm({
                   <textarea
                     rows={3}
                     value={descriptionEn}
+                    {...tr.bind('description', 'en', fieldGroups.description)}
                     onChange={(e) => setDescriptionEn(e.target.value)}
                     placeholder="Artwork description in English..."
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25] resize-none"
@@ -574,8 +680,8 @@ export default function PaintingForm({
                   <textarea
                     rows={3}
                     value={descriptionRu}
+                    {...tr.bind('description', 'ru', fieldGroups.description)}
                     onChange={(e) => setDescriptionRu(e.target.value)}
-                    onBlur={(e) => autoTranslate('description', 'ru', e.target.value)}
                     placeholder="Описание картины на русском..."
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25] resize-none"
                   />
@@ -587,13 +693,13 @@ export default function PaintingForm({
                 <div>
                   <label className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
                     TEXNIKA (UZ)
-                    {translatingGroup === 'technique' && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                    <TranslateStatus translating={tr.translatingGroup === 'technique'} canUndo={tr.canUndo('technique')} onUndo={() => tr.undo('technique')} />
                   </label>
                   <input
                     type="text"
                     value={techniqueUz}
+                    {...tr.bind('technique', 'uz', fieldGroups.technique)}
                     onChange={(e) => setTechniqueUz(e.target.value)}
-                    onBlur={(e) => autoTranslate('technique', 'uz', e.target.value)}
                     placeholder="Moybo'yoq, polotno"
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
                   />
@@ -605,6 +711,7 @@ export default function PaintingForm({
                   <input
                     type="text"
                     value={techniqueEn}
+                    {...tr.bind('technique', 'en', fieldGroups.technique)}
                     onChange={(e) => setTechniqueEn(e.target.value)}
                     placeholder="Oil on canvas"
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
@@ -617,8 +724,8 @@ export default function PaintingForm({
                   <input
                     type="text"
                     value={techniqueRu}
+                    {...tr.bind('technique', 'ru', fieldGroups.technique)}
                     onChange={(e) => setTechniqueRu(e.target.value)}
-                    onBlur={(e) => autoTranslate('technique', 'ru', e.target.value)}
                     placeholder="Холст, масло"
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
                   />
@@ -634,21 +741,21 @@ export default function PaintingForm({
                   </label>
                   <div className="flex items-center gap-1.5 bg-white border border-[#E7E0D8] rounded-[3px] px-2 py-1">
                     <input
-                      type="number"
-                      min="1"
+                      type="text"
+                      inputMode="numeric"
                       required
                       value={sizeWidth}
-                      onChange={(e) => setSizeWidth(parseInt(e.target.value) || 0)}
+                      onChange={(e) => setSizeWidth(digitsOnly(e.target.value))}
                       placeholder="60"
                       className="w-14 text-xs font-semibold text-center focus:outline-none"
                     />
                     <span className="text-[#8F7E73] text-xs font-bold">×</span>
                     <input
-                      type="number"
-                      min="1"
+                      type="text"
+                      inputMode="numeric"
                       required
                       value={sizeHeight}
-                      onChange={(e) => setSizeHeight(parseInt(e.target.value) || 0)}
+                      onChange={(e) => setSizeHeight(digitsOnly(e.target.value))}
                       placeholder="80"
                       className="w-14 text-xs font-semibold text-center focus:outline-none"
                     />
@@ -673,9 +780,11 @@ export default function PaintingForm({
                     YIL
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
                     value={year}
-                    onChange={(e) => setYear(parseInt(e.target.value) || 2024)}
+                    onChange={(e) => setYear(digitsOnly(e.target.value).slice(0, 4))}
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
                   />
                 </div>
@@ -794,7 +903,8 @@ export default function PaintingForm({
                         src={img}
                         alt="Painting asset"
                         fill
-                        className="object-cover"
+                        sizes="200px"
+                        className="object-contain p-1"
                       />
                       {idx === 0 && (
                         <span className="absolute top-1 left-1 bg-[#BA4E25] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
@@ -867,10 +977,11 @@ export default function PaintingForm({
                   ASOSIY NARX (USD) *
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   required
                   value={price}
-                  onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setPrice(decimalOnly(e.target.value))}
                   placeholder="420"
                   className="w-full text-xs px-3.5 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
                 />
@@ -892,7 +1003,7 @@ export default function PaintingForm({
                     <button
                       key={s.id}
                       type="button"
-                      onClick={() => setDiscountScope(s.id)}
+                      onClick={() => selectScope(s.id)}
                       className={`text-[10px] font-semibold py-1.5 rounded-[2px] transition-all cursor-pointer ${
                         discountScope === s.id
                           ? 'bg-white text-[#BA4E25] shadow-xs'
@@ -903,6 +1014,14 @@ export default function PaintingForm({
                     </button>
                   ))}
                 </div>
+                {discountScope !== 'PAINTING' && (
+                  <p className="text-[10px] text-[#8F7E73] mt-1.5 leading-snug">
+                    {discountScope === 'ARTIST'
+                      ? `Bu chegirma ${artistsList.find((a: any) => a.id === artistId)?.name || 'tanlangan rassom'}ning barcha kartinalariga qo'llanadi`
+                      : `Bu chegirma "${categoriesList.find((c: any) => c.id === topCategoryId)?.name_uz || 'tanlangan'}" kategoriyasidagi barcha kartinalarga qo'llanadi`}
+                    {activeRuleFor(discountScope) ? ' (mavjud qoida tahrirlanadi).' : '.'} Foizni o'chirsangiz, qoida bekor qilinadi.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -912,9 +1031,10 @@ export default function PaintingForm({
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     value={discountPercent}
-                    onChange={(e) => setDiscountPercent(e.target.value)}
-                    placeholder="15%"
+                    onChange={(e) => setDiscountPercent(digitsOnly(e.target.value).slice(0, 2))}
+                    placeholder="0"
                     className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
                   />
                 </div>
@@ -924,7 +1044,7 @@ export default function PaintingForm({
                     YAKUNIY NARX
                   </label>
                   <div className="text-sm font-bold text-[#BA4E25] py-2">
-                    ${calculatedDiscountPrice || price}
+                    ${calculatedDiscountPrice ?? numPrice}
                   </div>
                 </div>
               </div>
@@ -1051,8 +1171,8 @@ export default function PaintingForm({
                   <input
                     type="text"
                     value={newArtistSpecialtyUz}
+                    {...tr.bind('newArtistSpecialty', 'uz', fieldGroups.newArtistSpecialty)}
                     onChange={(e) => setNewArtistSpecialtyUz(e.target.value)}
-                    onBlur={(e) => autoTranslate('newArtistSpecialty', 'uz', e.target.value)}
                     placeholder="Miniatyura ustasi"
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
                   />
@@ -1060,11 +1180,12 @@ export default function PaintingForm({
                 <div>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-[#6B5E55] mb-1">
                     Mutaxassisligi (EN)
-                    {translatingGroup === 'newArtistSpecialty' && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                    <TranslateStatus translating={tr.translatingGroup === 'newArtistSpecialty'} canUndo={tr.canUndo('newArtistSpecialty')} onUndo={() => tr.undo('newArtistSpecialty')} />
                   </label>
                   <input
                     type="text"
                     value={newArtistSpecialtyEn}
+                    {...tr.bind('newArtistSpecialty', 'en', fieldGroups.newArtistSpecialty)}
                     onChange={(e) => setNewArtistSpecialtyEn(e.target.value)}
                     placeholder="Miniature Artist"
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
@@ -1077,6 +1198,7 @@ export default function PaintingForm({
                   <input
                     type="text"
                     value={newArtistSpecialtyRu}
+                    {...tr.bind('newArtistSpecialty', 'ru', fieldGroups.newArtistSpecialty)}
                     onChange={(e) => setNewArtistSpecialtyRu(e.target.value)}
                     placeholder="Мастер миниатюры"
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
@@ -1092,8 +1214,8 @@ export default function PaintingForm({
                   <textarea
                     rows={2}
                     value={newArtistBioUz}
+                    {...tr.bind('newArtistBio', 'uz', fieldGroups.newArtistBio)}
                     onChange={(e) => setNewArtistBioUz(e.target.value)}
-                    onBlur={(e) => autoTranslate('newArtistBio', 'uz', e.target.value)}
                     placeholder="Rassom ijodi haqida o'zbekcha..."
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25] resize-none"
                   />
@@ -1101,11 +1223,12 @@ export default function PaintingForm({
                 <div>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-[#6B5E55] mb-1">
                     Tarjimai Hol (Bio - EN)
-                    {translatingGroup === 'newArtistBio' && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                    <TranslateStatus translating={tr.translatingGroup === 'newArtistBio'} canUndo={tr.canUndo('newArtistBio')} onUndo={() => tr.undo('newArtistBio')} />
                   </label>
                   <textarea
                     rows={2}
                     value={newArtistBioEn}
+                    {...tr.bind('newArtistBio', 'en', fieldGroups.newArtistBio)}
                     onChange={(e) => setNewArtistBioEn(e.target.value)}
                     placeholder="Artist bio in English..."
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25] resize-none"
@@ -1118,6 +1241,7 @@ export default function PaintingForm({
                   <textarea
                     rows={2}
                     value={newArtistBioRu}
+                    {...tr.bind('newArtistBio', 'ru', fieldGroups.newArtistBio)}
                     onChange={(e) => setNewArtistBioRu(e.target.value)}
                     placeholder="Биография на русском..."
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25] resize-none"
@@ -1172,6 +1296,7 @@ export default function PaintingForm({
                   type="text"
                   required
                   value={newCategoryNameUz}
+                  {...tr.bind('newCategoryName', 'uz', fieldGroups.newCategoryName)}
                   onChange={(e) => {
                     const val = e.target.value;
                     setNewCategoryNameUz(val);
@@ -1179,7 +1304,6 @@ export default function PaintingForm({
                       setNewCategorySlug(slugify(val));
                     }
                   }}
-                  onBlur={(e) => autoTranslate('newCategoryName', 'uz', e.target.value)}
                   placeholder="Ipak yo'li manzaralari"
                   className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
                 />
@@ -1188,11 +1312,12 @@ export default function PaintingForm({
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-bold text-[#6B5E55] mb-1">
                   Kategoriya Nomi (Inglizcha - EN)
-                  {translatingGroup === 'newCategoryName' && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                  <TranslateStatus translating={tr.translatingGroup === 'newCategoryName'} canUndo={tr.canUndo('newCategoryName')} onUndo={() => tr.undo('newCategoryName')} />
                 </label>
                 <input
                   type="text"
                   value={newCategoryNameEn}
+                  {...tr.bind('newCategoryName', 'en', fieldGroups.newCategoryName)}
                   onChange={(e) => setNewCategoryNameEn(e.target.value)}
                   placeholder="Silk Road Landscapes"
                   className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
@@ -1206,6 +1331,7 @@ export default function PaintingForm({
                 <input
                   type="text"
                   value={newCategoryNameRu}
+                  {...tr.bind('newCategoryName', 'ru', fieldGroups.newCategoryName)}
                   onChange={(e) => setNewCategoryNameRu(e.target.value)}
                   placeholder="Пейзажи Шелкового пути"
                   className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"

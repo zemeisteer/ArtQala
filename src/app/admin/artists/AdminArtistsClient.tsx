@@ -3,9 +3,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Trash2, Pencil, X, Loader2, Upload, Languages } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, Loader2, Upload } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
 import Pagination from '@/components/Pagination';
+import TranslateStatus from '@/components/TranslateStatus';
+import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
 
 const PAGE_SIZE = 15;
 
@@ -68,7 +70,9 @@ export default function AdminArtistsClient({
   const [categoryId, setCategoryId] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [translatingGroup, setTranslatingGroup] = useState<string | null>(null);
+  // Edit any language — the other two are translated from it (see
+  // src/lib/useAutoTranslate.ts).
+  const tr = useAutoTranslate();
 
   const fieldGroups = {
     specialty: {
@@ -83,45 +87,8 @@ export default function AdminArtistsClient({
     },
   };
 
-  // Returns the raw translation (or null on failure) without touching state
-  // — used both by the live onBlur handler below and by handleSave, which
-  // needs the result synchronously rather than waiting on a state update.
-  const translateText = async (text: string): Promise<{ en?: string; ru?: string } | null> => {
-    if (!text.trim()) return null;
-    try {
-      const res = await fetch('/api/admin/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, sourceLang: 'uz' }),
-      });
-      const data = await res.json();
-      return data.success && data.translations ? data.translations : null;
-    } catch {
-      return null;
-    }
-  };
-
-  // Typing in UZ and blurring auto-fills EN/RU via Gemini — same pattern as
-  // the Paintings form. Never overwrites a field the admin already filled in.
-  const autoTranslate = async (group: keyof typeof fieldGroups, text: string) => {
-    if (!text.trim()) return;
-    const groupFields = fieldGroups[group];
-    setTranslatingGroup(group);
-    try {
-      const translations = await translateText(text);
-      if (translations) {
-        (['en', 'ru'] as const).forEach((lang) => {
-          const value = translations[lang];
-          const [currentValue, setValue] = groupFields[lang];
-          if (value && !currentValue.trim()) setValue(value);
-        });
-      }
-    } finally {
-      setTranslatingGroup(null);
-    }
-  };
-
   const openCreateModal = () => {
+    tr.reset();
     setEditingArtist(null);
     setName('');
     setSpecialtyUz('');
@@ -136,6 +103,7 @@ export default function AdminArtistsClient({
   };
 
   const openEditModal = (artist: ArtistItem) => {
+    tr.reset();
     setEditingArtist(artist);
     setName(artist.name);
     const uzSpecialty = artist.specialty_uz || artist.specialty_en || '';
@@ -188,39 +156,22 @@ export default function AdminArtistsClient({
 
     setLoading(true);
     try {
-      // If the admin filled in UZ and submitted before onBlur's translation
-      // finished (or it simply never fired), give it one real attempt here
-      // instead of silently saving the Uzbek text as if it were EN/RU — a
-      // gallery visitor reading the site in English/Russian should never
-      // see an untranslated bio just because the timing was unlucky.
-      let finalSpecialtyEn = specialtyEn;
-      let finalSpecialtyRu = specialtyRu;
-      if (!finalSpecialtyEn.trim() && specialtyUz.trim()) {
-        const t = await translateText(specialtyUz);
-        if (t) {
-          finalSpecialtyEn = t.en || finalSpecialtyEn;
-          finalSpecialtyRu = t.ru || finalSpecialtyRu;
-        }
-      }
-
-      let finalBioEn = bioEn;
-      let finalBioRu = bioRu;
-      if (!finalBioEn.trim() && bioUz.trim()) {
-        const t = await translateText(bioUz);
-        if (t) {
-          finalBioEn = t.en || finalBioEn;
-          finalBioRu = t.ru || finalBioRu;
-        }
-      }
+      // Safety net if the admin saved before a blur translation finished:
+      // fill any still-empty language from one that isn't.
+      const [specialty, bio] = await Promise.all([
+        fillMissingTranslations({ uz: specialtyUz, en: specialtyEn, ru: specialtyRu }),
+        fillMissingTranslations({ uz: bioUz, en: bioEn, ru: bioRu }),
+      ]);
+      const firstFilled = (v: Record<string, string>) => v.uz || v.en || v.ru || '';
 
       const payload = {
         name,
-        specialty_uz: specialtyUz || 'Rassom',
-        specialty_en: finalSpecialtyEn || specialtyUz || 'Painter',
-        specialty_ru: finalSpecialtyRu || specialtyUz || 'Художник',
-        bio_uz: bioUz,
-        bio_en: finalBioEn || bioUz,
-        bio_ru: finalBioRu || bioUz,
+        specialty_uz: specialty.uz || firstFilled(specialty) || 'Rassom',
+        specialty_en: specialty.en || firstFilled(specialty) || 'Painter',
+        specialty_ru: specialty.ru || firstFilled(specialty) || 'Художник',
+        bio_uz: bio.uz || firstFilled(bio),
+        bio_en: bio.en || firstFilled(bio),
+        bio_ru: bio.ru || firstFilled(bio),
         photo: photo || null,
         category_id: categoryId || null,
       };
@@ -444,8 +395,8 @@ export default function AdminArtistsClient({
                   <input
                     type="text"
                     value={specialtyUz}
+                    {...tr.bind('specialty', 'uz', fieldGroups.specialty)}
                     onChange={(e) => setSpecialtyUz(e.target.value)}
-                    onBlur={(e) => autoTranslate('specialty', e.target.value)}
                     placeholder="Minyatura ustasi"
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
                   />
@@ -453,11 +404,12 @@ export default function AdminArtistsClient({
                 <div>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-[#6B5E55] mb-1">
                     MUTAXASSISLIGI (EN)
-                    {translatingGroup === 'specialty' && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                    <TranslateStatus translating={tr.translatingGroup === 'specialty'} canUndo={tr.canUndo('specialty')} onUndo={() => tr.undo('specialty')} />
                   </label>
                   <input
                     type="text"
                     value={specialtyEn}
+                    {...tr.bind('specialty', 'en', fieldGroups.specialty)}
                     onChange={(e) => setSpecialtyEn(e.target.value)}
                     placeholder="Miniature master"
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
@@ -470,6 +422,7 @@ export default function AdminArtistsClient({
                   <input
                     type="text"
                     value={specialtyRu}
+                    {...tr.bind('specialty', 'ru', fieldGroups.specialty)}
                     onChange={(e) => setSpecialtyRu(e.target.value)}
                     placeholder="Мастер миниатюры"
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
@@ -486,8 +439,8 @@ export default function AdminArtistsClient({
                   <textarea
                     rows={2}
                     value={bioUz}
+                    {...tr.bind('bio', 'uz', fieldGroups.bio)}
                     onChange={(e) => setBioUz(e.target.value)}
-                    onBlur={(e) => autoTranslate('bio', e.target.value)}
                     placeholder="Rassom hayoti va ijodiy yo'li (O'zbekcha)..."
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25] resize-none"
                   />
@@ -495,11 +448,12 @@ export default function AdminArtistsClient({
                 <div>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-[#6B5E55] mb-1">
                     TARJIMAI HOL (EN)
-                    {translatingGroup === 'bio' && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                    <TranslateStatus translating={tr.translatingGroup === 'bio'} canUndo={tr.canUndo('bio')} onUndo={() => tr.undo('bio')} />
                   </label>
                   <textarea
                     rows={2}
                     value={bioEn}
+                    {...tr.bind('bio', 'en', fieldGroups.bio)}
                     onChange={(e) => setBioEn(e.target.value)}
                     placeholder="Artist biography (English)..."
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25] resize-none"
@@ -512,6 +466,7 @@ export default function AdminArtistsClient({
                   <textarea
                     rows={2}
                     value={bioRu}
+                    {...tr.bind('bio', 'ru', fieldGroups.bio)}
                     onChange={(e) => setBioRu(e.target.value)}
                     placeholder="Биография художника (Русский)..."
                     className="w-full text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25] resize-none"

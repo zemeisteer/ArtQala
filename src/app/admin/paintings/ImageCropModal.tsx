@@ -115,13 +115,13 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
           </button>
         </div>
 
-        <div className="relative w-full max-h-[420px] overflow-auto flex items-center justify-center bg-[#1D100B] p-2">
+        <div className="relative w-full max-h-[420px] overflow-hidden flex items-center justify-center bg-[#1D100B] p-2">
           <ReactCrop
             crop={crop}
             onChange={(_, percentCrop) => setCrop(percentCrop)}
             onComplete={(c) => setCompletedCrop(c)}
             aspect={aspect}
-            className="max-h-[400px]"
+            className="max-h-[400px] max-w-full"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -129,7 +129,9 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
               src={imageSrc}
               alt="Kesiladigan rasm"
               onLoad={onImageLoad}
-              className="max-h-[400px] w-auto"
+              // Fit the whole photo inside the box whatever its shape — a
+              // very wide or very tall original used to spill past the modal.
+              className="block max-h-[400px] max-w-full w-auto h-auto object-contain"
             />
           </ReactCrop>
         </div>

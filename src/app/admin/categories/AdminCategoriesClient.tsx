@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Pencil, X, Layers, CornerDownRight, Languages, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Trash2, Pencil, X, Layers, CornerDownRight, ChevronDown } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
+import TranslateStatus from '@/components/TranslateStatus';
+import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
 
 interface CategoryItem {
   id: string;
@@ -40,51 +42,15 @@ export default function AdminCategoriesClient({
   const [slugManualEdited, setSlugManualEdited] = useState(false);
   const [parentId, setParentId] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [translating, setTranslating] = useState(false);
 
-  // Guards against a stale translate response landing after the form has
-  // moved on (e.g. admin submits "Kartina", its translation is still
-  // in-flight, they immediately open a fresh "Somon" form — without this,
-  // "Kartina"'s late EN/RU response would land in "Somon"'s empty fields).
-  // resetForm() bumps this to invalidate anything still in flight for the
-  // previous form instance.
-  const translateSeqRef = useRef(0);
-
-  // Returns the raw translation (or null on failure) without touching state
-  // — used both by the live onBlur handler below and by handleSave, which
-  // needs the result synchronously rather than waiting on a state update.
-  const translateText = async (text: string): Promise<{ en?: string; ru?: string } | null> => {
-    if (!text.trim()) return null;
-    try {
-      const res = await fetch('/api/admin/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, sourceLang: 'uz' }),
-      });
-      const data = await res.json();
-      return data.success && data.translations ? data.translations : null;
-    } catch {
-      return null;
-    }
-  };
-
-  // Typing in UZ and blurring auto-fills EN/RU via Gemini — same pattern as
-  // the Paintings and Accessories forms. Never overwrites a field the admin
-  // has already typed something into.
-  const autoTranslateName = async (text: string) => {
-    if (!text.trim()) return;
-    const seq = ++translateSeqRef.current;
-    setTranslating(true);
-    try {
-      const translations = await translateText(text);
-      if (seq !== translateSeqRef.current) return; // stale — a reset or newer request happened
-      if (translations) {
-        setNameEn((prev) => (prev.trim() ? prev : translations.en || prev));
-        setNameRu((prev) => (prev.trim() ? prev : translations.ru || prev));
-      }
-    } finally {
-      if (seq === translateSeqRef.current) setTranslating(false);
-    }
+  // Edit the name in any language — the other two are translated from it
+  // (see src/lib/useAutoTranslate.ts). reset() on every form open keeps a
+  // late response for one category from landing in the next one's fields.
+  const tr = useAutoTranslate();
+  const nameFields = {
+    uz: [nameUz, setNameUz] as const,
+    en: [nameEn, setNameEn] as const,
+    ru: [nameRu, setNameRu] as const,
   };
 
   // Only a top-level category (no parent of its own) can be picked as a
@@ -112,7 +78,7 @@ export default function AdminCategoriesClient({
   };
 
   const resetForm = () => {
-    translateSeqRef.current++; // invalidate any translate request tied to the previous form instance
+    tr.reset();
     setEditingCategory(null);
     setNameUz('');
     setNameEn('');
@@ -140,7 +106,7 @@ export default function AdminCategoriesClient({
   };
 
   const openEditModal = (cat: CategoryItem) => {
-    translateSeqRef.current++; // invalidate any translate request tied to a previous form instance
+    tr.reset();
     setEditingCategory(cat);
     setFormMode('edit');
     setNameUz(cat.name_uz || '');
@@ -154,7 +120,7 @@ export default function AdminCategoriesClient({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameUz.trim() && !nameEn.trim()) return;
+    if (!nameUz.trim() && !nameEn.trim() && !nameRu.trim()) return;
     if (formMode === 'create-child' && !parentId) {
       alert("Bola kategoriya uchun ota-kategoriyani tanlash shart");
       return;
@@ -162,23 +128,15 @@ export default function AdminCategoriesClient({
 
     setLoading(true);
     try {
-      // If the admin submitted (e.g. pressing Enter) before onBlur's
-      // translation finished, give it one real attempt here instead of
-      // silently saving the Uzbek text as if it were the EN/RU name.
-      let finalNameEn = nameEn;
-      let finalNameRu = nameRu;
-      if (!finalNameEn.trim() && nameUz.trim()) {
-        const t = await translateText(nameUz);
-        if (t) {
-          finalNameEn = t.en || finalNameEn;
-          finalNameRu = t.ru || finalNameRu;
-        }
-      }
+      // Safety net if the admin saved (e.g. pressed Enter) before the blur
+      // translation finished: fill any empty language from one that isn't.
+      const names = await fillMissingTranslations({ uz: nameUz, en: nameEn, ru: nameRu });
+      const firstName = names.uz || names.en || names.ru;
 
       const payload = {
-        name_uz: nameUz || finalNameEn,
-        name_en: finalNameEn || nameUz,
-        name_ru: finalNameRu || nameUz,
+        name_uz: names.uz || firstName,
+        name_en: names.en || firstName,
+        name_ru: names.ru || firstName,
         slug: slug.trim() || undefined,
         parent_id: formMode === 'create-parent' ? null : parentId || null,
       };
@@ -418,14 +376,14 @@ export default function AdminCategoriesClient({
             <form onSubmit={handleSave} className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-[#6B5E55] mb-1">
-                  Kategoriya Nomi (O'zbekcha) *
+                  Kategoriya Nomi (O'zbekcha)
                 </label>
                 <input
                   type="text"
-                  required
+                  required={!nameUz.trim() && !nameEn.trim() && !nameRu.trim()}
                   value={nameUz}
+                  {...tr.bind('name', 'uz', nameFields)}
                   onChange={(e) => handleNameUzChange(e.target.value)}
-                  onBlur={(e) => autoTranslateName(e.target.value)}
                   placeholder={formMode === 'create-parent' ? 'Kartina' : "Ipak yo'li manzaralari"}
                   className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
                 />
@@ -434,11 +392,12 @@ export default function AdminCategoriesClient({
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-bold text-[#6B5E55] mb-1">
                   Kategoriya Nomi (Inglizcha - EN)
-                  {translating && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
+                  <TranslateStatus translating={tr.translatingGroup === 'name'} canUndo={tr.canUndo('name')} onUndo={() => tr.undo('name')} />
                 </label>
                 <input
                   type="text"
                   value={nameEn}
+                  {...tr.bind('name', 'en', nameFields)}
                   onChange={(e) => setNameEn(e.target.value)}
                   placeholder={formMode === 'create-parent' ? 'Paintings' : 'Silk Road Landscapes'}
                   className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
@@ -448,11 +407,11 @@ export default function AdminCategoriesClient({
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-bold text-[#6B5E55] mb-1">
                   Kategoriya Nomi (Ruscha - RU)
-                  {translating && <Languages className="w-3 h-3 text-[#BA4E25] animate-pulse" />}
                 </label>
                 <input
                   type="text"
                   value={nameRu}
+                  {...tr.bind('name', 'ru', nameFields)}
                   onChange={(e) => setNameRu(e.target.value)}
                   placeholder={formMode === 'create-parent' ? 'Картины' : 'Пейзажи Шелкового пути'}
                   className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
