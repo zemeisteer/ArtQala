@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createSessionToken } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
+import { findValidOtp } from '@/lib/otp';
 
 export async function POST(request: Request) {
   try {
@@ -31,15 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const record = await prisma.otpVerification.findFirst({
-      where: {
-        email: normalizedEmail,
-        code: code.trim(),
-        purpose: 'SIGNUP',
-        expires_at: { gte: new Date() },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+    const record = await findValidOtp(normalizedEmail, 'SIGNUP', String(code));
 
     if (!record) {
       await recordFailedAttempt(rateLimitKey);

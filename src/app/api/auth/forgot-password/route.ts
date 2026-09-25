@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { randomInt } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
-import { OTP_TTL_MS } from '@/lib/otpConfig';
+import { checkOtpSendAllowed, createOtp, recordOtpSend } from '@/lib/otp';
 
 export async function POST(request: Request) {
   try {
@@ -44,25 +43,23 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
+    // Same 5-codes-per-hour cap as signup codes. Checked before looking the
+    // account up, so the answer is identical whether or not it exists.
+    const sendCheck = await checkOtpSendAllowed(normalizedEmail);
+    if (!sendCheck.allowed) {
+      return NextResponse.json({ success: false, error: sendCheck.error }, { status: 429 });
+    }
+    await recordOtpSend(normalizedEmail);
+
     const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     // Always respond with success regardless of whether the account exists —
     // this prevents attackers from using this endpoint to discover registered emails.
     // Skip accounts with no password (Google-only sign-in has nothing to reset).
     if (user && user.password_hash) {
-      // crypto.randomInt (not Math.random, which is a predictable PRNG) —
-      // this code gates a password reset, so it must be unguessable.
-      const otpCode = randomInt(100000, 1000000).toString();
-      const expiresAt = new Date(Date.now() + OTP_TTL_MS);
-
-      await prisma.otpVerification.create({
-        data: {
-          email: normalizedEmail,
-          code: otpCode,
-          purpose: 'PASSWORD_RESET',
-          expires_at: expiresAt,
-        },
-      });
+      // Unguessable (crypto.randomInt), stored only as an HMAC, and replaces
+      // any earlier pending reset code — see createOtp().
+      const otpCode = await createOtp(normalizedEmail, 'PASSWORD_RESET');
 
       const emailResult = await sendPasswordResetEmail(normalizedEmail, otpCode, user.name);
       if (!emailResult.success) {

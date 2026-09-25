@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { createSessionToken } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
+import { findValidOtp } from '@/lib/otp';
 
 export async function POST(request: Request) {
   try {
@@ -42,15 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const record = await prisma.otpVerification.findFirst({
-      where: {
-        email: normalizedEmail,
-        code: code.trim(),
-        purpose: 'PASSWORD_RESET',
-        expires_at: { gte: new Date() },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+    const record = await findValidOtp(normalizedEmail, 'PASSWORD_RESET', String(code));
 
     if (!record) {
       await recordFailedAttempt(rateLimitKey);
