@@ -55,6 +55,10 @@ export default function SignInPage() {
       });
 
       const data = await res.json();
+      if (data.needsVerification) {
+        router.push(`/verify-otp?email=${encodeURIComponent(data.email || email)}`);
+        return;
+      }
       if (!data.success) {
         setError(data.error || t.auth.signInFailed);
         return;

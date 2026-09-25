@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { createSessionToken } from '@/lib/auth';
+import { issueSignupOtp } from '@/lib/otp';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
 
@@ -65,57 +65,70 @@ export async function POST(request: Request) {
       where: { email: normalizedEmail },
     });
 
-    if (existingUser) {
+    // A verified account (or one from Google/Apple/staff) is taken for good.
+    // An unverified email signup is someone who never entered their code —
+    // let them start over instead of being locked out by "already exists".
+    if (existingUser && (existingUser.email_verified || existingUser.auth_provider !== 'EMAIL')) {
       return NextResponse.json(
         { success: false, error: 'An account with this email already exists' },
         { status: 400 }
       );
     }
 
+    // Per-address throttle on sending codes (shared with signin/resend), so
+    // this form can't be used to flood someone else's inbox.
+    const sendKey = `otp-send:${normalizedEmail}`;
+    const sendCheck = await checkRateLimit(sendKey, 3, 15 * 60 * 1000);
+    if (!sendCheck.allowed) {
+      const minutesLeft = Math.ceil(sendCheck.retryAfterSeconds / 60);
+      return NextResponse.json(
+        { success: false, error: `Juda ko'p urinish. ${minutesLeft} daqiqadan so'ng qayta urinib ko'ring.` },
+        { status: 429 }
+      );
+    }
+    await recordFailedAttempt(sendKey);
+
     const passwordHash = await bcrypt.hash(password, 10);
-
-    // Email OTP verification is temporarily bypassed: Resend is still in
-    // sandbox mode (can only deliver to the account owner's own inbox), so
-    // requiring a code would lock every real signup out with no way in.
-    // Account is activated immediately, same as Google/Apple sign-in.
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: normalizedEmail,
-        password_hash: passwordHash,
-        country: country || null,
-        role: 'USER',
-        email_verified: true,
-        auth_provider: 'EMAIL',
-      },
-    });
-
-    const userSession = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      country: user.country,
-      role: user.role,
-      email_verified: user.email_verified,
-      must_change_password: false,
+    const accountData = {
+      name,
+      password_hash: passwordHash,
+      country: country || null,
     };
 
-    const sessionToken = createSessionToken(userSession);
-    const response = NextResponse.json({
+    // The account stays inactive (email_verified: false — signin refuses it)
+    // until the 6-digit code emailed below is confirmed at /verify-otp.
+    if (existingUser) {
+      await prisma.user.update({ where: { id: existingUser.id }, data: accountData });
+    } else {
+      await prisma.user.create({
+        data: {
+          ...accountData,
+          email: normalizedEmail,
+          role: 'USER',
+          email_verified: false,
+          auth_provider: 'EMAIL',
+        },
+      });
+    }
+
+    const sent = await issueSignupOtp(normalizedEmail, name);
+    if (!sent.success) {
+      console.error('Signup OTP email failed:', sent.error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Tasdiqlash kodini yuborib bo'lmadi. Birozdan so'ng qayta urinib ko'ring.",
+        },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({
       success: true,
-      message: 'Account created successfully.',
-      user: userSession,
+      needsVerification: true,
+      email: normalizedEmail,
+      message: 'Account created. Please verify with the 6-digit code sent to your email.',
     });
-
-    response.cookies.set('artqala_user', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/',
-    });
-
-    return response;
   } catch (error) {
     console.error('Signup error:', error);
     return NextResponse.json(

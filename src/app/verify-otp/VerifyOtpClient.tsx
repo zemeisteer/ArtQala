@@ -12,19 +12,46 @@ export default function VerifyOtpClient() {
   const searchParams = useSearchParams();
   const { refreshUser, t } = useApp();
 
-  const emailParam = searchParams.get('email') || '';
-  const devOtpParam = searchParams.get('devOtp') || '';
+  const email = searchParams.get('email') || '';
 
-  const [email, setEmail] = useState(emailParam);
-  const [code, setCode] = useState(devOtpParam);
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
-    if (emailParam) setEmail(emailParam);
-    if (devOtpParam) setCode(devOtpParam);
-  }, [emailParam, devOtpParam]);
+    if (resendCooldown <= 0) return;
+    const id = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
+
+  const handleResend = async () => {
+    if (!email || resending || resendCooldown > 0) return;
+    setResending(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      const res = await fetch('/api/auth/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setError(data.error || t.auth.verifyError);
+        return;
+      }
+      setCode('');
+      setSuccessMessage(`${t.auth.resendAlert} ${email}`);
+      setResendCooldown(60);
+    } catch {
+      setError(t.auth.verifyError);
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,10 +153,11 @@ export default function VerifyOtpClient() {
           {t.auth.noCode}{' '}
           <button
             type="button"
-            onClick={() => alert(t.auth.resendAlert + ' ' + email)}
-            className="text-[#BA4E25] font-semibold hover:underline"
+            onClick={handleResend}
+            disabled={!email || resending || resendCooldown > 0}
+            className="text-[#BA4E25] font-semibold hover:underline disabled:opacity-50 disabled:no-underline"
           >
-            {t.auth.resend}
+            {resendCooldown > 0 ? `${t.auth.resend} (${resendCooldown})` : t.auth.resend}
           </button>
         </p>
       </div>

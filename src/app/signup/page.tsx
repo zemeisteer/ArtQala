@@ -12,7 +12,7 @@ import { useApp } from '@/context/AppContext';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { t, refreshUser } = useApp();
+  const { t } = useApp();
 
   const [name, setName] = useState('');
   const [country, setCountry] = useState('Uzbekistan');
@@ -76,9 +76,8 @@ export default function SignUpPage() {
         return;
       }
 
-      // Account is active immediately (no email verification step right now).
-      await refreshUser();
-      router.push('/account');
+      // The account is activated once the emailed 6-digit code is confirmed.
+      router.push(`/verify-otp?email=${encodeURIComponent(data.email || email)}`);
     } catch {
       setError(t.auth.networkError);
       setLoading(false);

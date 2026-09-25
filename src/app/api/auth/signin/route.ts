@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { createSessionToken } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, resetRateLimit, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
+import { issueSignupOtp } from '@/lib/otp';
 
 export async function POST(request: Request) {
   try {
@@ -88,6 +89,28 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
+      );
+    }
+
+    // Correct password but the email was never confirmed: send a fresh code
+    // (throttled, so this can't be used to flood someone's inbox) and send
+    // the user to /verify-otp instead of signing them in.
+    if (!user.email_verified && user.auth_provider === 'EMAIL' && user.role !== 'ADMIN') {
+      const resendKey = `otp-send:${normalizedEmail}`;
+      const resendCheck = await checkRateLimit(resendKey, 3, 15 * 60 * 1000);
+      if (resendCheck.allowed) {
+        await recordFailedAttempt(resendKey);
+        const sent = await issueSignupOtp(normalizedEmail, user.name);
+        if (!sent.success) console.error('Signin OTP email failed:', sent.error);
+      }
+      return NextResponse.json(
+        {
+          success: false,
+          needsVerification: true,
+          email: normalizedEmail,
+          error: 'Email manzilingiz hali tasdiqlanmagan. Pochtangizga yuborilgan kodni kiriting.',
+        },
+        { status: 403 }
       );
     }
 
