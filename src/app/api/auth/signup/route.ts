@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       where: { email: normalizedEmail },
     });
 
-    // A verified account (or one from Google/Apple/staff) is taken for good.
+    // A verified account (or one from Google sign-in/staff) is taken for good.
     // An unverified email signup is someone who never entered their code —
     // let them start over instead of being locked out by "already exists".
     if (existingUser && (existingUser.email_verified || existingUser.auth_provider !== 'EMAIL')) {

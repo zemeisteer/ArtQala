@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { prisma } from './prisma';
 import { sendOtpEmail, type EmailSendResult } from './email';
+import { OTP_TTL_MS } from './otpConfig';
 
-export const SIGNUP_OTP_TTL_MS = 15 * 60 * 1000;
 
 // Issues a fresh 6-digit signup code for `email` (replacing any earlier,
 // still-unused one, so only the newest code in the inbox works) and emails
@@ -16,7 +16,7 @@ export async function issueSignupOtp(email: string, name?: string): Promise<Emai
       email,
       code,
       purpose: 'SIGNUP',
-      expires_at: new Date(Date.now() + SIGNUP_OTP_TTL_MS),
+      expires_at: new Date(Date.now() + OTP_TTL_MS),
     },
   });
 

@@ -24,7 +24,7 @@ export async function GET(
 
     const normalizedProvider = (provider || '').toLowerCase();
 
-    if (normalizedProvider !== 'google' && normalizedProvider !== 'apple') {
+    if (normalizedProvider !== 'google') {
       return NextResponse.json(
         { success: false, error: 'Unsupported OAuth provider' },
         { status: 400 }
@@ -33,7 +33,6 @@ export async function GET(
 
     // Check if real provider credentials exist in environment
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
-    const appleClientId = process.env.APPLE_CLIENT_ID;
 
     if (normalizedProvider === 'google' && googleClientId) {
       // Real Google OAuth 2.0 flow
@@ -47,19 +46,6 @@ export async function GET(
       googleAuthUrl.searchParams.set('prompt', 'consent');
       googleAuthUrl.searchParams.set('state', redirectTarget);
       return withoutPreviousSession(NextResponse.redirect(googleAuthUrl.toString()));
-    }
-
-    if (normalizedProvider === 'apple' && appleClientId) {
-      // Real Apple OAuth flow
-      const redirectUri = `${origin}/api/auth/oauth/apple/callback`;
-      const appleAuthUrl = new URL('https://appleid.apple.com/auth/authorize');
-      appleAuthUrl.searchParams.set('client_id', appleClientId);
-      appleAuthUrl.searchParams.set('redirect_uri', redirectUri);
-      appleAuthUrl.searchParams.set('response_type', 'code id_token');
-      appleAuthUrl.searchParams.set('scope', 'name email');
-      appleAuthUrl.searchParams.set('response_mode', 'form_post');
-      appleAuthUrl.searchParams.set('state', redirectTarget);
-      return withoutPreviousSession(NextResponse.redirect(appleAuthUrl.toString()));
     }
 
     // Developer / Demo mode: Instant OAuth Login when credentials are not yet configured in .env.
@@ -76,11 +62,6 @@ export async function GET(
         email: 'alexandre.google@artqala.uz',
         name: 'Alexandre Monet',
         country: 'France',
-      },
-      apple: {
-        email: 'sophie.apple@artqala.uz',
-        name: 'Sophie Laurent',
-        country: 'Switzerland',
       },
     };
 

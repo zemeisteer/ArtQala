@@ -1,3 +1,5 @@
+import { OTP_TTL_MINUTES } from './otpConfig';
+
 export interface EmailSendResult {
   success: boolean;
   id?: string;
@@ -64,7 +66,7 @@ export async function sendOtpEmail(
                     </div>
 
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #8F8178; line-height: 1.5; margin: 0;">
-                      This verification code will expire in <strong>15 minutes</strong>. If you did not create an account on Art Qala, please ignore this email.
+                      This verification code will expire in <strong>${OTP_TTL_MINUTES} minutes</strong>. If you did not create an account on Art Qala, please ignore this email.
                     </p>
                   </td>
                 </tr>
@@ -130,7 +132,7 @@ export async function sendPasswordResetEmail(
                     </div>
 
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #8F8178; line-height: 1.5; margin: 0;">
-                      This code will expire in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email — your password will not be changed.
+                      This code will expire in <strong>${OTP_TTL_MINUTES} minutes</strong>. If you did not request a password reset, you can safely ignore this email — your password will not be changed.
                     </p>
                   </td>
                 </tr>

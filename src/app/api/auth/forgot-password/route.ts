@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
+import { OTP_TTL_MS } from '@/lib/otpConfig';
 
 export async function POST(request: Request) {
   try {
@@ -47,12 +48,12 @@ export async function POST(request: Request) {
 
     // Always respond with success regardless of whether the account exists —
     // this prevents attackers from using this endpoint to discover registered emails.
-    // Skip accounts with no password (Google/Apple-only sign-in has nothing to reset).
+    // Skip accounts with no password (Google-only sign-in has nothing to reset).
     if (user && user.password_hash) {
       // crypto.randomInt (not Math.random, which is a predictable PRNG) —
       // this code gates a password reset, so it must be unguessable.
       const otpCode = randomInt(100000, 1000000).toString();
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
       await prisma.otpVerification.create({
         data: {

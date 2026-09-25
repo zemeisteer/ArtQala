@@ -1,26 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { prisma } from '@/lib/prisma';
 import { createSessionToken } from '@/lib/auth';
 import { safeRedirectTarget } from '@/lib/safeRedirect';
 
 interface RouteContext {
   params: Promise<{ provider: string }>;
-}
-
-const APPLE_JWKS = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
-
-async function verifyAppleIdToken(idToken: string): Promise<{ email: string }> {
-  const { payload } = await jwtVerify(idToken, APPLE_JWKS, {
-    issuer: 'https://appleid.apple.com',
-    audience: process.env.APPLE_CLIENT_ID,
-  });
-
-  if (!payload.email || typeof payload.email !== 'string') {
-    throw new Error('Apple ID token did not include an email address');
-  }
-
-  return { email: payload.email };
 }
 
 async function upsertOAuthUser(email: string, name: string) {
@@ -110,51 +94,6 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     return withSessionCookie(response, sessionToken);
   } catch (error) {
     console.error('Google OAuth callback error:', error);
-    return NextResponse.redirect(new URL('/signin?error=oauth_failed', request.url));
-  }
-}
-
-// Apple: response_mode=form_post — Apple POSTs `id_token` (and `user` on first
-// authorization only) as application/x-www-form-urlencoded body fields, not query params.
-export async function POST(request: NextRequest, { params }: RouteContext) {
-  const { provider } = await params;
-
-  if (provider !== 'apple') {
-    return NextResponse.redirect(new URL('/signin?error=oauth_failed', request.url));
-  }
-
-  try {
-    const form = await request.formData();
-    const idToken = form.get('id_token');
-    const state = safeRedirectTarget(form.get('state') as string | null);
-    const userField = form.get('user');
-
-    if (!idToken || typeof idToken !== 'string') {
-      return NextResponse.redirect(new URL('/signin?error=oauth_cancelled', request.url));
-    }
-
-    const { email } = await verifyAppleIdToken(idToken);
-
-    let name = email.split('@')[0];
-    if (typeof userField === 'string') {
-      try {
-        const parsed = JSON.parse(userField);
-        const firstName = parsed?.name?.firstName;
-        const lastName = parsed?.name?.lastName;
-        if (firstName || lastName) {
-          name = [firstName, lastName].filter(Boolean).join(' ');
-        }
-      } catch {
-        // Apple only sends `user` on the first authorization; ignore if absent/malformed.
-      }
-    }
-
-    const userSession = await upsertOAuthUser(email, name);
-    const sessionToken = createSessionToken(userSession);
-    const response = NextResponse.redirect(new URL(state, request.url));
-    return withSessionCookie(response, sessionToken);
-  } catch (error) {
-    console.error('Apple OAuth callback error:', error);
     return NextResponse.redirect(new URL('/signin?error=oauth_failed', request.url));
   }
 }
