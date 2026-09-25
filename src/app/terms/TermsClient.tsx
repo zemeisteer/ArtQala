@@ -3,6 +3,9 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 
+// Placeholder in the section text below, swapped for Settings' email at render.
+const CONTACT_EMAIL_TOKEN = '{contactEmail}';
+
 const CONTENT = {
   en: {
     eyebrow: 'TERMS & CONDITIONS',
@@ -58,7 +61,7 @@ const CONTENT = {
       {
         heading: '12. Contact Us',
         bodyPrefix: 'Questions about these Terms can be sent to: ',
-        highlight: 'info@artqala.com',
+        highlight: CONTACT_EMAIL_TOKEN,
         bodySuffix: ' or in person at our gallery at Barakhon Madrasah, Tashkent.',
       },
     ],
@@ -117,7 +120,7 @@ const CONTENT = {
       {
         heading: '12. Свяжитесь с нами',
         bodyPrefix: 'Вопросы по настоящим Условиям можно направить на: ',
-        highlight: 'info@artqala.com',
+        highlight: CONTACT_EMAIL_TOKEN,
         bodySuffix: ' или лично в нашей галерее в медресе Баракхан, Ташкент.',
       },
     ],
@@ -176,7 +179,7 @@ const CONTENT = {
       {
         heading: "12. Biz bilan bog'lanish",
         bodyPrefix: "Ushbu Shartlar bo'yicha savollarni quyidagi manzilga yuborishingiz mumkin: ",
-        highlight: 'info@artqala.com',
+        highlight: CONTACT_EMAIL_TOKEN,
         bodySuffix: " yoki Toshkentdagi Baraxon madrasasidagi galereyamizga shaxsan tashrif buyurib.",
       },
     ],
@@ -184,7 +187,9 @@ const CONTENT = {
 } as const;
 
 export default function TermsClient() {
-  const { lang } = useApp();
+  const { lang, settings } = useApp();
+  // The real contact address set in Admin → Settings, never a made-up one.
+  const contactEmail = settings?.email || '';
   const c = CONTENT[lang] || CONTENT.en;
 
   return (
@@ -211,7 +216,9 @@ export default function TermsClient() {
               {'bodyPrefix' in section ? (
                 <p>
                   {section.bodyPrefix}
-                  <strong className="text-[#BA4E25]">{section.highlight}</strong>
+                  <strong className="text-[#BA4E25]">
+                    {section.highlight === CONTACT_EMAIL_TOKEN ? contactEmail : section.highlight}
+                  </strong>
                   {section.bodySuffix}
                 </p>
               ) : (

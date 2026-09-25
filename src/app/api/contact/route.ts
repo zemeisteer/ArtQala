@@ -52,21 +52,30 @@ export async function POST(req: Request) {
       },
     });
 
-    // Fire-and-forget: let the customer know it went through, and let the
-    // gallery's own inbox know a message is waiting — previously the only
-    // way to find out was to remember to check /admin/messages.
+    // Let the customer know it went through, and the gallery's own inbox
+    // that a message is waiting. Awaited (not fire-and-forget): on Vercel a
+    // function can be frozen as soon as the response is sent, which would
+    // silently drop mails still in flight. A failed email never fails the
+    // message itself — it's already saved and visible in /admin/messages.
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } }).catch(() => null);
-    const adminEmail = settings?.email || 'info@artqala.com';
-    sendContactAcknowledgmentEmail(contactMessage.email, contactMessage.name).catch((err) =>
-      console.error('Failed to send contact acknowledgment email:', err)
-    );
-    sendContactAdminNotification(
-      adminEmail,
-      contactMessage.name,
-      contactMessage.email,
-      contactMessage.subject,
-      contactMessage.message
-    ).catch((err) => console.error('Failed to send contact admin notification email:', err));
+    const adminEmail = settings?.email?.trim();
+    const results = await Promise.allSettled([
+      sendContactAcknowledgmentEmail(contactMessage.email, contactMessage.name),
+      adminEmail
+        ? sendContactAdminNotification(
+            adminEmail,
+            contactMessage.name,
+            contactMessage.email,
+            contactMessage.subject,
+            contactMessage.message
+          )
+        : Promise.resolve(null),
+    ]);
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.error(`Contact email ${i === 0 ? 'acknowledgment' : 'admin notification'} failed:`, r.reason);
+      }
+    });
 
     return NextResponse.json({ success: true, message: contactMessage });
   } catch (error) {

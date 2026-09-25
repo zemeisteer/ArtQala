@@ -49,7 +49,7 @@ export function validateEmail(email: unknown): { isValid: boolean; error?: strin
   }
 
   if (!isValidEmail(trimmed)) {
-    return { isValid: false, error: "Noto'g'ri email formati. Masalan: misol@artqala.com" };
+    return { isValid: false, error: "Noto'g'ri email formati. Masalan: ism@gmail.com" };
   }
 
   return { isValid: true };

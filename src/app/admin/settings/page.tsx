@@ -16,7 +16,7 @@ export default function AdminSettingsPage() {
   // Fields
   const [galleryName, setGalleryName] = useState('Art Qala');
   const [phones, setPhones] = useState<string[]>(['+998 66 233 44 55']);
-  const [email, setEmail] = useState('info@artqala.com');
+  const [email, setEmail] = useState('');
 
   // Physical gallery addresses — an open-ended list (like phones/social
   // links) instead of a single fixed address/map pair.
@@ -181,7 +181,7 @@ export default function AdminSettingsPage() {
             }
           }
 
-          setEmail(s.email || 'info@artqala.com');
+          setEmail(s.email || '');
           setLocations(
             parseLocations(s.locations, s.address, s.location_map).map((l) => ({ ...l }))
           );

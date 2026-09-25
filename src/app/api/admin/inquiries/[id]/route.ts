@@ -76,7 +76,9 @@ export async function PUT(request: Request, context: RouteContext) {
         const paintingTitle = existingInquiry.painting?.title_en || 'Artwork';
         const threadUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/account`;
 
-        sendCuratorReplyNotification(
+        // Awaited: a Vercel function can be frozen right after responding,
+        // dropping an email that was still being sent.
+        await sendCuratorReplyNotification(
           recipientEmail,
           recipientName,
           paintingTitle,

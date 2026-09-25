@@ -94,7 +94,7 @@ async function getOrganizationJsonLd() {
       url: siteUrl,
       image: `${siteUrl}/logo.png`,
       telephone: settings?.phone || '+998 66 233 44 55',
-      email: settings?.email || 'info@artqala.com',
+      email: settings?.email || undefined,
       address: {
         '@type': 'PostalAddress',
         streetAddress: primaryLocation.address,

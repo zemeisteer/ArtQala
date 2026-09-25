@@ -73,7 +73,7 @@ export async function sendOtpEmail(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · artqala.com
                     </p>
                   </td>
                 </tr>
@@ -139,7 +139,7 @@ export async function sendPasswordResetEmail(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · artqala.com
                     </p>
                   </td>
                 </tr>
@@ -211,7 +211,7 @@ export async function sendCuratorReplyNotification(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · artqala.com
                     </p>
                   </td>
                 </tr>
@@ -268,7 +268,7 @@ export async function sendContactAcknowledgmentEmail(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · artqala.com
                     </p>
                   </td>
                 </tr>
@@ -386,7 +386,7 @@ export async function sendContactReplyEmail(
                 <tr>
                   <td style="border-top: 1px solid #EFE8DE; margin-top: 30px; padding-top: 24px; text-align: center;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
-                      Art Qala Gallery · Barakhon Madrasah, Tashkent · info@artqala.com
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · artqala.com
                     </p>
                   </td>
                 </tr>

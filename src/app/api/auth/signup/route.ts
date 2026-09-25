@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { issueSignupOtp } from '@/lib/otp';
+import { checkOtpSendAllowed, issueSignupOtp, recordOtpSend } from '@/lib/otp';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
 
@@ -75,18 +75,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Per-address throttle on sending codes (shared with signin/resend), so
-    // this form can't be used to flood someone else's inbox.
-    const sendKey = `otp-send:${normalizedEmail}`;
-    const sendCheck = await checkRateLimit(sendKey, 3, 15 * 60 * 1000);
+    // Per-address limit on sending codes (shared with signin and "resend").
+    const sendCheck = await checkOtpSendAllowed(normalizedEmail);
     if (!sendCheck.allowed) {
-      const minutesLeft = Math.ceil(sendCheck.retryAfterSeconds / 60);
-      return NextResponse.json(
-        { success: false, error: `Juda ko'p urinish. ${minutesLeft} daqiqadan so'ng qayta urinib ko'ring.` },
-        { status: 429 }
-      );
+      return NextResponse.json({ success: false, error: sendCheck.error }, { status: 429 });
     }
-    await recordFailedAttempt(sendKey);
 
     const passwordHash = await bcrypt.hash(password, 10);
     const accountData = {
@@ -111,6 +104,7 @@ export async function POST(request: Request) {
       });
     }
 
+    await recordOtpSend(normalizedEmail);
     const sent = await issueSignupOtp(normalizedEmail, name);
     if (!sent.success) {
       console.error('Signup OTP email failed:', sent.error);

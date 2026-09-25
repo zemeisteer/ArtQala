@@ -135,7 +135,7 @@ export async function POST(request: Request, context: RouteContext) {
             </div>
             <hr style="border: 0; border-top: 1px solid #E7E0D8; margin: 24px 0 16px 0;" />
             <p style="font-size: 11px; color: #8F8178; text-align: center; margin: 0;">
-              Art Qala Gallery & Studio · Barakhon Madrasah, Tashkent · info@artqala.com
+              Art Qala Gallery & Studio · Barakhon Madrasah, Tashkent · artqala.com
             </p>
           </div>
         `;

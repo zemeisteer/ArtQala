@@ -3,6 +3,9 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 
+// Placeholder in the section text below, swapped for Settings' email at render.
+const CONTACT_EMAIL_TOKEN = '{contactEmail}';
+
 const CONTENT = {
   en: {
     eyebrow: 'LEGAL INFORMATION',
@@ -70,7 +73,7 @@ const CONTENT = {
       {
         heading: '10. Contact Us',
         bodyPrefix: 'If you have questions regarding your data or wish to request deletion of your account, contact our data curator at: ',
-        highlight: 'privacy@artqala.com',
+        highlight: CONTACT_EMAIL_TOKEN,
         bodySuffix: ' or visit our gallery at Barakhon Madrasah, Tashkent.',
       },
     ],
@@ -141,7 +144,7 @@ const CONTENT = {
       {
         heading: '10. Свяжитесь с нами',
         bodyPrefix: 'Если у вас есть вопросы о ваших данных или вы хотите удалить свой аккаунт, обратитесь к нашему куратору данных: ',
-        highlight: 'privacy@artqala.com',
+        highlight: CONTACT_EMAIL_TOKEN,
         bodySuffix: ' или посетите нашу галерею в медресе Баракхан, Ташкент.',
       },
     ],
@@ -212,7 +215,7 @@ const CONTENT = {
       {
         heading: "10. Biz bilan bog'lanish",
         bodyPrefix: "Ma'lumotlaringiz yuzasidan savollaringiz bo'lsa yoki hisobingizni o'chirishni so'ramoqchi bo'lsangiz, ma'lumotlar kuratorimizga murojaat qiling: ",
-        highlight: 'privacy@artqala.com',
+        highlight: CONTACT_EMAIL_TOKEN,
         bodySuffix: " yoki Toshkentdagi Baraxon madrasasidagi galereyamizga tashrif buyuring.",
       },
     ],
@@ -220,7 +223,9 @@ const CONTENT = {
 } as const;
 
 export default function PrivacyClient() {
-  const { lang } = useApp();
+  const { lang, settings } = useApp();
+  // The real contact address set in Admin → Settings, never a made-up one.
+  const contactEmail = settings?.email || '';
   const c = CONTENT[lang] || CONTENT.en;
 
   return (
@@ -247,7 +252,9 @@ export default function PrivacyClient() {
               {'bodyPrefix' in section ? (
                 <p>
                   {section.bodyPrefix}
-                  <strong className="text-[#BA4E25]">{section.highlight}</strong>
+                  <strong className="text-[#BA4E25]">
+                    {section.highlight === CONTACT_EMAIL_TOKEN ? contactEmail : section.highlight}
+                  </strong>
                   {section.bodySuffix}
                 </p>
               ) : (

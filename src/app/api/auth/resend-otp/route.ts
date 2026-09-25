@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { issueSignupOtp } from '@/lib/otp';
+import { checkOtpSendAllowed, issueSignupOtp, recordOtpSend } from '@/lib/otp';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 
 // "Resend code" on /verify-otp. Always answers the same way whether or not
@@ -16,20 +16,19 @@ export async function POST(request: Request) {
     }
 
     const ipKey = `otp-resend-ip:${getClientIp(request)}`;
-    const sendKey = `otp-send:${normalizedEmail}`;
-    const [ipCheck, sendCheck] = await Promise.all([
-      checkRateLimit(ipKey, 10, 15 * 60 * 1000),
-      checkRateLimit(sendKey, 3, 15 * 60 * 1000),
-    ]);
-    const blocked = [ipCheck, sendCheck].find((c) => !c.allowed);
-    if (blocked) {
-      const minutesLeft = Math.ceil(blocked.retryAfterSeconds / 60);
+    const ipCheck = await checkRateLimit(ipKey, 10, 15 * 60 * 1000);
+    if (!ipCheck.allowed) {
+      const minutesLeft = Math.ceil(ipCheck.retryAfterSeconds / 60);
       return NextResponse.json(
         { success: false, error: `Juda ko'p urinish. ${minutesLeft} daqiqadan so'ng qayta urinib ko'ring.` },
         { status: 429 }
       );
     }
-    await Promise.all([recordFailedAttempt(ipKey), recordFailedAttempt(sendKey)]);
+    const sendCheck = await checkOtpSendAllowed(normalizedEmail);
+    if (!sendCheck.allowed) {
+      return NextResponse.json({ success: false, error: sendCheck.error }, { status: 429 });
+    }
+    await Promise.all([recordFailedAttempt(ipKey), recordOtpSend(normalizedEmail)]);
 
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },

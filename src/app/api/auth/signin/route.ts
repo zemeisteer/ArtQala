@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { createSessionToken } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, resetRateLimit, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
-import { issueSignupOtp } from '@/lib/otp';
+import { checkOtpSendAllowed, issueSignupOtp, recordOtpSend } from '@/lib/otp';
 
 export async function POST(request: Request) {
   try {
@@ -96,10 +96,9 @@ export async function POST(request: Request) {
     // (throttled, so this can't be used to flood someone's inbox) and send
     // the user to /verify-otp instead of signing them in.
     if (!user.email_verified && user.auth_provider === 'EMAIL' && user.role !== 'ADMIN') {
-      const resendKey = `otp-send:${normalizedEmail}`;
-      const resendCheck = await checkRateLimit(resendKey, 3, 15 * 60 * 1000);
-      if (resendCheck.allowed) {
-        await recordFailedAttempt(resendKey);
+      const sendCheck = await checkOtpSendAllowed(normalizedEmail);
+      if (sendCheck.allowed) {
+        await recordOtpSend(normalizedEmail);
         const sent = await issueSignupOtp(normalizedEmail, user.name);
         if (!sent.success) console.error('Signin OTP email failed:', sent.error);
       }
