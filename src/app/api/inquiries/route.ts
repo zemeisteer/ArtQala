@@ -4,6 +4,7 @@ import { validateEmail, validatePhoneOrTelegram } from '@/lib/validation';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { getServerSession } from '@/lib/auth';
 import { getSizeBucket, priceForSize } from '@/lib/paintingSize';
+import { notifyAdmin } from '@/lib/adminNotify';
 
 export async function POST(request: Request) {
   try {
@@ -108,6 +109,25 @@ export async function POST(request: Request) {
       include: {
         messages: true,
       },
+    });
+
+    const paintingForNotice = await prisma.painting.findUnique({
+      where: { id: painting_id },
+      select: { title_en: true, title_uz: true },
+    });
+    await notifyAdmin({
+      heading: "Yangi so'rov (inquiry)",
+      summary: `${inquiry.guest_name} kartina bo'yicha so'rov yubordi.`,
+      details: [
+        ['Kartina', paintingForNotice?.title_uz || paintingForNotice?.title_en],
+        ['Ism', inquiry.guest_name],
+        ['Email', inquiry.guest_email],
+        ['Telefon', inquiry.guest_phone],
+      ],
+      message: inquiry.message ?? '',
+      adminPath: '/admin/inquiries',
+      subject: `Yangi so'rov: ${paintingForNotice?.title_uz || paintingForNotice?.title_en || 'kartina'} — ${inquiry.guest_name}`,
+      customerEmail: inquiry.guest_email,
     });
 
     return NextResponse.json({ success: true, inquiry });

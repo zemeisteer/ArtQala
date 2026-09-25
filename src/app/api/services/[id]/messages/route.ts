@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
 import { FROM_EMAIL, escapeHtml } from '@/lib/email';
+import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -163,6 +164,24 @@ export async function POST(request: Request, context: RouteContext) {
           console.log(`[Resend Mock - No RESEND_API_KEY configured] Service notification simulated for ${recipientEmail}: "${message.trim()}"`);
         }
       }
+    }
+
+    // A customer's follow-up in the thread — let the curator know by email.
+    if (effectiveSender === 'CUSTOMER') {
+      const customerName = existingSR.guest_name || existingSR.user?.name || 'Mijoz';
+      await notifyAdmin({
+        heading: "Xizmat so'roviga yangi xabar",
+        summary: `${customerName} xizmat so'rovi bo'yicha yangi xabar yozdi.`,
+        details: [
+          ['Xizmat', existingSR.service_type],
+          ['Ism', customerName],
+          ['Aloqa', existingSR.guest_contact || existingSR.user?.email],
+        ],
+        message: message.trim(),
+        adminPath: '/admin/services',
+        subject: `Yangi xabar: ${existingSR.service_type} — ${customerName}`,
+        customerEmail: emailOrNull(existingSR.guest_contact) || emailOrNull(existingSR.user?.email),
+      });
     }
 
     return NextResponse.json({

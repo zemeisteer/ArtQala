@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { getServerSession } from '@/lib/auth';
+import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
 
 export async function POST(request: Request) {
   try {
@@ -75,6 +76,20 @@ export async function POST(request: Request) {
       include: {
         messages: true,
       },
+    });
+
+    await notifyAdmin({
+      heading: "Yangi xizmat so'rovi",
+      summary: `${serviceRequest.guest_name} xizmat so'rovi yubordi.`,
+      details: [
+        ['Xizmat', serviceRequest.service_type],
+        ['Ism', serviceRequest.guest_name],
+        ['Aloqa', serviceRequest.guest_contact],
+      ],
+      message: serviceRequest.description ?? '',
+      adminPath: '/admin/services',
+      subject: `Yangi xizmat so'rovi: ${serviceRequest.service_type} — ${serviceRequest.guest_name}`,
+      customerEmail: emailOrNull(serviceRequest.guest_contact) || session?.email || null,
     });
 
     return NextResponse.json({ success: true, serviceRequest });

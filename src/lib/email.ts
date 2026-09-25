@@ -318,7 +318,7 @@ export async function sendContactAdminNotification(
                       <strong>${escapeHtml(senderName)}</strong> (${escapeHtml(senderEmail)}) sent a message via the contact form:
                     </p>
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #8F8178; margin: 0 0 4px 0;">
-                      Subject: <strong style="color: #281C18;">${subject || '(no subject)'}</strong>
+                      Subject: <strong style="color: #281C18;">${subject ? escapeHtml(subject) : '(no subject)'}</strong>
                     </p>
                     <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 16px 18px; margin: 16px 0; font-size: 14px; color: #281C18; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(message)}</div>
                     <div style="text-align: center; margin: 28px 0;">
@@ -340,6 +340,7 @@ export async function sendContactAdminNotification(
     to: adminEmail,
     subject: `New contact message from ${senderName}`,
     html,
+    replyTo: senderEmail,
   });
 }
 
@@ -406,10 +407,82 @@ export async function sendContactReplyEmail(
 }
 
 // Internal Resend API dispatcher
+// 7. Notify the gallery's inbox about a new inquiry, service request or a
+// customer's follow-up message — until now these only showed up in the
+// admin panel. When the customer left an email address, it becomes the
+// Reply-To, so pressing "Reply" in the inbox writes straight to them.
+export async function sendAdminActivityNotification(params: {
+  adminEmail: string;
+  heading: string;
+  summary: string;
+  details: [string, string | null | undefined][];
+  message: string;
+  adminPath: string;
+  subject: string;
+  customerEmail?: string | null;
+}): Promise<EmailSendResult> {
+  const rows = params.details
+    .filter(([, value]) => value && String(value).trim())
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding: 3px 12px 3px 0; color: #8F8178; font-size: 13px; white-space: nowrap; vertical-align: top;">${escapeHtml(label)}</td><td style="padding: 3px 0; color: #281C18; font-size: 13px;">${escapeHtml(String(value))}</td></tr>`
+    )
+    .join('');
+  const replyHint = params.customerEmail
+    ? '<p style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 12px; color: #8F8178; margin: 0;">Bu xatga &laquo;Reply&raquo; (javob berish) bossangiz, javobingiz to&#39;g&#39;ridan-to&#39;g&#39;ri mijozga boradi.</p>'
+    : '';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><title>${escapeHtml(params.heading)}</title></head>
+      <body style="margin: 0; padding: 0; background-color: #FAF4EC; font-family: 'Georgia', serif; color: #281C18;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FAF4EC; padding: 40px 15px;">
+          <tr>
+            <td align="center">
+              <table width="100%" max-width="580" style="max-width: 580px; background-color: #FDFBF9; border: 1px solid #E7E0D8; border-radius: 4px; padding: 36px 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+                <tr>
+                  <td style="border-bottom: 1px solid #EFE8DE; padding-bottom: 20px;">
+                    <h1 style="color: #BA4E25; margin: 0; font-size: 26px; letter-spacing: 1px;">Art Qala Admin</h1>
+                    <p style="margin: 4px 0 0 0; color: #726861; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;">${escapeHtml(params.heading)}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top: 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <p style="font-size: 14px; line-height: 1.6; color: #554740; margin: 0 0 14px 0;">${escapeHtml(params.summary)}</p>
+                    <table border="0" cellspacing="0" cellpadding="0" style="margin: 0 0 8px 0;">${rows}</table>
+                    <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 16px 18px; margin: 16px 0; font-size: 14px; color: #281C18; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(params.message)}</div>
+                    <div style="text-align: center; margin: 28px 0 20px 0;">
+                      <a href="${SITE_URL}${params.adminPath}" style="background-color: #BA4E25; color: #FFFFFF; text-decoration: none; padding: 12px 28px; border-radius: 3px; font-size: 13px; font-weight: 600; display: inline-block;">
+                        Admin panelda ochish &rarr;
+                      </a>
+                    </div>
+                    ${replyHint}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  return sendResendEmail({
+    to: params.adminEmail,
+    subject: params.subject,
+    html,
+    replyTo: params.customerEmail || undefined,
+  });
+}
+
 async function sendResendEmail(params: {
   to: string;
   subject: string;
   html: string;
+  // Where the recipient's "Reply" goes — on admin notifications this is the
+  // customer, so the curator can answer straight from their inbox.
+  replyTo?: string;
 }): Promise<EmailSendResult> {
   if (!RESEND_API_KEY) {
     console.warn(
@@ -430,6 +503,7 @@ async function sendResendEmail(params: {
         to: [params.to],
         subject: params.subject,
         html: params.html,
+        ...(params.replyTo && { reply_to: params.replyTo }),
       }),
     });
 

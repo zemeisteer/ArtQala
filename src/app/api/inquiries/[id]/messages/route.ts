@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
 import { FROM_EMAIL, escapeHtml } from '@/lib/email';
+import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -184,6 +185,26 @@ export async function POST(request: Request, context: RouteContext) {
           console.log(`[Resend Mock - No RESEND_API_KEY configured] Notification sent to ${recipientEmail}: "${message.trim()}"`);
         }
       }
+    }
+
+    // A customer's follow-up in the thread — let the curator know by email
+    // instead of relying on someone checking the admin panel.
+    if (effectiveSender === 'CUSTOMER') {
+      const customerName = existingInquiry.guest_name || existingInquiry.user?.name || 'Mijoz';
+      const paintingTitle = existingInquiry.painting?.title_uz || existingInquiry.painting?.title_en;
+      await notifyAdmin({
+        heading: "So'rovga yangi xabar",
+        summary: `${customerName} so'rov bo'yicha yangi xabar yozdi.`,
+        details: [
+          ['Kartina', paintingTitle],
+          ['Ism', customerName],
+          ['Email', existingInquiry.guest_email || existingInquiry.user?.email],
+        ],
+        message: message.trim(),
+        adminPath: '/admin/inquiries',
+        subject: `Yangi xabar: ${paintingTitle || "so'rov"} — ${customerName}`,
+        customerEmail: emailOrNull(existingInquiry.guest_email || existingInquiry.user?.email),
+      });
     }
 
     return NextResponse.json({

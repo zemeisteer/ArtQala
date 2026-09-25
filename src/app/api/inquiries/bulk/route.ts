@@ -4,6 +4,7 @@ import { validateEmail, validatePhoneOrTelegram } from '@/lib/validation';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { getServerSession } from '@/lib/auth';
 import { largestSizeBucket, priceForSize } from '@/lib/paintingSize';
+import { notifyAdmin } from '@/lib/adminNotify';
 
 const MAX_ITEMS = 20;
 
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
 
     const validPaintings = await prisma.painting.findMany({
       where: { id: { in: painting_ids } },
-      select: { id: true, size: true },
+      select: { id: true, size: true, title_en: true, title_uz: true },
     });
     const validIds = validPaintings.map((p) => p.id);
 
@@ -134,6 +135,21 @@ export async function POST(request: Request) {
         })
       )
     );
+
+    await notifyAdmin({
+      heading: "Yangi so'rov (bir nechta kartina)",
+      summary: `${guest_name.trim()} ${inquiries.length} ta kartina bo'yicha so'rov yubordi.`,
+      details: [
+        ['Kartinalar', validPaintings.map((p) => p.title_uz || p.title_en).join(', ')],
+        ['Ism', guest_name.trim()],
+        ['Email', normalizedEmail],
+        ['Telefon', guest_phone.trim()],
+      ],
+      message: trimmedMessage,
+      adminPath: '/admin/inquiries',
+      subject: `Yangi so'rov: ${inquiries.length} ta kartina — ${guest_name.trim()}`,
+      customerEmail: normalizedEmail,
+    });
 
     return NextResponse.json({ success: true, count: inquiries.length });
   } catch (error) {
