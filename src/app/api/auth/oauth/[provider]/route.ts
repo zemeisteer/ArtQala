@@ -3,6 +3,16 @@ import { prisma } from '@/lib/prisma';
 import { createSessionToken } from '@/lib/auth';
 import { safeRedirectTarget } from '@/lib/safeRedirect';
 
+// Starting a sign-in as someone else ends whoever was signed in before —
+// otherwise, if the provider round-trip fails or is abandoned (e.g. Google
+// rejecting the redirect URI), the browser silently stays signed in as the
+// previous account, which looks exactly like "logged in with a different
+// email and still got into the admin panel".
+function withoutPreviousSession(response: NextResponse) {
+  response.cookies.set('artqala_user', '', { path: '/', maxAge: 0 });
+  return response;
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ provider: string }> }
@@ -36,7 +46,7 @@ export async function GET(
       googleAuthUrl.searchParams.set('access_type', 'offline');
       googleAuthUrl.searchParams.set('prompt', 'consent');
       googleAuthUrl.searchParams.set('state', redirectTarget);
-      return NextResponse.redirect(googleAuthUrl.toString());
+      return withoutPreviousSession(NextResponse.redirect(googleAuthUrl.toString()));
     }
 
     if (normalizedProvider === 'apple' && appleClientId) {
@@ -49,7 +59,7 @@ export async function GET(
       appleAuthUrl.searchParams.set('scope', 'name email');
       appleAuthUrl.searchParams.set('response_mode', 'form_post');
       appleAuthUrl.searchParams.set('state', redirectTarget);
-      return NextResponse.redirect(appleAuthUrl.toString());
+      return withoutPreviousSession(NextResponse.redirect(appleAuthUrl.toString()));
     }
 
     // Developer / Demo mode: Instant OAuth Login when credentials are not yet configured in .env.

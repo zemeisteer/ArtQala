@@ -16,12 +16,6 @@ export async function POST(request: Request) {
   if (auth.errorResponse) return auth.errorResponse;
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { success: false, error: 'GEMINI_API_KEY is not configured on the server.' },
-      { status: 500 }
-    );
-  }
 
   const rateLimitKey = `translate:${auth.user.id}`;
   const rateCheck = await checkRateLimit(rateLimitKey, 60, 15 * 60 * 1000);
@@ -49,25 +43,28 @@ export async function POST(request: Request) {
 
   const targetLangs = (['uz', 'ru', 'en'] as const).filter((l) => l !== sourceLang);
 
-  // Gemini gives the most natural gallery wording, but it can be slow and
-  // its quota runs out (429) — so it gets a hard deadline, and anything it
-  // doesn't deliver in time falls back to Google Translate. The admin never
-  // waits more than ~GEMINI_TIMEOUT_MS + FALLBACK_TIMEOUT_MS.
-  let translations: Record<string, string> = {};
-  let provider = 'gemini';
-  try {
-    translations = await translateWithGemini(apiKey, text, sourceLang, targetLangs);
-  } catch (error) {
-    console.warn('Gemini translation failed, falling back:', error instanceof Error ? error.message : error);
-  }
+  // Google Translate first: free, no daily quota, answers in about a
+  // second. Gemini (whose free tier allows only ~20 requests a day) is only
+  // asked for whatever Google couldn't deliver, with a hard deadline, so the
+  // admin never waits more than ~GOOGLE_TIMEOUT_MS + GEMINI_TIMEOUT_MS.
+  const translations: Record<string, string> = {};
+  const googleResults = await Promise.all(targetLangs.map((l) => translateWithGoogle(text, sourceLang, l)));
+  targetLangs.forEach((l, i) => {
+    if (googleResults[i]) translations[l] = googleResults[i] as string;
+  });
+  let provider = 'google';
 
   const missing = targetLangs.filter((l) => !translations[l]);
-  if (missing.length > 0) {
-    provider = missing.length === targetLangs.length ? 'google' : 'mixed';
-    const results = await Promise.all(missing.map((l) => translateWithGoogle(text, sourceLang, l)));
-    missing.forEach((l, i) => {
-      if (results[i]) translations[l] = results[i] as string;
-    });
+  if (missing.length > 0 && apiKey) {
+    try {
+      const fromGemini = await translateWithGemini(apiKey, text, sourceLang, missing);
+      for (const l of missing) {
+        if (fromGemini[l]) translations[l] = fromGemini[l];
+      }
+      provider = missing.length === targetLangs.length ? 'gemini' : 'mixed';
+    } catch (error) {
+      console.warn('Gemini translation fallback failed:', error instanceof Error ? error.message : error);
+    }
   }
 
   if (targetLangs.every((l) => !translations[l])) {
@@ -81,7 +78,7 @@ export async function POST(request: Request) {
 }
 
 const GEMINI_TIMEOUT_MS = 12_000;
-const FALLBACK_TIMEOUT_MS = 8_000;
+const GOOGLE_TIMEOUT_MS = 8_000;
 
 async function translateWithGemini(
   apiKey: string,
@@ -123,13 +120,14 @@ async function translateWithGemini(
 }
 
 // Google Translate's public web endpoint — no key, fast, decent Uzbek.
-// Only used as the fallback above.
+// It's unofficial and can throttle very heavy use, which is why Gemini
+// stays wired in above as a fallback.
 async function translateWithGoogle(text: string, from: string, to: string): Promise<string | null> {
   try {
     const url =
       'https://translate.googleapis.com/translate_a/single?client=gtx&dt=t' +
       `&sl=${encodeURIComponent(from)}&tl=${encodeURIComponent(to)}&q=${encodeURIComponent(text)}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) });
     if (!res.ok) return null;
     const data = await res.json();
     const joined = Array.isArray(data?.[0])

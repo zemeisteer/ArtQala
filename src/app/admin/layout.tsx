@@ -239,7 +239,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </div>
               <div className="hidden sm:block leading-tight text-left">
                 <div className="text-xs font-bold text-[#281C18]">{user.name}</div>
-                <div className="text-[10px] text-[#8F8178]">{t.admin.role}</div>
+                {/* The signed-in account's email, so it's always obvious which
+                    account this admin session belongs to. */}
+                <div className="text-[10px] text-[#8F8178]">{user.email}</div>
               </div>
             </div>
           </div>

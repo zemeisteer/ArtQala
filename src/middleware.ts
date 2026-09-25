@@ -24,6 +24,10 @@ function timingSafeEqualStr(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
+// Mirrors isSessionExpired() in src/lib/auth.ts (which can't be imported
+// here — it pulls in Node's crypto, and middleware runs on the Edge runtime).
+const ADMIN_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
 async function verifyToken(token: string | undefined): Promise<{ role: string } | null> {
   if (!token || typeof token !== 'string') return null;
   const parts = token.split('.');
@@ -61,7 +65,11 @@ async function verifyToken(token: string | undefined): Promise<{ role: string } 
     const payloadStr = atob(
       encodedPayload.replace(/-/g, '+').replace(/_/g, '/')
     );
-    return JSON.parse(payloadStr);
+    const data = JSON.parse(payloadStr);
+    if (data.role === 'ADMIN' && (typeof data.iat !== 'number' || Date.now() - data.iat > ADMIN_SESSION_MAX_AGE_MS)) {
+      return null;
+    }
+    return data;
   } catch {
     return null;
   }

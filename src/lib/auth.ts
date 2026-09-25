@@ -36,6 +36,17 @@ export function createSessionToken(user: UserSession): string {
   return `${encodedPayload}.${signature}`;
 }
 
+// How long a signed session stays valid, checked against the token's own
+// `iat` (the cookie's maxAge alone is only a browser hint — a copied token
+// would otherwise work forever). Admin sessions are deliberately short.
+export const ADMIN_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+export const USER_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function isSessionExpired(data: { role?: string; iat?: number }): boolean {
+  const maxAge = data.role === 'ADMIN' ? ADMIN_SESSION_MAX_AGE_MS : USER_SESSION_MAX_AGE_MS;
+  return typeof data.iat !== 'number' || Date.now() - data.iat > maxAge;
+}
+
 // Verify signature and extract session payload
 export function verifySessionToken(token: string | undefined | null): UserSession | null {
   if (!token || typeof token !== 'string') return null;
@@ -64,6 +75,7 @@ export function verifySessionToken(token: string | undefined | null): UserSessio
   try {
     const payloadStr = Buffer.from(encodedPayload, 'base64url').toString('utf-8');
     const data = JSON.parse(payloadStr);
+    if (isSessionExpired(data)) return null;
     return {
       id: data.id,
       name: data.name,
