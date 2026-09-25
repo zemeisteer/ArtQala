@@ -1,4 +1,5 @@
 import { OTP_TTL_MINUTES } from './otpConfig';
+import { prisma } from './prisma';
 
 export interface EmailSendResult {
   success: boolean;
@@ -476,6 +477,22 @@ export async function sendAdminActivityNotification(params: {
   });
 }
 
+// The gallery's real inbox (Admin → Settings → Email). Mail goes out from
+// FROM_EMAIL, which may be a no-reply address, so customer-facing mail sets
+// this as Reply-To — a customer pressing "Reply" reaches the gallery instead
+// of a mailbox nobody reads. Null when Settings has no email.
+export async function getGalleryReplyTo(): Promise<string | null> {
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: 'default' },
+      select: { email: true },
+    });
+    return settings?.email?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 async function sendResendEmail(params: {
   to: string;
   subject: string;
@@ -491,6 +508,10 @@ async function sendResendEmail(params: {
     return { success: true, id: 'mock-id' };
   }
 
+  // Explicit Reply-To (admin notifications → the customer) wins; everything
+  // else — mail to customers — replies to the gallery's own inbox.
+  const replyTo = params.replyTo || (await getGalleryReplyTo());
+
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -503,7 +524,7 @@ async function sendResendEmail(params: {
         to: [params.to],
         subject: params.subject,
         html: params.html,
-        ...(params.replyTo && { reply_to: params.replyTo }),
+        ...(replyTo && { reply_to: replyTo }),
       }),
     });
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
-import { FROM_EMAIL, escapeHtml } from '@/lib/email';
+import { FROM_EMAIL, escapeHtml, getGalleryReplyTo } from '@/lib/email';
 import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
 
 interface RouteContext {
@@ -164,6 +164,7 @@ export async function POST(request: Request, context: RouteContext) {
 
         if (process.env.RESEND_API_KEY) {
           try {
+            const galleryReplyTo = await getGalleryReplyTo();
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: {
@@ -172,6 +173,8 @@ export async function POST(request: Request, context: RouteContext) {
               },
               body: JSON.stringify({
                 from: FROM_EMAIL,
+                // Customer's "Reply" goes to the gallery inbox, not no-reply.
+                ...(galleryReplyTo && { reply_to: galleryReplyTo }),
                 to: [recipientEmail],
                 subject: `Art Qala — Sizning so'rovingizga javob keldi ("${paintingTitle}")`,
                 html: emailHtml,
