@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
-import { FROM_EMAIL } from '@/lib/email';
+import { FROM_EMAIL, escapeHtml } from '@/lib/email';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -121,12 +121,12 @@ export async function POST(request: Request, context: RouteContext) {
               <p style="font-size: 11px; color: #726861; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px;">Studio & Commissions · Tashkent</p>
             </div>
             <hr style="border: 0; border-top: 1px solid #E7E0D8; margin: 20px 0;" />
-            <p style="font-size: 15px; margin-bottom: 12px;">Assalomu alaykum, ${recipientName},</p>
+            <p style="font-size: 15px; margin-bottom: 12px;">Assalomu alaykum, ${escapeHtml(recipientName)},</p>
             <p style="font-size: 14px; line-height: 1.6; color: #554740;">
-              Sizning <strong>${serviceType}</strong> xizmati bo'yicha so'rovingizga Art Qala kuratoridan yangi javob keldi:
+              Sizning <strong>${escapeHtml(serviceType)}</strong> xizmati bo'yicha so'rovingizga Art Qala kuratoridan yangi javob keldi:
             </p>
             <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 16px 20px; margin: 20px 0; font-size: 14px; line-height: 1.6; color: #281C18; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              "${message.trim()}"
+              "${escapeHtml(message.trim())}"
             </div>
             <div style="text-align: center; margin: 28px 0;">
               <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/account" style="background-color: #BA4E25; color: #FFFFFF; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: bold; border-radius: 3px; display: inline-block;">

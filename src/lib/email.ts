@@ -11,13 +11,26 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Art Qala Gallery <onboarding@resend.dev>';
 const SITE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
+// User-supplied text (names, messages) must never be interpreted as HTML
+// in an email body — e.g. a signup "name" is chosen by whoever fills in the
+// form, not by the inbox owner, and would otherwise let anyone put links
+// into a mail sent from our domain.
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // 1. Send OTP Verification Email during signup
 export async function sendOtpEmail(
   to: string,
   code: string,
   recipientName?: string
 ): Promise<EmailSendResult> {
-  const name = recipientName || 'Art Lover';
+  const name = escapeHtml(recipientName || 'Art Lover');
 
   const html = `
     <!DOCTYPE html>
@@ -105,7 +118,7 @@ export async function sendPasswordResetEmail(
                 </tr>
                 <tr>
                   <td style="padding-top: 28px;">
-                    <h2 style="font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Hello, ${name}</h2>
+                    <h2 style="font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Hello, ${escapeHtml(name)}</h2>
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.6; color: #554740; margin: 0 0 24px 0;">
                       We received a request to reset the password for your Art Qala account. Enter the following 6-digit code to choose a new password:
                     </p>
@@ -173,13 +186,13 @@ export async function sendCuratorReplyNotification(
                 </tr>
                 <tr>
                   <td style="padding-top: 28px;">
-                    <h2 style="font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Dear ${name},</h2>
+                    <h2 style="font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Dear ${escapeHtml(name)},</h2>
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.6; color: #554740; margin: 0 0 18px 0;">
-                      Our gallery curator in Tashkent has replied to your inquiry regarding <strong>"${subjectTitle}"</strong>:
+                      Our gallery curator in Tashkent has replied to your inquiry regarding <strong>"${escapeHtml(subjectTitle)}"</strong>:
                     </p>
                     
                     <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 18px; margin: 20px 0; border-radius: 2px; font-style: italic; font-size: 14px; color: #281C18; line-height: 1.6;">
-                      "${replyMessage}"
+                      "${escapeHtml(replyMessage)}"
                     </div>
 
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #554740; margin: 24px 0;">
@@ -241,7 +254,7 @@ export async function sendContactAcknowledgmentEmail(
                 </tr>
                 <tr>
                   <td style="padding-top: 28px;">
-                    <h2 style="font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Thank you, ${name}!</h2>
+                    <h2 style="font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Thank you, ${escapeHtml(name)}!</h2>
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.6; color: #554740; margin: 0 0 18px 0;">
                       We've received your message and a member of our curatorial team will get back to you within <strong>1-2 business days</strong>.
                     </p>
@@ -300,12 +313,12 @@ export async function sendContactAdminNotification(
                 <tr>
                   <td style="padding-top: 28px;">
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.6; color: #554740; margin: 0 0 14px 0;">
-                      <strong>${senderName}</strong> (${senderEmail}) sent a message via the contact form:
+                      <strong>${escapeHtml(senderName)}</strong> (${escapeHtml(senderEmail)}) sent a message via the contact form:
                     </p>
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #8F8178; margin: 0 0 4px 0;">
                       Subject: <strong style="color: #281C18;">${subject || '(no subject)'}</strong>
                     </p>
-                    <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 16px 18px; margin: 16px 0; font-size: 14px; color: #281C18; line-height: 1.6; white-space: pre-wrap;">${message}</div>
+                    <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 16px 18px; margin: 16px 0; font-size: 14px; color: #281C18; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(message)}</div>
                     <div style="text-align: center; margin: 28px 0;">
                       <a href="${SITE_URL}/admin/messages" style="background-color: #BA4E25; color: #FFFFFF; text-decoration: none; padding: 12px 28px; border-radius: 3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 600; display: inline-block;">
                         Open Admin Panel &rarr;
@@ -358,11 +371,11 @@ export async function sendContactReplyEmail(
                 </tr>
                 <tr>
                   <td style="padding-top: 28px;">
-                    <h2 style="font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Dear ${name},</h2>
+                    <h2 style="font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Dear ${escapeHtml(name)},</h2>
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.6; color: #554740; margin: 0 0 18px 0;">
-                      Our gallery curator has replied to ${originalSubject ? `your message about <strong>"${subjectLine}"</strong>` : 'your message'}:
+                      Our gallery curator has replied to ${originalSubject ? `your message about <strong>"${escapeHtml(subjectLine)}"</strong>` : 'your message'}:
                     </p>
-                    <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 18px; margin: 20px 0; border-radius: 2px; font-style: italic; font-size: 14px; color: #281C18; line-height: 1.6; white-space: pre-wrap;">${replyMessage}</div>
+                    <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 18px; margin: 20px 0; border-radius: 2px; font-style: italic; font-size: 14px; color: #281C18; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(replyMessage)}</div>
                     <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #8F8178; line-height: 1.5; margin: 20px 0 0 0;">
                       You can reply directly to this email if you have further questions.
                     </p>
