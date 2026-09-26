@@ -10,8 +10,8 @@ import AnimatedShamchiroq from '@/components/patterns/AnimatedShamchiroq';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import PublicPagination from '@/components/PublicPagination';
 
-// Two full rows of the 3-column grid per page.
-const PAGE_SIZE = 6;
+// Artists per page (5 rows of the 3-column grid).
+const PAGE_SIZE = 15;
 
 interface ArtistsClientProps {
   artists: any[];

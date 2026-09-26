@@ -14,8 +14,8 @@ import PublicPagination from '@/components/PublicPagination';
 import { getSizeBucket } from '@/lib/paintingSize';
 import { effectiveProductType } from '@/lib/productType';
 
-// 3 rows of the 4-column grid per page.
-const PAGE_SIZE = 12;
+// Paintings per page (15 rows of the 4-column desktop grid).
+const PAGE_SIZE = 60;
 
 interface GalleryClientProps {
   paintings: any[];
