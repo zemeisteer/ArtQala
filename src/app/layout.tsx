@@ -3,9 +3,6 @@ import { Cormorant_Garamond, Work_Sans } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import KhorezmScrollTrack from '@/components/patterns/KhorezmScrollTrack';
 import { prisma } from '@/lib/prisma';
 import { safeJsonLdString } from '@/lib/jsonLd';
 import { parseSocialLinks, normalizeSocialUrl, parseLocations } from '@/lib/settingsUtils';
@@ -152,12 +149,9 @@ export default async function RootLayout({
         <AppProvider>
           {GA_MEASUREMENT_ID && <ContactClickTracker />}
           <VisitTracker />
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <KhorezmScrollTrack />
-            <Footer />
-          </div>
+          {/* Header/footer live in app/[lang]/layout.tsx (the public site);
+              the admin panel has its own layout. */}
+          {children}
         </AppProvider>
       </body>
     </html>

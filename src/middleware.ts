@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { LANG_COOKIE, splitLangPath } from '@/lib/i18n/routing';
 
 if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
   // The fallback below is public (checked into the repo) — running production
@@ -113,15 +114,52 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  const response = routePublicPage(request) || NextResponse.next();
+
   // Pass the visitor's country (Vercel's IP geolocation) to the browser so
   // the phone-code and shipping pickers can default to it — see
   // src/lib/visitorCountry.ts. Only (re)written when it changes.
-  const response = NextResponse.next();
   const country = request.headers.get('x-vercel-ip-country')?.toUpperCase();
   if (country && /^[A-Z]{2}$/.test(country) && request.cookies.get('aq_country')?.value !== country) {
     response.cookies.set('aq_country', country, { path: '/', maxAge: 30 * 24 * 60 * 60, sameSite: 'lax' });
   }
   return response;
+}
+
+// Public pages are served from app/[lang]/... (see src/lib/i18n/routing.ts):
+//   /ru/..., /uz/...  → served as-is
+//   /en/...           → 308 to the unprefixed URL (English has no prefix)
+//   /...              → rewritten to /en/... — or, for a browser whose
+//                       visitor picked Russian/Uzbek (artqala_lang cookie),
+//                       redirected to that language's URL
+// Everything else (API, admin, Next internals, files) is left alone.
+function routePublicPage(request: NextRequest): NextResponse | null {
+  const { pathname, search } = request.nextUrl;
+  const isPublicPage =
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/admin') &&
+    !pathname.startsWith('/_next') &&
+    !/\.[a-z0-9]+$/i.test(pathname) && // files: robots.txt, sitemap.xml, images, ...
+    !/^\/(opengraph-image|twitter-image|icon|apple-icon)(\/|$)/.test(pathname);
+  if (!isPublicPage) return null;
+
+  const firstSegment = pathname.split('/')[1];
+  if (firstSegment === 'ru' || firstSegment === 'uz') return null;
+
+  if (firstSegment === 'en') {
+    const { path } = splitLangPath(pathname);
+    return NextResponse.redirect(new URL(`${path}${search}`, request.url), 308);
+  }
+
+  const preferred = request.cookies.get(LANG_COOKIE)?.value;
+  if (preferred === 'ru' || preferred === 'uz') {
+    const target = pathname === '/' ? `/${preferred}` : `/${preferred}${pathname}`;
+    return NextResponse.redirect(new URL(`${target}${search}`, request.url), 307);
+  }
+
+  const rewritten = request.nextUrl.clone();
+  rewritten.pathname = pathname === '/' ? '/en' : `/en${pathname}`;
+  return NextResponse.rewrite(rewritten);
 }
 
 export const config = {

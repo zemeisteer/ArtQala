@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import Link from '@/components/LocalizedLink';
 import { ChevronRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 

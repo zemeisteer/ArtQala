@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useApp, Currency } from '@/context/AppContext';
 import { Language } from '@/lib/i18n/translations';
+import { splitLangPath } from '@/lib/i18n/routing';
 import { Heart, Menu, X, Shield, UserCircle } from 'lucide-react';
 import AnimatedChorgul from '@/components/patterns/AnimatedChorgul';
 import FilterSelect from '@/components/FilterSelect';
@@ -28,9 +29,12 @@ export default function Header() {
   // nav labels, not the admin content underneath it.
   if (pathname.startsWith('/admin')) return null;
 
+  // Compare without the /ru or /uz prefix, so "Gallery" is highlighted on
+  // /ru/gallery too.
+  const currentPath = splitLangPath(pathname).path;
   const isActive = (path: string) => {
-    if (path === '/' && pathname === '/') return true;
-    if (path !== '/' && pathname.startsWith(path)) return true;
+    if (path === '/' && currentPath === '/') return true;
+    if (path !== '/' && currentPath.startsWith(path)) return true;
     return false;
   };
 

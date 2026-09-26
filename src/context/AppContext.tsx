@@ -166,6 +166,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLangState(l);
     if (typeof window !== 'undefined') {
       localStorage.setItem('artqala_lang', l);
+      // Also a cookie, so the middleware can send this visitor's plain
+      // (English) page URLs to their language's /ru/... or /uz/... version.
+      document.cookie = `artqala_lang=${l}; path=/; max-age=${365 * 24 * 60 * 60}; samesite=lax`;
     }
   };
 
@@ -238,10 +241,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Set by the public site's app/[lang] layout: on those pages the language
+// comes from the URL (/ru/..., /uz/..., or English), not from what the
+// visitor last picked — that's what lets the server render each language
+// version correctly. `setLang` there navigates to the other language's URL.
+export interface RouteLangValue {
+  lang: Language;
+  setLang: (lang: Language) => void;
+}
+export const RouteLangContext = createContext<RouteLangValue | null>(null);
+
 export function useApp() {
   const context = useContext(AppContext);
+  const routeLang = useContext(RouteLangContext);
   if (!context) {
     throw new Error('useApp must be used within an AppProvider');
+  }
+  if (routeLang) {
+    return {
+      ...context,
+      lang: routeLang.lang,
+      setLang: routeLang.setLang,
+      t: translations[routeLang.lang] || translations.en,
+    };
   }
   return context;
 }

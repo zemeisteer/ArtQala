@@ -7,7 +7,12 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/admin/', '/api/admin/', '/account/', '/verify-otp'],
+      disallow: [
+        '/admin/',
+        '/api/admin/',
+        // private pages, in every language (/ru/..., /uz/...)
+        ...['', '/ru', '/uz'].flatMap((prefix) => [`${prefix}/account`, `${prefix}/verify-otp`]),
+      ],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
   };
