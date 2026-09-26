@@ -24,9 +24,13 @@ export async function notifyAdmin(params: NotifyParams): Promise<void> {
   }
 }
 
-// guest_contact on service requests may be a phone number or Telegram
-// handle — only a real email address can be used as Reply-To.
-export function emailOrNull(value?: string | null): string | null {
-  const v = value?.trim() || '';
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v : null;
+// The first email address inside a contact string — service requests
+// store "email · phone" (older ones: an email, a phone or a @telegram
+// handle), and only a real address can be used for Reply-To / reply mails.
+export function extractEmail(value?: string | null): string | null {
+  const match = (value || '').match(/[^\s@·,;<>()]+@[^\s@·,;<>()]+\.[^\s@·,;<>()]+/);
+  return match ? match[0].toLowerCase() : null;
 }
+
+// Kept for existing callers.
+export const emailOrNull = extractEmail;

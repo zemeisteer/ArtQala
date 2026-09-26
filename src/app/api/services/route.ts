@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { getServerSession } from '@/lib/auth';
+import { validateEmail, validatePhoneOrTelegram } from '@/lib/validation';
 import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
 
 export async function POST(request: Request) {
@@ -23,14 +24,27 @@ export async function POST(request: Request) {
     await recordFailedAttempt(rateLimitKey);
 
     const body = await request.json();
-    const { guest_name, guest_contact, service_type, description, selected_accessories } = body;
+    const { guest_name, guest_email, guest_phone, service_type, description, selected_accessories } = body;
 
-    if (!guest_name || !guest_contact || !service_type || !description) {
+    if (!guest_name || !guest_email || !guest_phone || !service_type || !description) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
       );
     }
+
+    const emailValidation = validateEmail(guest_email);
+    if (!emailValidation.isValid) {
+      return NextResponse.json({ success: false, error: emailValidation.error }, { status: 400 });
+    }
+    const phoneValidation = validatePhoneOrTelegram(guest_phone);
+    if (!phoneValidation.isValid) {
+      return NextResponse.json({ success: false, error: phoneValidation.error }, { status: 400 });
+    }
+    // Stored in the single guest_contact column as "email · phone" — the
+    // admin panel shows it as-is, and extractEmail() (src/lib/adminNotify.ts)
+    // pulls the address back out for reply emails.
+    const guest_contact = `${String(guest_email).trim().toLowerCase()} · ${String(guest_phone).trim()}`;
 
     // Never trust a client-supplied user_id — attach to the verified session
     // if the caller is signed in, otherwise it stays a guest request.

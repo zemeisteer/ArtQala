@@ -66,7 +66,10 @@ export default function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-7 lg:gap-9">
+        {/* The full nav needs ~1150px (more with the longer Uzbek labels) —
+            below xl it used to wrap "Sign In" and the tagline onto several
+            lines on tablets/small laptops, so those get the menu button. */}
+        <nav className="hidden xl:flex items-center gap-8">
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -89,7 +92,7 @@ export default function Header() {
               title={t.nav.admin}
             >
               <Shield className="w-3.5 h-3.5 text-[#BA4E25]" />
-              <span className="hidden xl:inline">{t.nav.admin}</span>
+              <span className="hidden 2xl:inline">{t.nav.admin}</span>
             </Link>
           )}
 
@@ -158,6 +161,7 @@ export default function Header() {
               value={currency}
               onChange={(v) => setCurrency(v as Currency)}
               options={CURRENCY_OPTIONS}
+              ariaLabel="Currency"
               className="w-[84px] ml-1"
               buttonClassName="!rounded-full !py-1 !px-2.5 !text-[11px] !font-semibold !border-[#E7E0D8] hover:!border-[#429599] hover:!text-[#429599]"
             />
@@ -166,7 +170,7 @@ export default function Header() {
         </nav>
 
         {/* Mobile menu trigger */}
-        <div className="flex items-center gap-3 md:hidden">
+        <div className="flex items-center gap-3 xl:hidden">
           <Link
             href="/gallery?wishlist=true"
             className="relative p-1.5 text-[#3E332E]"
@@ -191,7 +195,7 @@ export default function Header() {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#FAF4EC] border-b border-[#E7E0D8] px-6 py-6 space-y-4 shadow-lg">
+        <div className="xl:hidden bg-[#FAF4EC] border-b border-[#E7E0D8] px-6 py-6 space-y-4 shadow-lg">
           <div className="flex flex-col space-y-3">
             {navItems.map((item) => (
               <Link
@@ -262,6 +266,7 @@ export default function Header() {
               value={currency}
               onChange={(v) => setCurrency(v as Currency)}
               options={CURRENCY_OPTIONS}
+              ariaLabel="Currency"
               className="w-[88px]"
               buttonClassName="!rounded-full !py-1 !px-2.5 !text-xs !font-semibold !border-[#E7E0D8]"
             />

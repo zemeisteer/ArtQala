@@ -62,7 +62,7 @@ export function validateEmail(email: unknown): { isValid: boolean; error?: strin
  */
 export function validatePhoneOrTelegram(value: unknown): { isValid: boolean; error?: string } {
   if (!value || typeof value !== 'string' || !value.trim()) {
-    return { isValid: false, error: 'Telefon raqami yoki Telegram foydalanuvchi nomi kiritilishi shart' };
+    return { isValid: false, error: 'Telefon raqami kiritilishi shart' };
   }
 
   const trimmed = value.trim();
@@ -74,7 +74,9 @@ export function validatePhoneOrTelegram(value: unknown): { isValid: boolean; err
     return { isValid: true };
   }
 
-  if (!isValidPhoneNumber(trimmed)) {
+  // "+998901234567 (WhatsApp)" — a number the customer marked as WhatsApp.
+  const number = trimmed.replace(/\s*\(WhatsApp\)$/i, '');
+  if (!isValidPhoneNumber(number)) {
     return {
       isValid: false,
       error: "Telefon raqami noto'g'ri. Davlat kodi bilan kiriting (masalan: +998901234567)",

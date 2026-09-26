@@ -7,6 +7,7 @@ import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCh
 import ServiceImageCarousel from '@/components/ServiceImageCarousel';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import FilterSelect from '@/components/FilterSelect';
+import PhoneInput from '@/components/PhoneInput';
 
 interface ServicesClientProps {
   muralImages: string[];
@@ -19,7 +20,10 @@ export default function ServicesClient({ muralImages, ceramicsImages, customImag
   const formRef = useRef<HTMLDivElement>(null);
 
   const [guestName, setGuestName] = useState('');
-  const [guestContact, setGuestContact] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [phoneValid, setPhoneValid] = useState(false);
+  const [error, setError] = useState('');
   const [serviceType, setServiceType] = useState('MURAL');
   const [description, setDescription] = useState('');
   const [selectedAccessories, setSelectedAccessories] = useState<SelectedAccessory[]>([]);
@@ -33,6 +37,11 @@ export default function ServicesClient({ muralImages, ceramicsImages, customImag
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    if (!phoneValid) {
+      setError(t.phoneInput.invalidPhone);
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch('/api/services', {
@@ -40,13 +49,18 @@ export default function ServicesClient({ muralImages, ceramicsImages, customImag
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           guest_name: guestName,
-          guest_contact: guestContact,
+          guest_email: guestEmail,
+          guest_phone: guestPhone,
           service_type: serviceType,
           description,
           selected_accessories: selectedAccessories,
         }),
       });
       const data = await res.json();
+      if (!data.success) {
+        setError(data.error || t.services.requestError);
+        return;
+      }
       if (data.success) {
         setSubmitted(true);
         setDescription('');
@@ -168,6 +182,11 @@ export default function ServicesClient({ muralImages, ceramicsImages, customImag
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <p className="text-xs text-[#F2A488] bg-[#BA4E25]/15 border border-[#BA4E25]/30 rounded-[3px] px-3 py-2">
+                  {error}
+                </p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold tracking-wider text-[#A8988E] uppercase mb-1">
@@ -185,17 +204,26 @@ export default function ServicesClient({ muralImages, ceramicsImages, customImag
 
                 <div>
                   <label className="block text-[11px] font-bold tracking-wider text-[#A8988E] uppercase mb-1">
-                    {t.services.contactLabel} *
+                    {t.services.emailLabel} *
                   </label>
                   <input
-                    type="text"
+                    type="email"
                     required
-                    value={guestContact}
-                    onChange={(e) => setGuestContact(e.target.value)}
-                    placeholder={t.services.contactPlaceholder}
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    placeholder="email@example.com"
                     className="w-full px-3.5 py-2.5 bg-[#362722] border border-[#4D3932] rounded-[3px] text-sm text-[#FAF4EC] focus:outline-none focus:border-[#BA4E25]"
                   />
                 </div>
+              </div>
+
+              {/* Phone or WhatsApp — many visitors from abroad can't be
+                  reached by email alone, and don't use Telegram. */}
+              <div>
+                <label className="block text-[11px] font-bold tracking-wider text-[#A8988E] uppercase mb-1">
+                  {t.services.phoneLabel} *
+                </label>
+                <PhoneInput value={guestPhone} onChange={setGuestPhone} onValidityChange={setPhoneValid} />
               </div>
 
               <div>

@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import PaintingCard, { PaintingItem } from '@/components/PaintingCard';
 import WishlistInquiryModal from '@/components/WishlistInquiryModal';
-import { Search, Heart, SlidersHorizontal, Send, ChevronDown, X, Palette, CalendarDays, Ruler, Layers } from 'lucide-react';
+import { Search, Heart, SlidersHorizontal, Send, ChevronDown, X, Palette, CalendarDays, Ruler, Layers, Wallet } from 'lucide-react';
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import DandanaScrollTrack from '@/components/patterns/DandanaScrollTrack';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -19,7 +19,7 @@ interface GalleryClientProps {
 }
 
 export default function GalleryClient({ paintings, categories }: GalleryClientProps) {
-  const { lang, t, wishlist } = useApp();
+  const { lang, t, wishlist, currency, currencyRate } = useApp();
   const searchParams = useSearchParams();
 
   // The top pills are product types only (ota kategoriya — Kartina,
@@ -31,17 +31,28 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
   // every painting actually tagged with one of its themes.
   const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
 
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [onlyWishlist, setOnlyWishlist] = useState<boolean>(false);
+  // Every filter starts from the URL (and is written back to it below), so
+  // a filtered view can be linked, bookmarked or shared — and links like the
+  // Artists page's "View works" (?artist=<id>) or ?q=... actually apply.
+  const param = (key: string, fallback = 'all') => searchParams.get(key) || fallback;
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => param('category'));
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>(() => param('theme'));
+  const [searchQuery, setSearchQuery] = useState<string>(() => param('q', ''));
+  const [onlyWishlist, setOnlyWishlist] = useState<boolean>(() => searchParams.get('wishlist') === 'true');
   const [showWishlistInquiry, setShowWishlistInquiry] = useState<boolean>(false);
 
-  // Advanced filters: artist / year / size
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
-  const [selectedArtistId, setSelectedArtistId] = useState<string>('all');
-  const [selectedYear, setSelectedYear] = useState<string>('all');
-  const [selectedSize, setSelectedSize] = useState<string>('all');
+  // Advanced filters: artist / year / size / price, plus sort order
+  const [selectedArtistId, setSelectedArtistId] = useState<string>(() => param('artist'));
+  const [selectedYear, setSelectedYear] = useState<string>(() => param('year'));
+  const [selectedSize, setSelectedSize] = useState<string>(() => param('size'));
+  // Price bounds are typed in the currency the visitor is browsing in.
+  const [minPrice, setMinPrice] = useState<string>(() => param('min', ''));
+  const [maxPrice, setMaxPrice] = useState<string>(() => param('max', ''));
+  const [sortBy, setSortBy] = useState<string>(() => param('sort', 'newest'));
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(
+    () => ['theme', 'artist', 'year', 'size', 'min', 'max'].some((k) => searchParams.get(k))
+  );
 
   // Theme/subject options that actually exist under the selected product
   // type — an "All" ota pill has no single parent to scope by, so no theme
@@ -56,9 +67,13 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
   // Reset the theme filter whenever the product type changes — otherwise a
   // theme from the previous product type could stay selected and silently
   // filter everything to zero results.
+  const isFirstCategoryRender = useRef(true);
   useEffect(() => {
+    if (isFirstCategoryRender.current) {
+      isFirstCategoryRender.current = false;
+      return;
+    }
     setSelectedSubCategory('all');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory]);
 
   // Scoped to the selected product type + theme, so the artist/year lists in
@@ -103,24 +118,61 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, selectedSubCategory]);
 
-  const hasActiveAdvancedFilters =
-    selectedSubCategory !== 'all' || selectedArtistId !== 'all' || selectedYear !== 'all' || selectedSize !== 'all';
+  const activeAdvancedCount = [
+    selectedSubCategory !== 'all',
+    selectedArtistId !== 'all',
+    selectedYear !== 'all',
+    selectedSize !== 'all',
+    !!minPrice || !!maxPrice,
+  ].filter(Boolean).length;
+  const hasActiveAdvancedFilters = activeAdvancedCount > 0;
 
   const clearAdvancedFilters = () => {
     setSelectedSubCategory('all');
     setSelectedArtistId('all');
     setSelectedYear('all');
     setSelectedSize('all');
+    setMinPrice('');
+    setMaxPrice('');
   };
 
+  const resetEverything = () => {
+    clearAdvancedFilters();
+    setSelectedCategory('all');
+    setSearchQuery('');
+    setOnlyWishlist(false);
+  };
+
+  // Mirror the filters into the URL. replaceState (not router.replace) so
+  // typing in the search box doesn't add history entries or refetch the page.
   useEffect(() => {
-    if (searchParams.get('wishlist') === 'true') {
-      setOnlyWishlist(true);
+    const next = new URLSearchParams();
+    if (selectedCategory !== 'all') next.set('category', selectedCategory);
+    if (selectedSubCategory !== 'all') next.set('theme', selectedSubCategory);
+    if (searchQuery.trim()) next.set('q', searchQuery.trim());
+    if (onlyWishlist) next.set('wishlist', 'true');
+    if (selectedArtistId !== 'all') next.set('artist', selectedArtistId);
+    if (selectedYear !== 'all') next.set('year', selectedYear);
+    if (selectedSize !== 'all') next.set('size', selectedSize);
+    if (minPrice) next.set('min', minPrice);
+    if (maxPrice) next.set('max', maxPrice);
+    if (sortBy !== 'newest') next.set('sort', sortBy);
+    const qs = next.toString();
+    const url = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+    if (url !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(window.history.state, '', url);
     }
-  }, [searchParams]);
+  }, [selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy]);
+
+  // What a visitor actually pays (a discount if there is one), in USD.
+  const effectivePrice = (p: any): number =>
+    p.discount_price && p.discount_price < p.price ? p.discount_price : p.price;
 
   const filteredPaintings = useMemo(() => {
-    return paintings.filter((p) => {
+    const minUsd = minPrice ? Number(minPrice) / currencyRate : null;
+    const maxUsd = maxPrice ? Number(maxPrice) / currencyRate : null;
+
+    const matches = paintings.filter((p) => {
       // Theme (bola kategoriya) filter — exact match. Otherwise fall back
       // to the product-type (ota kategoriya) pill, matched via the shared
       // effectiveProductType() helper so a painting tagged with any theme
@@ -146,6 +198,8 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
       if (selectedSize !== 'all' && getSizeBucket(p.size) !== selectedSize) {
         return false;
       }
+      if (minUsd !== null && effectivePrice(p) < minUsd) return false;
+      if (maxUsd !== null && effectivePrice(p) > maxUsd) return false;
 
       // Search filter — also matches the category/theme name (uz/en/ru), so
       // typing e.g. "portret" finds paintings tagged with that theme even
@@ -167,8 +221,17 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
 
       return true;
     });
+
+    // The server already sends newest first; only price sorts reorder.
+    if (sortBy === 'price_asc') return [...matches].sort((a, b) => effectivePrice(a) - effectivePrice(b));
+    if (sortBy === 'price_desc') return [...matches].sort((a, b) => effectivePrice(b) - effectivePrice(a));
+    return matches;
   }, [
     paintings,
+    minPrice,
+    maxPrice,
+    currencyRate,
+    sortBy,
     selectedCategory,
     selectedSubCategory,
     onlyWishlist,
@@ -269,6 +332,18 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
                 className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FDFBF9] border border-[#E7E0D8] rounded-full focus:outline-none focus:border-[#BA4E25] text-[#281C18]"
               />
             </div>
+            <FilterSelect
+              value={sortBy}
+              onChange={setSortBy}
+              ariaLabel={t.gallery.sortBy}
+              className="w-40 shrink-0"
+              buttonClassName="!rounded-full !py-1.5 !text-xs"
+              options={[
+                { value: 'newest', label: t.gallery.sortNewest },
+                { value: 'price_asc', label: t.gallery.sortPriceAsc },
+                { value: 'price_desc', label: t.gallery.sortPriceDesc },
+              ]}
+            />
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all whitespace-nowrap shrink-0 ${
@@ -281,7 +356,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
               <span className="hidden sm:inline">{t.gallery.advancedFilters}</span>
               {hasActiveAdvancedFilters && (
                 <span className="bg-[#BA4E25] text-white text-[9.5px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {[selectedSubCategory, selectedArtistId, selectedYear, selectedSize].filter((v) => v !== 'all').length}
+                  {activeAdvancedCount}
                 </span>
               )}
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
@@ -293,7 +368,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
         {showAdvancedFilters && (
           <div className="relative -mt-6 mb-10 p-5 sm:p-6 bg-[#FDFBF9] border border-[#E7E0D8] rounded-lg shadow-sm animate-[fadeSlideIn_0.2s_ease-out]">
             <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-lg bg-gradient-to-r from-[#BA4E25] via-[#D98C4A] to-[#429599]" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {subCategoryOptions.length > 0 && (
                 <div>
                   <label className="flex items-center gap-1.5 text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1.5">
@@ -302,6 +377,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
                   </label>
                   <FilterSelect
                     value={selectedSubCategory}
+                  ariaLabel={t.gallery.filterBySubcategory}
                     onChange={setSelectedSubCategory}
                     allValue="all"
                     allLabel={t.gallery.allSubcategories}
@@ -321,6 +397,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
                 </label>
                 <FilterSelect
                   value={selectedArtistId}
+                  ariaLabel={t.gallery.filterByArtist}
                   onChange={setSelectedArtistId}
                   allValue="all"
                   allLabel={t.gallery.allArtists}
@@ -336,6 +413,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
                 </label>
                 <FilterSelect
                   value={selectedYear}
+                  ariaLabel={t.gallery.filterByYear}
                   onChange={setSelectedYear}
                   allValue="all"
                   allLabel={t.gallery.allYears}
@@ -351,6 +429,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
                 </label>
                 <FilterSelect
                   value={selectedSize}
+                  ariaLabel={t.gallery.filterBySize}
                   onChange={setSelectedSize}
                   allValue="all"
                   allLabel={t.gallery.allSizes}
@@ -361,6 +440,30 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
                     { value: 'large', label: t.gallery.sizeLarge },
                   ]}
                 />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1.5">
+                  <Wallet className="w-3 h-3 text-[#BA4E25]" />
+                  {t.gallery.filterByPrice} ({currency})
+                </label>
+                <div className="flex items-center gap-2">
+                  {([
+                    [minPrice, setMinPrice, t.gallery.priceMin],
+                    [maxPrice, setMaxPrice, t.gallery.priceMax],
+                  ] as const).map(([value, setValue, placeholder]) => (
+                    <input
+                      key={placeholder}
+                      type="text"
+                      inputMode="numeric"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''))}
+                      placeholder={placeholder}
+                      aria-label={`${t.gallery.filterByPrice} ${placeholder}`}
+                      className="w-full min-w-0 px-3 py-2 text-xs bg-white border border-[#E7E0D8] rounded-md focus:outline-none focus:border-[#BA4E25] text-[#281C18]"
+                    />
+                  ))}
+                </div>
               </div>
 
               {hasActiveAdvancedFilters && (
@@ -403,19 +506,33 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
         ) : (
           <div className="text-center py-20 bg-[#FDFBF9] rounded-[4px] border border-[#E7E0D8] space-y-3">
             <SlidersHorizontal className="w-8 h-8 mx-auto text-[#A89990]" />
-            <p className="text-base font-serif text-[#554740]">
+            <p className="text-base font-serif text-[#554740] px-4">
               {onlyWishlist
                 ? t.gallery.wishlistEmpty
+                : searchQuery.trim()
+                ? t.gallery.noSearchResults.replace('{q}', searchQuery.trim())
+                : hasActiveAdvancedFilters
+                ? t.gallery.noFilterResults
                 : t.gallery.noPaintingsFound}
             </p>
-            {onlyWishlist && (
-              <button
-                onClick={() => setOnlyWishlist(false)}
-                className="text-xs font-semibold text-[#BA4E25] hover:underline"
-              >
-                {t.gallery.viewAllPaintings}
-              </button>
-            )}
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              {searchQuery.trim() && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs font-semibold text-[#BA4E25] hover:underline"
+                >
+                  {t.gallery.clearSearch}
+                </button>
+              )}
+              {(onlyWishlist || hasActiveAdvancedFilters || selectedCategory !== 'all' || searchQuery.trim()) && (
+                <button
+                  onClick={resetEverything}
+                  className="text-xs font-semibold text-[#BA4E25] hover:underline"
+                >
+                  {onlyWishlist ? t.gallery.viewAllPaintings : t.gallery.resetAll}
+                </button>
+              )}
+            </div>
           </div>
         )}
 

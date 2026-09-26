@@ -113,7 +113,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  // Pass the visitor's country (Vercel's IP geolocation) to the browser so
+  // the phone-code and shipping pickers can default to it — see
+  // src/lib/visitorCountry.ts. Only (re)written when it changes.
+  const response = NextResponse.next();
+  const country = request.headers.get('x-vercel-ip-country')?.toUpperCase();
+  if (country && /^[A-Z]{2}$/.test(country) && request.cookies.get('aq_country')?.value !== country) {
+    response.cookies.set('aq_country', country, { path: '/', maxAge: 30 * 24 * 60 * 60, sameSite: 'lax' });
+  }
+  return response;
 }
 
 export const config = {

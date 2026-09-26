@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
@@ -23,6 +23,16 @@ const AVATAR_COLORS = [
 
 export default function ArtistsClient({ artists }: ArtistsClientProps) {
   const { lang, t } = useApp();
+  // Bios are long, multi-line CVs — collapsed to a few lines by default,
+  // expandable per artist so they can actually be read in full.
+  const [expandedBios, setExpandedBios] = useState<Set<string>>(new Set());
+  const toggleBio = (id: string) =>
+    setExpandedBios((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   return (
     <div className="py-14 sm:py-16">
@@ -89,9 +99,27 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                     <div className="shrink-0 -mt-1 scale-[0.55] origin-top-left">
                       <AnimatedShamchiroq />
                     </div>
-                    <p className="text-[13.5px] leading-relaxed text-[#5F534C] line-clamp-3">
-                      {bio}
-                    </p>
+                    <div className="min-w-0">
+                      {/* pre-line keeps the bio's own line breaks (Date of
+                          birth / Education / ... each on its own line). */}
+                      <p
+                        className={`text-[13.5px] leading-relaxed text-[#5F534C] whitespace-pre-line ${
+                          expandedBios.has(artist.id) ? '' : 'line-clamp-4'
+                        }`}
+                      >
+                        {bio}
+                      </p>
+                      {bio && bio.length > 180 && (
+                        <button
+                          type="button"
+                          onClick={() => toggleBio(artist.id)}
+                          aria-expanded={expandedBios.has(artist.id)}
+                          className="mt-1 text-xs font-semibold text-[#BA4E25] hover:underline cursor-pointer"
+                        >
+                          {expandedBios.has(artist.id) ? t.artists.showLess : t.artists.readMore}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* 3 Work Thumbnails */}
@@ -121,28 +149,25 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                         );
                       })
                     ) : (
-                      <>
-                        <div className="aspect-square rounded-[2px] overflow-hidden border border-[#E7E0D8] relative bg-[#F4ECE1]">
-                          <Image src="/assets/p-arch.svg" alt="Sample" fill className="object-cover" />
-                        </div>
-                        <div className="aspect-square rounded-[2px] overflow-hidden border border-[#E7E0D8] relative bg-[#F4ECE1]">
-                          <Image src="/assets/p-dome.svg" alt="Sample" fill className="object-cover" />
-                        </div>
-                        <div className="aspect-square rounded-[2px] overflow-hidden border border-[#E7E0D8] relative bg-[#F4ECE1]">
-                          <Image src="/assets/p-courtyard.svg" alt="Sample" fill className="object-cover" />
-                        </div>
-                      </>
+                      // No placeholder "sample" artworks — they'd look like
+                      // this artist's real pieces.
+                      <p className="col-span-3 text-xs text-[#8F8178] italic py-3">
+                        {t.artists.noWorksYet}
+                      </p>
                     )}
                   </div>
                 </div>
 
-                {/* View works link */}
-                <Link
-                  href={`/gallery?q=${encodeURIComponent(artist.name)}`}
-                  className="text-xs font-bold text-[#BA4E25] hover:text-[#9C3E1B] flex items-center gap-1.5 pt-2 border-t border-[#F2ECE4]"
-                >
-                  <span>{t.artists.viewWorks}</span>
-                </Link>
+                {/* View works link — filters the gallery by this artist's id
+                    (the gallery reads ?artist= from the URL). */}
+                {artist.paintings && artist.paintings.length > 0 && (
+                  <Link
+                    href={`/gallery?artist=${encodeURIComponent(artist.id)}`}
+                    className="text-xs font-bold text-[#BA4E25] hover:text-[#9C3E1B] flex items-center gap-1.5 pt-2 border-t border-[#F2ECE4]"
+                  >
+                    <span>{t.artists.viewWorks}</span>
+                  </Link>
+                )}
               </div>
             );
           })}

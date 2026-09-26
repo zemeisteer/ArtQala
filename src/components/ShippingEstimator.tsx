@@ -12,6 +12,7 @@ import {
 } from '@/lib/shipping';
 import { Truck, Info } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
+import { getVisitorCountry } from '@/lib/visitorCountry';
 
 interface ShippingEstimatorProps {
   sizeString: string;
@@ -33,15 +34,16 @@ function parseSizeToCm(sizeString: string): { widthCm: number; heightCm: number 
 const isSupported = (c: string) =>
   c === DOMESTIC_COUNTRY || !!POSILKA_RATES_UZS[c] || !!EMS_ZONE_BY_COUNTRY[c];
 
-// The visitor's own country when we have a tariff for it — "uz"/"uz-UZ"
-// browsers used to land on Uzbekistan, which had no tariff, and see
-// "not available" before picking anything. Otherwise Uzbekistan itself.
+// The visitor's own country (from their IP, see src/lib/visitorCountry.ts)
+// when we have a tariff for it, then their browser's region, otherwise
+// Uzbekistan itself.
 function guessDefaultCountry(): CountryCode {
+  const fromIp = getVisitorCountry();
+  if (fromIp && isSupported(fromIp)) return fromIp as CountryCode;
   try {
     const locale = navigator.language || '';
     const region = locale.split('-')[1]?.toUpperCase();
     if (region && isSupported(region)) return region as CountryCode;
-    if (/^ru\b/i.test(locale) && isSupported('RU')) return 'RU' as CountryCode;
   } catch {}
   return DOMESTIC_COUNTRY as CountryCode;
 }
@@ -98,6 +100,7 @@ export default function ShippingEstimator({ sizeString }: ShippingEstimatorProps
           value={country}
           onChange={(v) => setCountry(v as CountryCode)}
           searchable
+          ariaLabel={t.shippingEstimator.selectCountry}
           buttonClassName="!rounded-[2px] !py-2"
           options={countries.map((c) => ({
             value: c,

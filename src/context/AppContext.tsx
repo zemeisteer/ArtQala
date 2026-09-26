@@ -42,6 +42,9 @@ interface AppContextType {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
   formatPrice: (priceUSD: number) => string;
+  // Units of the selected currency per 1 USD — for converting user-typed
+  // amounts (e.g. the gallery's price filter) back to USD.
+  currencyRate: number;
   wishlist: string[];
   toggleWishlist: (paintingId: string) => void;
   isInWishlist: (paintingId: string) => boolean;
@@ -188,13 +191,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const rate = rates[currency] || 1;
     const converted = priceUSD * rate;
 
+    // Converted prices are rounded *up* to a clean figure (so'm to the next
+    // thousand, rubles to the next ten) — 47,323,480 so'm reads as a
+    // calculation artifact, 47,324,000 so'm as a price.
     switch (currency) {
       case 'USD':
         return `$${Math.round(converted).toLocaleString()}`;
       case 'UZS':
-        return `${Math.round(converted).toLocaleString('uz-UZ')} so'm`;
+        return `${(Math.ceil(converted / 1000) * 1000).toLocaleString('uz-UZ')} so'm`;
       case 'RUB':
-        return `${Math.round(converted).toLocaleString('ru-RU')} ₽`;
+        return `${(Math.ceil(converted / 10) * 10).toLocaleString('ru-RU')} ₽`;
       case 'EUR':
         return `${Math.round(converted).toLocaleString()} €`;
       default:
@@ -212,6 +218,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currency,
         setCurrency,
         formatPrice,
+        currencyRate: rates[currency] || 1,
         wishlist,
         toggleWishlist,
         isInWishlist,

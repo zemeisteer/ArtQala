@@ -4,7 +4,7 @@ import { prisma } from './prisma';
 // applies to every matching painting without touching the paintings
 // themselves, so it has to be resolved at read time. A painting's own
 // discount_price (set in the Paintings form, or by a PAINTING-scope rule)
-// always wins; otherwise the most specific active rule does:
+// wins while it's within its own dates; otherwise the most specific active rule does:
 // ARTIST > CATEGORY > SITE.
 
 export interface DiscountRule {
@@ -20,6 +20,8 @@ export interface DiscountRule {
 interface DiscountablePainting {
   price: number;
   discount_price: number | null;
+  discount_starts_at?: Date | string | null;
+  discount_ends_at?: Date | string | null;
   artist_id: string;
   category_id: string;
   category?: { parent_id?: string | null } | null;
@@ -73,15 +75,30 @@ export function findRuleFor(
   );
 }
 
+// A painting's own discount only counts inside its start/end dates (either
+// may be unset = open-ended). The end date is a calendar day, valid through
+// the whole of it — same convention as isRuleActive().
+export function isOwnDiscountActive(p: DiscountablePainting, now = new Date()): boolean {
+  if (!p.discount_price || p.discount_price >= p.price) return false;
+  if (p.discount_starts_at && new Date(p.discount_starts_at) > now) return false;
+  if (p.discount_ends_at && new Date(p.discount_ends_at).getTime() + 24 * 60 * 60 * 1000 <= now.getTime()) {
+    return false;
+  }
+  return true;
+}
+
+// Resolves the price a visitor actually sees: the painting's own discount if
+// it's currently active, else the best matching rule, else none — an expired
+// own discount is dropped (discount_price → null) rather than shown forever.
 export function applyDiscountRules<T extends DiscountablePainting>(
   paintings: T[],
   rules: DiscountRule[]
 ): T[] {
-  if (rules.length === 0) return paintings;
+  const now = new Date();
   return paintings.map((p) => {
-    if (p.discount_price && p.discount_price < p.price) return p;
-    const rule = findRuleFor(p, rules);
-    if (!rule) return p;
+    if (isOwnDiscountActive(p, now)) return p;
+    const rule = rules.length ? findRuleFor(p, rules) : null;
+    if (!rule) return p.discount_price ? { ...p, discount_price: null } : p;
     return { ...p, discount_price: Math.round(p.price * (1 - rule.percent / 100)) };
   });
 }

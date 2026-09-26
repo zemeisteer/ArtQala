@@ -30,6 +30,9 @@ interface FilterSelectProps {
   // Matches the dark quote-request card styling (Services page) instead of
   // the light default.
   dark?: boolean;
+  // What the field is (e.g. "Artist") for screen readers — the visible text
+  // is only the current value, which alone doesn't say what's being picked.
+  ariaLabel?: string;
 }
 
 export default function FilterSelect({
@@ -44,6 +47,7 @@ export default function FilterSelect({
   className = '',
   buttonClassName = '',
   dark = false,
+  ariaLabel,
 }: FilterSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -112,6 +116,9 @@ export default function FilterSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={ariaLabel ? `${ariaLabel}: ${selectedLabel}` : undefined}
         className={`w-full flex items-center justify-between gap-2 text-xs px-3 py-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-[#BA4E25]/20 transition-colors text-left ${
           dark
             ? 'bg-[#362722] border border-[#4D3932] text-[#FAF4EC] hover:border-[#BA4E25]/50'

@@ -13,12 +13,12 @@ const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
 const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Reviews', path: '/reviews' }], siteUrl);
 
 export const metadata: Metadata = {
-  title: 'Client Reviews & Collector Testimonials | Art Qala',
-  description: 'Read authentic reviews from international art collectors and clients who acquired original paintings and commissioned murals from Art Qala Gallery.',
+  title: 'Client Reviews & Collector Testimonials',
+  description: 'Reviews from collectors and clients of Art Qala Gallery in Tashkent — written by verified buyers of original paintings and commissions.',
   alternates: { canonical: '/reviews' },
   openGraph: {
     title: 'Collector Reviews & Testimonials | Art Qala Gallery',
-    description: 'Authentic reviews and testimonials from collectors of original Uzbek contemporary and classical paintings.',
+    description: 'Reviews from verified collectors of original paintings at Art Qala Gallery, Tashkent.',
   },
 };
 
