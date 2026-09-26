@@ -4,10 +4,14 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
-import { ArrowRight, Send } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import AnimatedShamchiroq from '@/components/patterns/AnimatedShamchiroq';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import PublicPagination from '@/components/PublicPagination';
+
+// Two full rows of the 3-column grid per page.
+const PAGE_SIZE = 6;
 
 interface ArtistsClientProps {
   artists: any[];
@@ -26,6 +30,10 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
   // Bios are long, multi-line CVs — collapsed to a few lines by default,
   // expandable per artist so they can actually be read in full.
   const [expandedBios, setExpandedBios] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(artists.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedArtists = artists.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const toggleBio = (id: string) =>
     setExpandedBios((prev) => {
       const next = new Set(prev);
@@ -54,7 +62,7 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
 
         {/* Artists 3-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {artists.map((artist, idx) => {
+          {pagedArtists.map((artist, idx) => {
             const bio =
               lang === 'ru'
                 ? artist.bio_ru
@@ -172,7 +180,8 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
             );
           })}
 
-          {/* Join The Gallery Card */}
+          {/* Join The Gallery Card — once, after the last artist */}
+          {currentPage === totalPages && (
           <div className="bg-gradient-to-br from-[#281C18] to-[#1D100B] text-white rounded-[3px] p-8 flex flex-col justify-center gap-4 border border-[#3D2C26] shadow-md">
             <h3 className="font-serif text-2xl font-semibold text-[#FAF4EC]">
               {t.artists.joinTitle}
@@ -188,7 +197,15 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+          )}
         </div>
+
+        <PublicPagination
+          page={currentPage}
+          totalPages={totalPages}
+          onChange={setPage}
+          labels={{ previous: t.gallery.pagePrevious, next: t.gallery.pageNext, page: t.gallery.pageLabel }}
+        />
       </div>
     </div>
   );

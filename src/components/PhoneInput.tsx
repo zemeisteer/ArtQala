@@ -23,8 +23,11 @@ interface PhoneInputProps {
 export default function PhoneInput({ value, onChange, onValidityChange, required = true }: PhoneInputProps) {
   const { t } = useApp();
   const countries = useMemo(() => getCountries().sort(), []);
-  const initialIsWhatsApp = value.trim().endsWith(WHATSAPP_SUFFIX.trim());
-  const [mode, setMode] = useState<'phone' | 'whatsapp'>(initialIsWhatsApp ? 'whatsapp' : 'phone');
+  // WhatsApp by default — it's how the gallery reaches most customers; an
+  // existing plain number (no "(WhatsApp)" suffix) opens as a phone.
+  const [mode, setMode] = useState<'phone' | 'whatsapp'>(
+    !value.trim() || value.trim().endsWith(WHATSAPP_SUFFIX.trim()) ? 'whatsapp' : 'phone'
+  );
   // Uzbekistan until mounted (same on server and client), then the
   // visitor's own country from their IP — see src/lib/visitorCountry.ts.
   const [country, setCountry] = useState<CountryCode>('UZ' as CountryCode);
@@ -68,20 +71,6 @@ export default function PhoneInput({ value, onChange, onValidityChange, required
         <button
           type="button"
           onClick={() => {
-            setMode('phone');
-            emitChange('phone', country, localNumber);
-          }}
-          className={`text-[10.5px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
-            mode === 'phone'
-              ? 'bg-[#281C18] text-[#FAF4EC] border-[#281C18]'
-              : 'bg-white text-[#554740] border-[#E7E0D8]'
-          }`}
-        >
-          {t.phoneInput.phoneMode}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
             setMode('whatsapp');
             emitChange('whatsapp', country, localNumber);
           }}
@@ -92,6 +81,20 @@ export default function PhoneInput({ value, onChange, onValidityChange, required
           }`}
         >
           {t.phoneInput.whatsappMode}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMode('phone');
+            emitChange('phone', country, localNumber);
+          }}
+          className={`text-[10.5px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+            mode === 'phone'
+              ? 'bg-[#281C18] text-[#FAF4EC] border-[#281C18]'
+              : 'bg-white text-[#554740] border-[#E7E0D8]'
+          }`}
+        >
+          {t.phoneInput.phoneMode}
         </button>
       </div>
 

@@ -167,8 +167,10 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
               </div>
 
               <div className="text-center sm:text-right space-y-1">
+                {/* Head curator's name; a scanned signature will go here once
+                    the certificate is formalised. */}
                 <div className="font-serif italic text-lg text-[#281C18] border-b border-[#281C18]/40 pb-1 w-44 sm:ml-auto">
-                  Anvar K.
+                  Anvar Nazarov
                 </div>
                 <span className="text-[10px] uppercase tracking-wider text-[#8F8178] block font-bold">
                   {t.certificate.headCurator}

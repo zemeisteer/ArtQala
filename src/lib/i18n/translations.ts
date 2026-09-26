@@ -86,6 +86,9 @@ export const translations = {
       noFilterResults: 'No paintings match these filters.',
       clearSearch: 'Clear search',
       resetAll: 'Show all paintings',
+      pagePrevious: 'Previous page',
+      pageNext: 'Next page',
+      pageLabel: 'Page',
     },
     // Painting details
     painting: {
@@ -483,7 +486,7 @@ export const translations = {
       artistSignature: 'Artist Signature',
       headCurator: 'Head Curator, Art Qala',
       officialSeal: 'OFFICIAL SEAL',
-      footerNote: 'Art Qala Gallery · Barakhon Madrasah, Tashkent, Uzbekistan · Registered Cultural Property Document',
+      footerNote: 'Art Qala Gallery · Barakhon Madrasah, Tashkent, Uzbekistan · Official Certificate of Authenticity',
     },
   },
   ru: {
@@ -571,6 +574,9 @@ export const translations = {
       noFilterResults: 'Нет картин, подходящих под эти фильтры.',
       clearSearch: 'Очистить поиск',
       resetAll: 'Показать все картины',
+      pagePrevious: 'Предыдущая страница',
+      pageNext: 'Следующая страница',
+      pageLabel: 'Страница',
     },
     // Painting details
     painting: {
@@ -968,7 +974,7 @@ export const translations = {
       artistSignature: 'Подпись художника',
       headCurator: 'Главный куратор, Art Qala',
       officialSeal: 'ОФИЦИАЛЬНАЯ ПЕЧАТЬ',
-      footerNote: 'Art Qala Gallery · Медресе Баракхан, Ташкент, Узбекистан · Зарегистрированный документ культурного наследия',
+      footerNote: 'Art Qala Gallery · Медресе Баракхан, Ташкент, Узбекистан · Официальный сертификат подлинности',
     },
   },
   uz: {
@@ -1056,6 +1062,9 @@ export const translations = {
       noFilterResults: 'Bu filtrlarga mos kartina topilmadi.',
       clearSearch: 'Qidiruvni tozalash',
       resetAll: 'Barcha kartinalarni ko‘rsatish',
+      pagePrevious: 'Oldingi sahifa',
+      pageNext: 'Keyingi sahifa',
+      pageLabel: 'Sahifa',
     },
     // Painting details
     painting: {
@@ -1453,7 +1462,7 @@ export const translations = {
       artistSignature: 'Rassom imzosi',
       headCurator: 'Bosh kurator, Art Qala',
       officialSeal: 'RASMIY MUHR',
-      footerNote: "Art Qala Gallery · Baroqxon madrasasi, Toshkent, O'zbekiston · Ro'yxatga olingan madaniy meros hujjati",
+      footerNote: "Art Qala Gallery · Baroqxon madrasasi, Toshkent, O'zbekiston · Rasmiy haqiqiylik sertifikati",
     },
   },
 };

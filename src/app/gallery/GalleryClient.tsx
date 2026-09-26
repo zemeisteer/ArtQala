@@ -10,8 +10,12 @@ import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import DandanaScrollTrack from '@/components/patterns/DandanaScrollTrack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import FilterSelect from '@/components/FilterSelect';
+import PublicPagination from '@/components/PublicPagination';
 import { getSizeBucket } from '@/lib/paintingSize';
 import { effectiveProductType } from '@/lib/productType';
+
+// 3 rows of the 4-column grid per page.
+const PAGE_SIZE = 12;
 
 interface GalleryClientProps {
   paintings: any[];
@@ -50,6 +54,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
   const [minPrice, setMinPrice] = useState<string>(() => param('min', ''));
   const [maxPrice, setMaxPrice] = useState<string>(() => param('max', ''));
   const [sortBy, setSortBy] = useState<string>(() => param('sort', 'newest'));
+  const [page, setPage] = useState<number>(() => Math.max(1, parseInt(param('page', '1')) || 1));
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(
     () => ['theme', 'artist', 'year', 'size', 'min', 'max'].some((k) => searchParams.get(k))
   );
@@ -157,12 +162,13 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     if (minPrice) next.set('min', minPrice);
     if (maxPrice) next.set('max', maxPrice);
     if (sortBy !== 'newest') next.set('sort', sortBy);
+    if (page > 1) next.set('page', String(page));
     const qs = next.toString();
     const url = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
     if (url !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(window.history.state, '', url);
     }
-  }, [selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy]);
+  }, [selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy, page]);
 
   // What a visitor actually pays (a discount if there is one), in USD.
   const effectivePrice = (p: any): number =>
@@ -241,6 +247,19 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     selectedYear,
     selectedSize,
   ]);
+
+  // Back to page 1 whenever the result set changes (filters, search, sort) —
+  // adjusted during render, not in an effect, so there's no flash of an
+  // empty page. A page number from the URL survives the first render.
+  const filterKey = [selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy].join('|');
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
+  const totalPages = Math.max(1, Math.ceil(filteredPaintings.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedPaintings = filteredPaintings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div className="py-14 sm:py-16">
@@ -497,13 +516,22 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
         {/* Gallery Grid */}
         {filteredPaintings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7">
-            {filteredPaintings.map((painting) => (
+            {pagedPaintings.map((painting) => (
               <div key={painting.id}>
                 <PaintingCard painting={painting as PaintingItem} />
               </div>
             ))}
           </div>
-        ) : (
+        ) : null}
+
+        <PublicPagination
+          page={currentPage}
+          totalPages={totalPages}
+          onChange={setPage}
+          labels={{ previous: t.gallery.pagePrevious, next: t.gallery.pageNext, page: t.gallery.pageLabel }}
+        />
+
+        {filteredPaintings.length === 0 && (
           <div className="text-center py-20 bg-[#FDFBF9] rounded-[4px] border border-[#E7E0D8] space-y-3">
             <SlidersHorizontal className="w-8 h-8 mx-auto text-[#A89990]" />
             <p className="text-base font-serif text-[#554740] px-4">
