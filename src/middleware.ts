@@ -139,6 +139,7 @@ function routePublicPage(request: NextRequest): NextResponse | null {
     !pathname.startsWith('/api') &&
     !pathname.startsWith('/admin') &&
     !pathname.startsWith('/_next') &&
+    !pathname.startsWith('/monitoring') && // Sentry's error-report tunnel
     !/\.[a-z0-9]+$/i.test(pathname) && // files: robots.txt, sitemap.xml, images, ...
     !/^\/(opengraph-image|twitter-image|icon|apple-icon)(\/|$)/.test(pathname);
   if (!isPublicPage) return null;

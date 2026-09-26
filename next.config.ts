@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const nextConfig: NextConfig = {
   images: {
@@ -46,4 +47,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry: error reports go through /monitoring on our own domain (so ad
+// blockers don't drop them). Source maps are only uploaded once a
+// SENTRY_AUTH_TOKEN is configured in Vercel; until then stack traces point
+// at minified code but errors are still reported.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  tunnelRoute: "/monitoring",
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+});
