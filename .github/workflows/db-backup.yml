@@ -1,0 +1,75 @@
+# Nightly encrypted backup of the production database (Neon).
+#
+# Neon's free plan only keeps 6 hours of history, so this keeps a daily
+# copy for 30 days. The dump is encrypted (AES-256, gpg) with
+# BACKUP_PASSPHRASE before upload — this repository is public, so an
+# unencrypted artifact would be readable by anyone.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   DATABASE_URL       Neon *direct* (non-pooler) connection string
+#   BACKUP_PASSPHRASE  long random password — keep a copy somewhere safe,
+#                      without it the backups cannot be opened
+#
+# Restore: download the artifact from the workflow run, then
+#   gpg --batch --passphrase "<passphrase>" -d artqala-YYYY-MM-DD.sql.gz.gpg | gunzip > backup.sql
+#   psql "<target DATABASE_URL>" -f backup.sql
+name: Database backup
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # 01:00 UTC = 06:00 Tashkent, daily
+  workflow_dispatch: {} # "Run workflow" button for a manual backup
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::DATABASE_URL and BACKUP_PASSPHRASE repository secrets must be set."
+            exit 1
+          fi
+
+      - name: Install a pg_dump matching the server version
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common > /dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          # psql from any version can ask the server which major version it runs
+          sudo apt-get install -y -qq postgresql-client > /dev/null
+          MAJOR=$(psql "$DATABASE_URL" -tAc "SELECT current_setting('server_version_num')::int / 10000")
+          echo "Server major version: $MAJOR"
+          sudo apt-get install -y -qq "postgresql-client-$MAJOR" > /dev/null
+          echo "PG_BIN=/usr/lib/postgresql/$MAJOR/bin" >> "$GITHUB_ENV"
+
+      - name: Dump, compress and encrypt
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -o pipefail
+          FILE="artqala-$(date -u +%Y-%m-%d).sql.gz.gpg"
+          "$PG_BIN/pg_dump" "$DATABASE_URL" --no-owner --no-privileges \
+            | gzip -9 \
+            | gpg --batch --yes --symmetric --cipher-algo AES256 \
+                  --passphrase "$BACKUP_PASSPHRASE" -o "$FILE"
+          ls -lh "$FILE"
+          echo "BACKUP_FILE=$FILE" >> "$GITHUB_ENV"
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 30
+          if-no-files-found: error
