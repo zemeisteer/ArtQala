@@ -171,6 +171,12 @@ model Inquiry {
   // discount) — purely for internal record-keeping, never a checkout charge.
   final_price          Float?
 
+  // When the inquiry became COMPLETED (the sale): the review request goes
+  // out then, and one reminder 3 weeks later if no review has come in
+  // (daily cron: src/app/api/cron/review-reminders).
+  completed_at            DateTime?
+  review_reminder_sent_at DateTime?
+
   messages     InquiryMessage[]
 
   created_at   DateTime  @default(now())

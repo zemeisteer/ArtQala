@@ -417,9 +417,14 @@ export async function sendReviewRequestEmail(params: {
   paintingTitle: string;
   paintingUrl: string;
   signupUrl: string;
+  // The 3-week follow-up (src/app/api/cron/review-reminders) — same links,
+  // gentler wording and subject.
+  reminder?: boolean;
 }): Promise<EmailSendResult> {
   const name = escapeHtml(params.recipientName || 'Valued Collector');
-  const title = escapeHtml(params.paintingTitle);
+  const intro = params.reminder
+    ? `A few weeks have passed since <strong>&ldquo;${escapeHtml(params.paintingTitle)}&rdquo;</strong> joined your collection — we hope it has found a good place in your home. If you have a minute, a short review would mean a lot to the artist and helps other collectors.`
+    : `We're delighted that <strong>&ldquo;${escapeHtml(params.paintingTitle)}&rdquo;</strong> is now part of your collection. Would you share a few words about the piece and your experience with the gallery? It helps other collectors — and means a lot to the artist.`;
   const email = escapeHtml(params.to);
 
   const html = `
@@ -441,9 +446,7 @@ export async function sendReviewRequestEmail(params: {
                   <td style="padding-top: 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                     <h2 style="font-family: 'Georgia', serif; font-size: 20px; color: #281C18; margin: 0 0 14px 0;">Thank you, ${name}!</h2>
                     <p style="font-size: 14px; line-height: 1.6; color: #554740; margin: 0 0 14px 0;">
-                      We're delighted that <strong>&ldquo;${title}&rdquo;</strong> is now part of your collection.
-                      Would you share a few words about the piece and your experience with the gallery?
-                      It helps other collectors — and means a lot to the artist.
+                      ${intro}
                     </p>
                     <div style="text-align: center; margin: 26px 0;">
                       <a href="${params.paintingUrl}" style="background-color: #BA4E25; color: #FFFFFF; text-decoration: none; padding: 12px 28px; border-radius: 3px; font-size: 13px; font-weight: 600; display: inline-block;">
@@ -473,7 +476,9 @@ export async function sendReviewRequestEmail(params: {
 
   return sendResendEmail({
     to: params.to,
-    subject: `Art Qala — How do you like "${params.paintingTitle}"?`,
+    subject: params.reminder
+      ? `Art Qala — A few words about "${params.paintingTitle}"?`
+      : `Art Qala — How do you like "${params.paintingTitle}"?`,
     html,
   });
 }

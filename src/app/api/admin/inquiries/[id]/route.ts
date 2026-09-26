@@ -39,11 +39,13 @@ export async function PUT(request: Request, context: RouteContext) {
     }
 
     const newStatus = body.status || (body.admin_reply ? 'ANSWERED' : existingInquiry.status);
+    const justCompleted = existingInquiry.status !== 'COMPLETED' && newStatus === 'COMPLETED';
 
     const updated = await prisma.inquiry.update({
       where: { id },
       data: {
         status: newStatus,
+        ...(justCompleted && { completed_at: new Date(), review_reminder_sent_at: null }),
         admin_reply: body.admin_reply !== undefined ? body.admin_reply : existingInquiry.admin_reply,
         user_id: effectiveUserId,
         final_price:
@@ -91,7 +93,7 @@ export async function PUT(request: Request, context: RouteContext) {
     // The sale just went through (status changed *to* COMPLETED, e.g. the
     // painting was marked sold from this inquiry): thank the buyer and ask
     // for a review. Only on that transition, so re-saving never re-sends.
-    if (existingInquiry.status !== 'COMPLETED' && newStatus === 'COMPLETED') {
+    if (justCompleted) {
       const buyerEmail = existingInquiry.guest_email || existingInquiry.user?.email;
       if (buyerEmail) {
         const siteUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
