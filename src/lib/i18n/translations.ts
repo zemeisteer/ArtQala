@@ -455,6 +455,13 @@ export const translations = {
       invalidPhone: "Enter a valid phone number for the selected country",
       required: 'Phone number is required',
     },
+    cookieConsent: {
+      title: 'Cookies & analytics',
+      body: 'We use Google Analytics cookies to understand how visitors use the site, so we can improve it. They are only set if you accept.',
+      learnMore: 'Privacy policy',
+      accept: 'Accept',
+      decline: 'Decline',
+    },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
       heading: 'Would you like to add any of these?',
@@ -943,6 +950,13 @@ export const translations = {
       invalidPhone: 'Введите корректный номер телефона для выбранной страны',
       required: 'Укажите номер телефона',
     },
+    cookieConsent: {
+      title: 'Файлы cookie и аналитика',
+      body: 'Мы используем cookie Google Analytics, чтобы понимать, как посетители пользуются сайтом, и улучшать его. Они устанавливаются только с вашего согласия.',
+      learnMore: 'Политика конфиденциальности',
+      accept: 'Принять',
+      decline: 'Отклонить',
+    },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
       heading: 'Хотите добавить что-то из этого?',
@@ -1430,6 +1444,13 @@ export const translations = {
       phonePlaceholder: 'Telefon raqami',
       invalidPhone: "Tanlangan davlat uchun to'g'ri telefon raqamini kiriting",
       required: "Telefon raqami kiritilishi shart",
+    },
+    cookieConsent: {
+      title: 'Cookie va analitika',
+      body: "Saytdan qanday foydalanilishini tushunib, uni yaxshilash uchun Google Analytics cookie fayllaridan foydalanamiz. Ular faqat roziligingiz bilan o'rnatiladi.",
+      learnMore: 'Maxfiylik siyosati',
+      accept: 'Qabul qilish',
+      decline: 'Rad etish',
     },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {

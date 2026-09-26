@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import KhorezmScrollTrack from '@/components/patterns/KhorezmScrollTrack';
 import RouteLangProvider from '@/components/RouteLangProvider';
+import CookieConsent from '@/components/CookieConsent';
 import { LANGS, OG_LOCALE, isLang } from '@/lib/i18n/routing';
 
 // One statically generated copy of every public page per language. (No
@@ -41,6 +42,7 @@ export default async function LangLayout({
       <main className="flex-grow">{children}</main>
       <KhorezmScrollTrack />
       <Footer />
+      <CookieConsent />
     </RouteLangProvider>
   );
 }

@@ -75,6 +75,7 @@ export const metadata: Metadata = {
 
 import VisitTracker from '@/components/analytics/VisitTracker';
 import ContactClickTracker from '@/components/ContactClickTracker';
+import { CONSENT_REGIONS } from '@/lib/consent';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
@@ -140,6 +141,16 @@ export default async function RootLayout({
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
+                // EU/EEA/UK/CH: no analytics cookies until the visitor
+                // accepts (CookieConsent banner); elsewhere unchanged.
+                gtag('consent', 'default', {
+                  analytics_storage: 'denied',
+                  ad_storage: 'denied',
+                  ad_user_data: 'denied',
+                  ad_personalization: 'denied',
+                  region: ${JSON.stringify(CONSENT_REGIONS)},
+                  wait_for_update: 500
+                });
                 gtag('js', new Date());
                 gtag('config', '${GA_MEASUREMENT_ID}');
               `}

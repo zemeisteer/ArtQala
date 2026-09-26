@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, CheckCircle2, Shield, User, Clock, Loader2, Mail, Gem, DollarSign } from 'lucide-react';
+import { Send, CheckCircle2, Shield, User, Clock, Loader2, Mail, Gem, DollarSign, Trash2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import FilterSelect from '@/components/FilterSelect';
 
@@ -13,6 +13,29 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
   const { t, formatPrice } = useApp();
   const [inquiries, setInquiries] = useState(initialInquiries);
   const [selectedId, setSelectedId] = useState(initialInquiries[0]?.id || null);
+
+  // Permanently delete the selected thread (spam, test submissions) —
+  // after confirming, then select the next one in the list.
+  const [deleting, setDeleting] = useState(false);
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`"${name}" — bu so\'rovni butunlay o'chirasizmi? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/inquiries/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || "O'chirishda xatolik yuz berdi");
+        return;
+      }
+      const remaining = inquiries.filter((x: any) => x.id !== id);
+      setInquiries(remaining);
+      setSelectedId(remaining[0]?.id || null);
+    } catch {
+      alert("Serverga bog'lanishda xatolik yuz berdi");
+    } finally {
+      setDeleting(false);
+    }
+  };
   const [replyText, setReplyText] = useState('');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -390,6 +413,16 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
 
                 {/* Status Switcher */}
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(selected.id, selected.guest_name || selected.id)}
+                    disabled={deleting}
+                    title="O'chirish"
+                    aria-label="O'chirish"
+                    className="p-2 rounded-[3px] border border-[#E7E0D8] text-[#8F7E73] hover:text-[#C62828] hover:border-[#C62828]/40 hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
                   <label className="text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase">
                     STATUS:
                   </label>
