@@ -26,6 +26,7 @@ import {
   ZoomIn,
 } from 'lucide-react';
 import ImageLightbox from '@/components/ImageLightbox';
+import { trackLead } from '@/lib/analytics';
 
 interface PaintingDetailClientProps {
   painting: any;
@@ -184,6 +185,11 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
       const data = await res.json();
       if (data.success) {
         setSubmitted(true);
+        trackLead('painting_inquiry', {
+          item_id: painting.id,
+          item_name: painting.title_en,
+          value: painting.discount_price || painting.price,
+        });
         setMessage('');
         setSelectedAccessories([]);
         // Re-check review eligibility now that an inquiry was placed
@@ -354,8 +360,9 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
               </div>
             </div>
 
-            {/* TZ 8.12: Reviews and Ratings Section under Artwork Description */}
-            <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 sm:p-7 space-y-6 shadow-xs">
+            {/* TZ 8.12: Reviews and Ratings Section under Artwork Description.
+                id="reviews" is the target of the post-sale review email link. */}
+            <div id="reviews" className="scroll-mt-24 bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 sm:p-7 space-y-6 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#EFE8DE]">
                 <div>
                   <div className="flex items-center gap-2">

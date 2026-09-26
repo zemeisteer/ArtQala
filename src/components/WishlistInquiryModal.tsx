@@ -8,6 +8,7 @@ import PhoneInput from '@/components/PhoneInput';
 import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCheckboxes';
 import { largestSizeBucket } from '@/lib/paintingSize';
 import { effectiveProductType } from '@/lib/productType';
+import { trackLead } from '@/lib/analytics';
 
 interface WishlistPaintingLite {
   id: string;
@@ -92,6 +93,7 @@ export default function WishlistInquiryModal({ paintings, onClose }: WishlistInq
         return;
       }
       setSubmitted(true);
+      trackLead('wishlist_inquiry', { items: selectedIds.length });
     } catch {
       setError('Network error while sending inquiry');
     } finally {

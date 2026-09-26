@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { trackEvent } from '@/lib/analytics';
 import { ShieldCheck, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function VerifyOtpClient() {
@@ -72,6 +73,7 @@ export default function VerifyOtpClient() {
       }
 
       setSuccessMessage(t.auth.verifySuccess);
+      trackEvent('sign_up', { method: 'email' });
       await refreshUser();
       setTimeout(() => {
         router.push('/account');

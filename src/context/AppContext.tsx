@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { translations, Language } from '@/lib/i18n/translations';
+import { trackEvent } from '@/lib/analytics';
 
 export type Currency = 'USD' | 'UZS' | 'RUB' | 'EUR';
 
@@ -176,6 +177,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleWishlist = (id: string) => {
+    trackEvent(wishlist.includes(id) ? 'remove_from_wishlist' : 'add_to_wishlist', { item_id: id });
     setWishlist((prev) => {
       const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
       if (typeof window !== 'undefined') {

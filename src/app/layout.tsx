@@ -77,6 +77,7 @@ export const metadata: Metadata = {
 };
 
 import VisitTracker from '@/components/analytics/VisitTracker';
+import ContactClickTracker from '@/components/ContactClickTracker';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
@@ -149,6 +150,7 @@ export default async function RootLayout({
           </>
         )}
         <AppProvider>
+          {GA_MEASUREMENT_ID && <ContactClickTracker />}
           <VisitTracker />
           <div className="flex flex-col min-h-screen">
             <Header />

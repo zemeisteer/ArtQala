@@ -6,6 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { parsePhones, formatWorkingHours, parseSocialLinks, normalizeSocialUrl, parseLocations } from '@/lib/settingsUtils';
 import { MapPin, Phone, MessageSquare, Clock, CheckCircle2, Send, ExternalLink } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { trackLead } from '@/lib/analytics';
 
 export default function ContactClient() {
   const { t, lang, settings } = useApp();
@@ -38,6 +39,7 @@ export default function ContactClient() {
       const data = await res.json();
       if (res.ok && data.success) {
         setSubmitted(true);
+        trackLead('contact_message');
         setName('');
         setEmail('');
         setSubject('');

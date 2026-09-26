@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
-import { sendCuratorReplyNotification } from '@/lib/email';
+import { sendCuratorReplyNotification, sendReviewRequestEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +85,23 @@ export async function PUT(request: Request, context: RouteContext) {
           body.admin_reply,
           threadUrl
         ).catch((err) => console.error('Failed to send curator reply email:', err));
+      }
+    }
+
+    // The sale just went through (status changed *to* COMPLETED, e.g. the
+    // painting was marked sold from this inquiry): thank the buyer and ask
+    // for a review. Only on that transition, so re-saving never re-sends.
+    if (existingInquiry.status !== 'COMPLETED' && newStatus === 'COMPLETED') {
+      const buyerEmail = existingInquiry.guest_email || existingInquiry.user?.email;
+      if (buyerEmail) {
+        const siteUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        await sendReviewRequestEmail({
+          to: buyerEmail,
+          recipientName: existingInquiry.guest_name || existingInquiry.user?.name || '',
+          paintingTitle: existingInquiry.painting?.title_en || 'your artwork',
+          paintingUrl: `${siteUrl}/gallery/${existingInquiry.painting_id}#reviews`,
+          signupUrl: `${siteUrl}/signup`,
+        }).catch((err) => console.error('Failed to send review request email:', err));
       }
     }
 

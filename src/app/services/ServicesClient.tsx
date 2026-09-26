@@ -8,6 +8,7 @@ import ServiceImageCarousel from '@/components/ServiceImageCarousel';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import FilterSelect from '@/components/FilterSelect';
 import PhoneInput from '@/components/PhoneInput';
+import { trackLead } from '@/lib/analytics';
 
 interface ServicesClientProps {
   muralImages: string[];
@@ -63,6 +64,7 @@ export default function ServicesClient({ muralImages, ceramicsImages, customImag
       }
       if (data.success) {
         setSubmitted(true);
+        trackLead('service_request', { service_type: serviceType });
         setDescription('');
         setSelectedAccessories([]);
       }
