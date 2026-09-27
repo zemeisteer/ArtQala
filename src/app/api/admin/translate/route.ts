@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { requireAdmin } from '@/lib/auth';
+import crypto from 'crypto';
+import { Redis } from '@upstash/redis';
 import { checkRateLimit, recordFailedAttempt } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
@@ -10,6 +12,29 @@ const LANG_NAMES: Record<string, string> = {
   ru: 'Russian',
   en: 'English',
 };
+
+// What kind of text this is — the admin forms send their field name. Telling
+// the model "this is a painting's technique" is what turns "Moybo'yoq,
+// polotno" into "Oil on canvas" rather than a word-by-word rendering.
+function describeField(field: string): string {
+  const f = field.toLowerCase();
+  if (f.includes('title')) return "the title of an artwork (keep it short and evocative; keep place names, transliterated naturally for each language, e.g. Xiva / Khiva / Хива)";
+  if (f.includes('description')) return "the description of an artwork on its sales page (natural, gallery-appropriate prose)";
+  if (f.includes('technique')) return "an artwork's medium/technique — use the standard art-catalogue term in each language (e.g. Moybo'yoq, polotno = Oil on canvas = Холст, масло)";
+  if (f.includes('specialty')) return "an artist's specialty (a short job title, e.g. Painter / Художник / Rassom)";
+  if (f.includes('bio')) return "an artist's biography (keep dates, names, institutions and awards exact; keep the line breaks)";
+  if (f.includes('about')) return "the gallery's 'About us' text";
+  if (f.includes('name')) return "a short name/label of an art category or product";
+  return "text from an art gallery website";
+}
+
+// Translations are remembered for 30 days (Upstash Redis, when configured),
+// so re-saving or re-editing the same text doesn't spend Gemini quota again.
+const cache =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN })
+    : null;
+const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 export async function POST(request: Request) {
   const auth = await requireAdmin();
@@ -30,10 +55,12 @@ export async function POST(request: Request) {
 
   let text = '';
   let sourceLang = '';
+  let field = '';
   try {
     const body = await request.json();
     text = typeof body?.text === 'string' ? body.text.trim() : '';
     sourceLang = typeof body?.sourceLang === 'string' ? body.sourceLang : '';
+    field = typeof body?.field === 'string' ? body.field.slice(0, 40) : '';
   } catch {
     // fall through to the validation below
   }
@@ -43,28 +70,48 @@ export async function POST(request: Request) {
 
   const targetLangs = (['uz', 'ru', 'en'] as const).filter((l) => l !== sourceLang);
 
-  // Google Translate first: free, no daily quota, answers in about a
-  // second. Gemini (whose free tier allows only ~20 requests a day) is only
-  // asked for whatever Google couldn't deliver, with a hard deadline, so the
-  // admin never waits more than ~GOOGLE_TIMEOUT_MS + GEMINI_TIMEOUT_MS.
+  const cacheKey = `translate:v2:${crypto
+    .createHash('sha256')
+    .update(`${sourceLang}|${describeField(field)}|${text}`)
+    .digest('hex')}`;
+  if (cache) {
+    try {
+      const cached = await cache.get<Record<string, string>>(cacheKey);
+      if (cached && targetLangs.every((l) => cached[l])) {
+        return NextResponse.json({ success: true, translations: cached, provider: 'cache' });
+      }
+    } catch {
+      // cache is an optimisation only
+    }
+  }
+
+  // Gemini first — far better than Google Translate for Uzbek and for art
+  // vocabulary. Whatever it can't deliver (quota exhausted, timeout, bad
+  // response) falls back to Google Translate, so the admin always gets
+  // something within ~GEMINI_TIMEOUT_MS + GOOGLE_TIMEOUT_MS.
   const translations: Record<string, string> = {};
-  const googleResults = await Promise.all(targetLangs.map((l) => translateWithGoogle(text, sourceLang, l)));
-  targetLangs.forEach((l, i) => {
-    if (googleResults[i]) translations[l] = googleResults[i] as string;
-  });
-  let provider = 'google';
+  let provider = 'gemini';
+  if (apiKey) {
+    try {
+      Object.assign(translations, await translateWithGemini(apiKey, text, sourceLang, targetLangs, field));
+    } catch (error) {
+      console.warn('Gemini translation failed, using Google Translate:', error instanceof Error ? error.message : error);
+    }
+  }
 
   const missing = targetLangs.filter((l) => !translations[l]);
-  if (missing.length > 0 && apiKey) {
-    try {
-      const fromGemini = await translateWithGemini(apiKey, text, sourceLang, missing);
-      for (const l of missing) {
-        if (fromGemini[l]) translations[l] = fromGemini[l];
-      }
-      provider = missing.length === targetLangs.length ? 'gemini' : 'mixed';
-    } catch (error) {
-      console.warn('Gemini translation fallback failed:', error instanceof Error ? error.message : error);
-    }
+  if (missing.length > 0) {
+    provider = missing.length === targetLangs.length ? 'google' : 'mixed';
+    const results = await Promise.all(missing.map((l) => translateWithGoogle(text, sourceLang, l)));
+    missing.forEach((l, i) => {
+      if (results[i]) translations[l] = results[i] as string;
+    });
+  }
+
+  // Only Gemini's results are cached: a Google fallback should be retried
+  // with Gemini next time rather than remembered.
+  if (cache && provider === 'gemini' && targetLangs.every((l) => translations[l])) {
+    cache.set(cacheKey, translations, { ex: CACHE_TTL_SECONDS }).catch(() => {});
   }
 
   if (targetLangs.every((l) => !translations[l])) {
@@ -84,16 +131,21 @@ async function translateWithGemini(
   apiKey: string,
   text: string,
   sourceLang: string,
-  targetLangs: readonly string[]
+  targetLangs: readonly string[],
+  field: string
 ): Promise<Record<string, string>> {
   const ai = new GoogleGenAI({ apiKey });
   const model = process.env.GEMINI_TEXT_MODEL || 'gemini-3.6-flash';
 
   const prompt =
-    `Translate the following art-gallery text from ${LANG_NAMES[sourceLang]} into ${targetLangs.map((l) => LANG_NAMES[l]).join(' and ')}. ` +
-    `Keep the tone natural and gallery-appropriate, keep proper names as they are, do not add commentary. ` +
+    `You translate content for Art Qala, an art gallery in Tashkent, Uzbekistan, selling original paintings, straw and wood art, and ceramics.\n` +
+    `Translate the text below from ${LANG_NAMES[sourceLang]} into ${targetLangs.map((l) => LANG_NAMES[l]).join(' and ')}. ` +
+    `The text is ${describeField(field)}.\n` +
+    `Rules: write natural, fluent, native-sounding text as a professional gallery would — not word-for-word. ` +
+    `Keep the meaning exact; keep people's names, dates and numbers unchanged. ` +
+    `Uzbek must be in Latin script with the correct letters oʻ and gʻ. Do not add explanations or quotes.\n` +
     `Respond with ONLY a JSON object with keys ${targetLangs.map((l) => `"${l}"`).join(', ')}.\n\n` +
-    `Text: ${text}`;
+    `Text:\n${text}`;
 
   const response = await ai.models.generateContent({
     model,

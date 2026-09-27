@@ -448,9 +448,9 @@ export default function PaintingForm({
     const ownDiscount = discountScope === 'PAINTING';
 
     const [title, description, technique] = await Promise.all([
-      fillMissingTranslations({ uz: titleUz, ru: titleRu, en: titleEn }),
-      fillMissingTranslations({ uz: descriptionUz, ru: descriptionRu, en: descriptionEn }),
-      fillMissingTranslations({ uz: techniqueUz, ru: techniqueRu, en: techniqueEn }),
+      fillMissingTranslations({ uz: titleUz, ru: titleRu, en: titleEn }, undefined, 'title'),
+      fillMissingTranslations({ uz: descriptionUz, ru: descriptionRu, en: descriptionEn }, undefined, 'description'),
+      fillMissingTranslations({ uz: techniqueUz, ru: techniqueRu, en: techniqueEn }, undefined, 'technique'),
     ]);
     const firstFilled = (v: Record<string, string>) => v.uz || v.en || v.ru || '';
 

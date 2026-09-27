@@ -125,7 +125,7 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
       const url = editingId ? `/api/admin/accessories/${editingId}` : '/api/admin/accessories';
       const method = editingId ? 'PUT' : 'POST';
       // Safety net if saved before the blur translation finished.
-      const names = await fillMissingTranslations({ uz: form.name_uz, en: form.name_en, ru: form.name_ru });
+      const names = await fillMissingTranslations({ uz: form.name_uz, en: form.name_en, ru: form.name_ru }, undefined, 'name');
       const firstName = names.uz || names.en || names.ru;
       const res = await fetch(url, {
         method,

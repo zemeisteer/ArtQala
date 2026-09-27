@@ -130,7 +130,7 @@ export default function AdminCategoriesClient({
     try {
       // Safety net if the admin saved (e.g. pressed Enter) before the blur
       // translation finished: fill any empty language from one that isn't.
-      const names = await fillMissingTranslations({ uz: nameUz, en: nameEn, ru: nameRu });
+      const names = await fillMissingTranslations({ uz: nameUz, en: nameEn, ru: nameRu }, undefined, 'name');
       const firstName = names.uz || names.en || names.ru;
 
       const payload = {

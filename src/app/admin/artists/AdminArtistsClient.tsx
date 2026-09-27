@@ -159,8 +159,8 @@ export default function AdminArtistsClient({
       // Safety net if the admin saved before a blur translation finished:
       // fill any still-empty language from one that isn't.
       const [specialty, bio] = await Promise.all([
-        fillMissingTranslations({ uz: specialtyUz, en: specialtyEn, ru: specialtyRu }),
-        fillMissingTranslations({ uz: bioUz, en: bioEn, ru: bioRu }),
+        fillMissingTranslations({ uz: specialtyUz, en: specialtyEn, ru: specialtyRu }, undefined, 'specialty'),
+        fillMissingTranslations({ uz: bioUz, en: bioEn, ru: bioRu }, undefined, 'bio'),
       ]);
       const firstFilled = (v: Record<string, string>) => v.uz || v.en || v.ru || '';
 

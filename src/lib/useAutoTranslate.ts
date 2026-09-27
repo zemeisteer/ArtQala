@@ -8,16 +8,20 @@ export const LANGS: Lang[] = ['uz', 'ru', 'en'];
 // One trilingual field group: current value + setter per language.
 export type FieldGroup = Record<Lang, readonly [string, (value: string) => void]>;
 
+// `field` says what the text is (title, description, technique, bio, ...)
+// so the translation uses the right vocabulary — see describeField() in
+// src/app/api/admin/translate/route.ts.
 export async function requestTranslation(
   text: string,
-  sourceLang: Lang
+  sourceLang: Lang,
+  field = ''
 ): Promise<Partial<Record<Lang, string>> | null> {
   if (!text.trim()) return null;
   try {
     const res = await fetch('/api/admin/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, sourceLang }),
+      body: JSON.stringify({ text, sourceLang, field }),
     });
     const data = await res.json();
     return data.success && data.translations ? data.translations : null;
@@ -31,7 +35,8 @@ export async function requestTranslation(
 // one that isn't — so an EN/RU visitor never gets a blank or Uzbek field.
 export async function fillMissingTranslations(
   values: Record<Lang, string>,
-  preferredSource?: Lang
+  preferredSource?: Lang,
+  field = ''
 ): Promise<Record<Lang, string>> {
   const missing = LANGS.filter((l) => !values[l].trim());
   const source =
@@ -39,7 +44,7 @@ export async function fillMissingTranslations(
       ? preferredSource
       : LANGS.find((l) => values[l].trim());
   if (missing.length === 0 || !source) return values;
-  const translations = await requestTranslation(values[source], source);
+  const translations = await requestTranslation(values[source], source, field);
   const out = { ...values };
   for (const l of missing) {
     if (translations?.[l]) out[l] = translations[l] as string;
@@ -80,7 +85,7 @@ export function useAutoTranslate() {
       ? (Object.fromEntries(LANGS.map((l) => [l, before[l][0]])) as Record<Lang, string>)
       : null;
 
-    const translations = await requestTranslation(text, sourceLang);
+    const translations = await requestTranslation(text, sourceLang, group);
 
     if (seq.current.get(group) !== mySeq) return; // a newer edit superseded this one
     setTranslatingGroup((g) => (g === group ? null : g));
