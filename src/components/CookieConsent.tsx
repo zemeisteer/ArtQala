@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from '@/components/LocalizedLink';
 import { useApp } from '@/context/AppContext';
 import { getVisitorCountry } from '@/lib/visitorCountry';
-import { CONSENT_REGIONS, applyConsent, readConsent } from '@/lib/consent';
+import { OPEN_CONSENT_EVENT, applyConsent, needsConsent, readConsent } from '@/lib/consent';
 
 // Small bottom bar asking EU/EEA/UK/Swiss visitors whether analytics may
 // use cookies (see src/lib/consent.ts). Shown once; the answer is kept in
@@ -14,14 +14,17 @@ export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    const reopen = () => setVisible(true);
+    window.addEventListener(OPEN_CONSENT_EVENT, reopen);
+
     const saved = readConsent();
     if (saved) {
       applyConsent(saved);
-      return;
+    } else if (needsConsent(getVisitorCountry())) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setVisible(true);
     }
-    const country = getVisitorCountry();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (country && CONSENT_REGIONS.includes(country)) setVisible(true);
+    return () => window.removeEventListener(OPEN_CONSENT_EVENT, reopen);
   }, []);
 
   if (!visible) return null;

@@ -1,15 +1,24 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { getVisitorCountry } from '@/lib/visitorCountry';
+import { needsConsent, openCookieSettings } from '@/lib/consent';
 import { parsePhones, formatWorkingHours, getAboutText, parseSocialLinks, normalizeSocialUrl, parseLocations } from '@/lib/settingsUtils';
 
 export default function Footer() {
   const pathname = usePathname();
   const { t, lang, settings } = useApp();
+  // "Cookie settings" only for visitors who get the consent bar (EU/EEA/
+  // UK/CH) — decided after mount, since the country comes from a cookie.
+  const [showCookieSettings, setShowCookieSettings] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShowCookieSettings(needsConsent(getVisitorCountry()));
+  }, []);
 
   // The admin panel has its own layout — the public site footer never
   // belongs underneath it.
@@ -128,12 +137,20 @@ export default function Footer() {
 
         {/* Footer bottom */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#8A7C73]">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <span>{t.footer.rights}</span>
             <span>·</span>
             <Link href="/privacy" className="hover:underline">{t.footer.privacy}</Link>
             <span>·</span>
             <Link href="/terms" className="hover:underline">{t.footer.terms}</Link>
+            {showCookieSettings && (
+              <>
+                <span>·</span>
+                <button type="button" onClick={openCookieSettings} className="hover:underline cursor-pointer">
+                  {t.cookieConsent.settings}
+                </button>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <span>EN · RU · UZ (Lotin)</span>

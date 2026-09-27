@@ -461,6 +461,7 @@ export const translations = {
       learnMore: 'Privacy policy',
       accept: 'Accept',
       decline: 'Decline',
+      settings: 'Cookie settings',
     },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
@@ -956,6 +957,7 @@ export const translations = {
       learnMore: 'Политика конфиденциальности',
       accept: 'Принять',
       decline: 'Отклонить',
+      settings: 'Настройки cookie',
     },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
@@ -1451,6 +1453,7 @@ export const translations = {
       learnMore: 'Maxfiylik siyosati',
       accept: 'Qabul qilish',
       decline: 'Rad etish',
+      settings: 'Cookie sozlamalari',
     },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
