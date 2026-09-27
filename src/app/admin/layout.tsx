@@ -21,6 +21,7 @@ import {
   LogOut,
   Loader2,
   Mail,
+  Sparkles,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -81,6 +82,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/inquiries', label: t.admin.inquiries, icon: MessageSquare },
     { href: '/admin/services', label: t.admin.services, icon: Wrench },
     { href: '/admin/messages', label: t.admin.messages, icon: Mail },
+    { href: '/admin/ai-chats', label: t.admin.aiChats, icon: Sparkles },
     { href: '/admin/customers', label: t.admin.customers, icon: Users2 },
     { href: '/admin/reviews', label: t.admin.reviews, icon: Star },
     { href: '/admin/staff', label: t.admin.staff, icon: UserCog },
@@ -97,6 +99,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (pathname.startsWith('/admin/inquiries')) return t.admin.inquiries;
     if (pathname.startsWith('/admin/services')) return t.admin.services;
     if (pathname.startsWith('/admin/messages')) return t.admin.messages;
+    if (pathname.startsWith('/admin/ai-chats')) return t.admin.aiChats;
     if (pathname.startsWith('/admin/customers')) return t.admin.customers;
     if (pathname.startsWith('/admin/reviews')) return t.admin.reviews;
     if (pathname.startsWith('/admin/staff')) return t.admin.staff;

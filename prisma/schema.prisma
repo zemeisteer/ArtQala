@@ -8,45 +8,45 @@ datasource db {
 }
 
 model Painting {
-  id               String      @id @default(cuid())
-  title_en         String
-  title_ru         String
-  title_uz         String
-  description_en   String?
-  description_ru   String?
-  description_uz   String?
-  size             String
-  technique_en     String
-  technique_ru     String?
-  technique_uz     String?
-  year             Int
-  price            Float       // Original base price in USD
-  discount_price   Float?      // Computed or manual discount price
+  id                 String    @id @default(cuid())
+  title_en           String
+  title_ru           String
+  title_uz           String
+  description_en     String?
+  description_ru     String?
+  description_uz     String?
+  size               String
+  technique_en       String
+  technique_ru       String?
+  technique_uz       String?
+  year               Int
+  price              Float // Original base price in USD
+  discount_price     Float? // Computed or manual discount price
   discount_starts_at DateTime?
   discount_ends_at   DateTime?
-  is_sold          Boolean     @default(false)
-  sold_at          DateTime?
-  is_featured      Boolean     @default(false)
-  images           String      // JSON array of image URLs/paths
-  views_count      Int         @default(0)
+  is_sold            Boolean   @default(false)
+  sold_at            DateTime?
+  is_featured        Boolean   @default(false)
+  images             String // JSON array of image URLs/paths
+  views_count        Int       @default(0)
 
-  artist_id        String
-  artist           Artist      @relation(fields: [artist_id], references: [id], onDelete: Cascade)
+  artist_id String
+  artist    Artist @relation(fields: [artist_id], references: [id], onDelete: Cascade)
 
-  category_id      String
-  category         Category    @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  category_id String
+  category    Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
-  inquiries        Inquiry[]
-  reviews          Review[]
-  wishlist_items   WishlistItem[]
-  views            PaintingView[]
+  inquiries      Inquiry[]
+  reviews        Review[]
+  wishlist_items WishlistItem[]
+  views          PaintingView[]
 
-  created_at       DateTime    @default(now())
-  updated_at       DateTime    @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model Artist {
-  id           String     @id @default(cuid())
+  id           String  @id @default(cuid())
   name         String
   photo        String?
   initials     String?
@@ -60,28 +60,28 @@ model Artist {
   // The artist's product type (a top-level Category, e.g. "Somon ishlari")
   // — lets the Paintings form auto-pick ota-kategoriya once the artist is
   // chosen, so the admin only has to pick the bola-kategoriya (subject).
-  category_id  String?
-  category     Category?  @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  category_id String?
+  category    Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
 
-  paintings    Painting[]
-  created_at   DateTime   @default(now())
-  updated_at   DateTime   @updatedAt
+  paintings  Painting[]
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
 }
 
 model Category {
-  id         String     @id @default(cuid())
-  slug       String     @unique
-  name_en    String
-  name_ru    String
-  name_uz    String
+  id      String @id @default(cuid())
+  slug    String @unique
+  name_en String
+  name_ru String
+  name_uz String
 
   // Groups subject-matter categories (Nature, Portraits, ...) under a
   // physical product type (Kartina, Kulolchilik, ...). Top-level categories
   // (the product types themselves) have parent_id = null. Only one level
   // deep is used today, but nothing here prevents going deeper later.
-  parent_id  String?
-  parent     Category?  @relation("CategoryHierarchy", fields: [parent_id], references: [id], onDelete: SetNull)
-  children   Category[] @relation("CategoryHierarchy")
+  parent_id String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parent_id], references: [id], onDelete: SetNull)
+  children  Category[] @relation("CategoryHierarchy")
 
   paintings  Painting[]
   artists    Artist[]
@@ -116,9 +116,9 @@ model Accessory {
 
 model Discount {
   id         String    @id @default(cuid())
-  scope      String    // SITE, CATEGORY, ARTIST, PAINTING
-  target_id  String?   // category_id, artist_id, or painting_id (null for SITE)
-  percent    Float     // e.g. 15.0
+  scope      String // SITE, CATEGORY, ARTIST, PAINTING
+  target_id  String? // category_id, artist_id, or painting_id (null for SITE)
+  percent    Float // e.g. 15.0
   starts_at  DateTime?
   ends_at    DateTime?
   is_active  Boolean   @default(true)
@@ -127,40 +127,40 @@ model Discount {
 }
 
 model User {
-  id             String           @id @default(cuid())
-  name           String
-  email          String           @unique
-  password_hash  String?
-  country        String?
-  role           String           @default("USER") // USER, ADMIN
-  email_verified Boolean          @default(false)
-  auth_provider  String           @default("EMAIL") // EMAIL, GOOGLE, APPLE
-  must_change_password Boolean     @default(false)
+  id                   String  @id @default(cuid())
+  name                 String
+  email                String  @unique
+  password_hash        String?
+  country              String?
+  role                 String  @default("USER") // USER, ADMIN
+  email_verified       Boolean @default(false)
+  auth_provider        String  @default("EMAIL") // EMAIL, GOOGLE, APPLE
+  must_change_password Boolean @default(false)
 
   inquiries        Inquiry[]
   service_requests ServiceRequest[]
   reviews          Review[]
   wishlist_items   WishlistItem[]
 
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model Inquiry {
-  id           String    @id @default(cuid())
-  user_id      String?
-  user         User?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  id      String  @id @default(cuid())
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
-  guest_name   String?
-  guest_email  String?
-  guest_phone  String?
+  guest_name  String?
+  guest_email String?
+  guest_phone String?
 
-  painting_id  String
-  painting     Painting  @relation(fields: [painting_id], references: [id], onDelete: Cascade)
+  painting_id String
+  painting    Painting @relation(fields: [painting_id], references: [id], onDelete: Cascade)
 
-  message      String?
-  status       String    @default("NEW") // NEW, IN_PROGRESS, ANSWERED, COMPLETED
-  admin_reply  String?
+  message     String?
+  status      String  @default("NEW") // NEW, IN_PROGRESS, ANSWERED, COMPLETED
+  admin_reply String?
 
   // Snapshot (JSON array of {id,name_en,name_ru,name_uz,price}) of whichever
   // optional accessories the customer checked at submission time — kept as a
@@ -177,49 +177,49 @@ model Inquiry {
   completed_at            DateTime?
   review_reminder_sent_at DateTime?
 
-  messages     InquiryMessage[]
+  messages InquiryMessage[]
 
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model ServiceRequest {
-  id            String    @id @default(cuid())
-  user_id       String?
-  user          User?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  id      String  @id @default(cuid())
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
   guest_name    String
-  guest_contact String    // Email or Telegram
-  service_type  String    // MURAL, CERAMICS, CUSTOM
+  guest_contact String // Email or Telegram
+  service_type  String // MURAL, CERAMICS, CUSTOM
   description   String?
-  status        String    @default("NEW") // NEW, IN_PROGRESS, COMPLETED
+  status        String  @default("NEW") // NEW, IN_PROGRESS, COMPLETED
   admin_notes   String?
 
   // Same accessory-snapshot / internal final-price pattern as Inquiry.
   selected_accessories String?
   final_price          Float?
 
-  messages      ServiceRequestMessage[]
+  messages ServiceRequestMessage[]
 
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model Review {
-  id          String    @id @default(cuid())
-  user_id     String?
-  user        User?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  id      String  @id @default(cuid())
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
   author_name String
   painting_id String?
   painting    Painting? @relation(fields: [painting_id], references: [id], onDelete: SetNull)
 
-  rating      Int       @default(5)
+  rating      Int     @default(5)
   text        String
-  is_approved Boolean   @default(false)
+  is_approved Boolean @default(false)
 
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([painting_id])
   @@index([user_id])
@@ -227,14 +227,14 @@ model Review {
 }
 
 model WishlistItem {
-  id          String   @id @default(cuid())
-  user_id     String
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   painting_id String
   painting    Painting @relation(fields: [painting_id], references: [id], onDelete: Cascade)
 
-  created_at  DateTime @default(now())
+  created_at DateTime @default(now())
 
   @@unique([user_id, painting_id])
 }
@@ -249,48 +249,48 @@ model OtpVerification {
 }
 
 model SiteSettings {
-  id            String   @id @default("default")
-  gallery_name  String   @default("Art Qala")
-  phone         String   @default("+998 66 233 44 55")
-  email         String   @default("info@artqala.uz")
-  address       String   @default("Barakhon Madrasah, Tashkent, Uzbekistan")
-  location_map  String   @default("https://maps.app.goo.gl/FvSvu2kJ3Mqdwhzg8")
+  id            String  @id @default("default")
+  gallery_name  String  @default("Art Qala")
+  phone         String  @default("+998 66 233 44 55")
+  email         String  @default("info@artqala.uz")
+  address       String  @default("Barakhon Madrasah, Tashkent, Uzbekistan")
+  location_map  String  @default("https://maps.app.goo.gl/FvSvu2kJ3Mqdwhzg8")
   // JSON array of {address, url} — lets the admin list any number of
   // physical addresses, each with its own map link, instead of the single
   // address/location_map pair above (kept only as a fallback for sites that
   // predate this field, and as the primary address in the JSON-LD schema).
   locations     String?
-  working_hours String   @default("Mon - Sun: 09:00 - 19:00")
-  telegram      String   @default("https://t.me/artqala")
-  instagram     String   @default("https://instagram.com/artqala")
+  working_hours String  @default("Mon - Sun: 09:00 - 19:00")
+  telegram      String  @default("https://t.me/artqala")
+  instagram     String  @default("https://instagram.com/artqala")
   // JSON array of {label, url} — lets the admin add any number of social/
   // messenger links (Telegram, Instagram, WhatsApp, Facebook, ...) instead
   // of being limited to the two fixed fields above. Those two fields are
   // kept only as a fallback seed/for older code paths; new UI reads/writes
   // this field exclusively.
   social_links  String?
-  about_en      String   @default("Art Qala is a premier art gallery and studio located in the historic heart of Tashkent, Uzbekistan, celebrating Central Asian heritage.")
-  about_ru      String   @default("Art Qala — ведущая художественная галерея и студия в историческом центре Ташкента.")
-  about_uz      String   @default("Art Qala — Toshkent shahrining tarixiy markazida joylashgan yetakchi san'at galereyasi va studiyasi.")
+  about_en      String  @default("Art Qala is a premier art gallery and studio located in the historic heart of Tashkent, Uzbekistan, celebrating Central Asian heritage.")
+  about_ru      String  @default("Art Qala — ведущая художественная галерея и студия в историческом центре Ташкента.")
+  about_uz      String  @default("Art Qala — Toshkent shahrining tarixiy markazida joylashgan yetakchi san'at galereyasi va studiyasi.")
 
-  rate_usd      Float    @default(12850)
-  rate_eur      Float    @default(13900)
-  rate_rub      Float    @default(140)
-  manual_rates  Boolean  @default(false)
+  rate_usd     Float   @default(12850)
+  rate_eur     Float   @default(13900)
+  rate_rub     Float   @default(140)
+  manual_rates Boolean @default(false)
 
-  updated_at    DateTime @updatedAt
+  updated_at DateTime @updatedAt
 }
 
 model ContactMessage {
-  id         String   @id @default(cuid())
-  name       String
-  email      String
-  subject    String?
-  message    String
-  is_read    Boolean  @default(false)
-  status     String   @default("NEW") // NEW, ANSWERED, COMPLETED
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  subject     String?
+  message     String
+  is_read     Boolean  @default(false)
+  status      String   @default("NEW") // NEW, ANSWERED, COMPLETED
   admin_reply String?
-  created_at DateTime @default(now())
+  created_at  DateTime @default(now())
 }
 
 model PaintingView {
@@ -315,7 +315,7 @@ model InquiryMessage {
   id         String   @id @default(cuid())
   inquiry_id String
   inquiry    Inquiry  @relation(fields: [inquiry_id], references: [id], onDelete: Cascade)
-  sender     String   // "CUSTOMER" or "ADMIN"
+  sender     String // "CUSTOMER" or "ADMIN"
   message    String
   is_read    Boolean  @default(false)
   created_at DateTime @default(now())
@@ -328,7 +328,7 @@ model ServiceRequestMessage {
   id                 String         @id @default(cuid())
   service_request_id String
   service_request    ServiceRequest @relation(fields: [service_request_id], references: [id], onDelete: Cascade)
-  sender             String         // "CUSTOMER" or "ADMIN"
+  sender             String // "CUSTOMER" or "ADMIN"
   message            String
   is_read            Boolean        @default(false)
   created_at         DateTime       @default(now())
@@ -337,4 +337,27 @@ model ServiceRequestMessage {
   @@index([created_at])
 }
 
+// Website AI assistant (chat bubble on the public site). Conversations are
+// kept so the gallery can read what visitors ask in Admin → AI chats.
+// No personal data is requested; `country` is the visitor's IP country.
+model AiConversation {
+  id            String      @id @default(cuid())
+  lang          String      @default("en")
+  first_page    String?
+  country       String?
+  message_count Int         @default(0)
+  messages      AiMessage[]
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+}
 
+model AiMessage {
+  id              String         @id @default(cuid())
+  conversation_id String
+  conversation    AiConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  role            String // USER | ASSISTANT
+  content         String
+  created_at      DateTime       @default(now())
+
+  @@index([conversation_id])
+}

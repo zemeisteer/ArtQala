@@ -51,6 +51,7 @@ const CONTENT = {
           'Error monitoring (Sentry, EU data region): technical reports when something on the site breaks, without IP addresses or other personal details.',
           'Website analytics (Google Analytics): anonymous usage statistics, subject to your cookie choice.',
           'AI translation (Google Gemini, Google Translate), used only for catalogue text such as painting descriptions — never for your personal messages.',
+          'AI assistant (Google Gemini): if you use the chat assistant on the site, your questions are sent to Google Gemini to generate answers, and the conversation is stored so the gallery can review it and improve the service. It is not linked to your name or account — please do not share personal details in it.',
         ],
       },
       {
@@ -125,6 +126,7 @@ const CONTENT = {
           'Мониторинг ошибок (Sentry, регион ЕС): технические отчёты о сбоях на сайте без IP-адресов и других персональных данных.',
           'Веб-аналитика (Google Analytics): анонимная статистика посещений с учётом вашего выбора cookie.',
           'Перевод с помощью ИИ (Google Gemini, Google Translate) — только для текстов каталога, например описаний картин, и никогда для ваших личных сообщений.',
+          'ИИ-помощник (Google Gemini): если вы пользуетесь чатом-помощником на сайте, ваши вопросы передаются Google Gemini для составления ответов, а переписка сохраняется, чтобы галерея могла её просматривать и улучшать сервис. Она не связана с вашим именем или аккаунтом — пожалуйста, не указывайте в ней личные данные.',
         ],
       },
       {
@@ -199,6 +201,7 @@ const CONTENT = {
           "Xatolarni kuzatish (Sentry, YeI hududi): saytdagi nosozliklar haqida texnik hisobotlar, IP-manzil va boshqa shaxsiy ma'lumotlarsiz.",
           "Veb-analitika (Google Analytics): cookie tanlovingizga muvofiq anonim tashriflar statistikasi.",
           "AI yordamida tarjima (Google Gemini, Google Translate) — faqat katalog matnlari, masalan kartina tavsiflari uchun, hech qachon shaxsiy xabarlaringiz uchun emas.",
+          "AI yordamchi (Google Gemini): saytdagi chat-yordamchidan foydalansangiz, savollaringiz javob tayyorlash uchun Google Gemini'ga yuboriladi, suhbat esa galereya uni ko'rib chiqishi va xizmatni yaxshilashi uchun saqlanadi. U ismingiz yoki akkauntingizga bog'lanmaydi — iltimos, unda shaxsiy ma'lumotlaringizni yozmang.",
         ],
       },
       {
