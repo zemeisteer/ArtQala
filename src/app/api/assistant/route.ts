@@ -138,7 +138,9 @@ export async function POST(request: Request) {
         break;
       }
 
-      contents.push({ role: 'model', parts: calls.map((call) => ({ functionCall: call })) });
+      // Echo the model's turn back unchanged: Gemini 3 rejects (400) a
+      // functionCall part that has lost its thought_signature.
+      contents.push(response.candidates?.[0]?.content || { role: 'model', parts: calls.map((call) => ({ functionCall: call })) });
       const results = await Promise.all(
         calls.map(async (call) => {
           const args = (call.args || {}) as { painting_id?: string; country_code?: string };
