@@ -463,6 +463,10 @@ export const translations = {
       decline: 'Decline',
       settings: 'Cookie settings',
     },
+    whatsapp: {
+      label: 'Chat with us on WhatsApp',
+      greeting: "Hello! I'm interested in this, could you tell me more?",
+    },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
       heading: 'Would you like to add any of these?',
@@ -959,6 +963,10 @@ export const translations = {
       decline: 'Отклонить',
       settings: 'Настройки cookie',
     },
+    whatsapp: {
+      label: 'Написать нам в WhatsApp',
+      greeting: 'Здравствуйте! Меня это заинтересовало, расскажите, пожалуйста, подробнее.',
+    },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
       heading: 'Хотите добавить что-то из этого?',
@@ -1454,6 +1462,10 @@ export const translations = {
       accept: 'Qabul qilish',
       decline: 'Rad etish',
       settings: 'Cookie sozlamalari',
+    },
+    whatsapp: {
+      label: 'WhatsApp orqali yozing',
+      greeting: "Assalomu alaykum! Menga bu qiziq, batafsil ma'lumot bera olasizmi?",
     },
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {

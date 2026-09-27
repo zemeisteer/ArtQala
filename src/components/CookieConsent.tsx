@@ -39,7 +39,7 @@ export default function CookieConsent() {
       role="dialog"
       aria-live="polite"
       aria-label={t.cookieConsent.title}
-      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-[150] bg-[#281C18] text-[#FAF4EC] rounded-md shadow-2xl border border-[#3D2C26] p-5 space-y-3"
+      className="fixed bottom-4 left-4 right-4 sm:right-auto sm:left-6 sm:bottom-6 sm:max-w-md z-[150] bg-[#281C18] text-[#FAF4EC] rounded-md shadow-2xl border border-[#3D2C26] p-5 space-y-3"
     >
       <p className="text-sm font-semibold">{t.cookieConsent.title}</p>
       <p className="text-xs leading-relaxed text-[#C5B7AD]">
