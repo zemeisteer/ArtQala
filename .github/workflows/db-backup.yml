@@ -37,32 +37,32 @@ jobs:
             echo "::error::DATABASE_URL and BACKUP_PASSPHRASE repository secrets must be set."
             exit 1
           fi
-          # Common copy/paste mistakes, reported in plain words (GitHub masks
-          # the secret's value itself in these logs).
-          case "$DATABASE_URL" in
-            postgresql://*|postgres://*) ;;
-            *) echo "::error::DATABASE_URL must start with postgresql:// — paste only the connection string (no psql command, no quotes)."; exit 1 ;;
-          esac
-          if printf '%s' "$DATABASE_URL" | grep -q '\*\*\*'; then
-            echo "::error::DATABASE_URL contains a masked password (****). In Neon click 'Show password' (or 'Copy snippet') and copy again."; exit 1
+          # Neon's "Copy snippet" can include extra text around the address
+          # (psql '...', DATABASE_URL=..., quotes) — pull out just the
+          # postgresql://... connection string. It's masked in the logs and
+          # handed to the next steps as DB_URL.
+          DB_URL=$(printf '%s' "$DATABASE_URL" | grep -oE "postgres(ql)?://[^'\"[:space:]]+" | head -n 1 || true)
+          if [ -z "$DB_URL" ]; then
+            echo "::error::No postgresql://... address found in DATABASE_URL. In Neon: Connect → Connection pooling off → Show password → copy the connection string."
+            exit 1
           fi
-          if printf '%s' "$DATABASE_URL" | grep -q -- '-pooler'; then
+          echo "::add-mask::$DB_URL"
+          if printf '%s' "$DB_URL" | grep -q '\*\*\*'; then
+            echo "::error::DATABASE_URL contains a masked password (****). In Neon click 'Show password' and copy again."; exit 1
+          fi
+          if printf '%s' "$DB_URL" | grep -q -- '-pooler'; then
             echo "::error::DATABASE_URL is the pooled connection (-pooler). In Neon turn Connection pooling OFF and copy again."; exit 1
           fi
-          if printf '%s' "$DATABASE_URL" | grep -q "[[:space:]'\"]"; then
-            echo "::error::DATABASE_URL contains spaces or quotes — paste only the postgresql://... string."; exit 1
-          fi
+          echo "DB_URL=$DB_URL" >> "$GITHUB_ENV"
 
       - name: Install a pg_dump matching the server version
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-common > /dev/null
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
           # psql from any version can ask the server which major version it runs
           sudo apt-get install -y -qq postgresql-client > /dev/null
-          if ! MAJOR=$(psql "$DATABASE_URL" -tAc "SELECT current_setting('server_version_num')::int / 10000" 2>/tmp/psql.err); then
+          if ! MAJOR=$(psql "$DB_URL" -tAc "SELECT current_setting('server_version_num')::int / 10000" 2>/tmp/psql.err); then
             echo "::error::Could not connect to the database: $(tr -s '[:space:]' ' ' < /tmp/psql.err)"
             exit 1
           fi
@@ -72,12 +72,11 @@ jobs:
 
       - name: Dump, compress and encrypt
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -o pipefail
           FILE="artqala-$(date -u +%Y-%m-%d).sql.gz.gpg"
-          "$PG_BIN/pg_dump" "$DATABASE_URL" --no-owner --no-privileges \
+          "$PG_BIN/pg_dump" "$DB_URL" --no-owner --no-privileges \
             | gzip -9 \
             | gpg --batch --yes --symmetric --cipher-algo AES256 \
                   --passphrase "$BACKUP_PASSPHRASE" -o "$FILE"
