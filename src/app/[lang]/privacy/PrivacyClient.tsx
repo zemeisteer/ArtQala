@@ -38,16 +38,19 @@ const CONTENT = {
       },
       {
         heading: '3. Cookies and Similar Technologies',
-        body: 'We use essential cookies to keep you signed in and remember your language/currency preference, and analytics cookies (Google Analytics) to understand how visitors use the site. You can control cookies through your browser settings; disabling them may limit some site features such as staying signed in.',
+        body: 'We use essential cookies to keep you signed in and remember your language, currency and country preferences, and analytics cookies (Google Analytics) to understand how visitors use the site. Visitors from the EU, EEA, UK and Switzerland are asked first: analytics cookies are only set after you click "Accept", and you can change your choice at any time via "Cookie settings" at the bottom of every page (declining also removes analytics cookies already set). You can also control cookies through your browser settings; disabling essential cookies may limit features such as staying signed in.',
       },
       {
         heading: '4. Sharing Your Information',
         body: "We do not sell, rent, or trade your personal data to third parties for advertising. We share limited data only with service providers who process it on our behalf, strictly to operate the site:",
         list: [
-          'Cloud hosting and database providers (Vercel, Neon) that store the site and its data.',
-          'Image hosting (Cloudinary) that stores artwork and uploaded photos.',
-          'Email delivery (Resend) that sends OTP codes and notification emails.',
-          'AI-assisted translation and image tools (Google Gemini) used to prepare multilingual catalogue text — never your personal messages.',
+          'Website and database hosting (Vercel, Neon) — servers in Frankfurt, Germany.',
+          'Image storage (Vercel Blob) for artwork photos.',
+          'Email delivery (Resend) for verification codes, replies and notifications.',
+          'Spam and abuse protection (Upstash): short-lived counters of sign-in and form attempts, deleted automatically after at most a few hours.',
+          'Error monitoring (Sentry, EU data region): technical reports when something on the site breaks, without IP addresses or other personal details.',
+          'Website analytics (Google Analytics): anonymous usage statistics, subject to your cookie choice.',
+          'AI translation (Google Gemini, Google Translate), used only for catalogue text such as painting descriptions — never for your personal messages.',
         ],
       },
       {
@@ -56,7 +59,7 @@ const CONTENT = {
       },
       {
         heading: '6. Data Protection and Security',
-        body: "We protect your personal details in accordance with the laws of the Republic of Uzbekistan and industry-standard technical safeguards (encrypted connections, hashed passwords, and rate-limited sign-in attempts). No online system is completely risk-free, but we take reasonable steps to protect your data from unauthorized access.",
+        body: "We protect your personal details in accordance with the laws of the Republic of Uzbekistan and industry-standard technical safeguards: encrypted connections, hashed passwords and verification codes, rate-limited sign-in attempts, and encrypted daily backups kept for 30 days. No online system is completely risk-free, but we take reasonable steps to protect your data from unauthorized access.",
       },
       {
         heading: '7. Your Rights',
@@ -109,16 +112,19 @@ const CONTENT = {
       },
       {
         heading: '3. Файлы cookie и аналогичные технологии',
-        body: 'Мы используем необходимые cookie, чтобы сохранять вашу сессию и языковые/валютные предпочтения, а также аналитические cookie (Google Analytics), чтобы понимать, как посетители используют сайт. Вы можете управлять cookie в настройках браузера; их отключение может ограничить некоторые функции сайта, например, сохранение сессии входа.',
+        body: 'Мы используем необходимые cookie, чтобы сохранять вашу сессию, язык, валюту и страну, а также аналитические cookie (Google Analytics), чтобы понимать, как посетители используют сайт. Посетителей из ЕС, ЕЭЗ, Великобритании и Швейцарии мы сначала спрашиваем: аналитические cookie устанавливаются только после нажатия «Принять», а изменить выбор можно в любой момент через «Настройки cookie» внизу каждой страницы (при отказе уже установленные аналитические cookie удаляются). Вы также можете управлять cookie в настройках браузера; отключение необходимых cookie может ограничить функции сайта, например сохранение входа.',
       },
       {
         heading: '4. Передача вашей информации',
         body: 'Мы не продаём, не сдаём в аренду и не передаём ваши персональные данные третьим лицам в рекламных целях. Мы передаём ограниченный объём данных только поставщикам услуг, которые обрабатывают их от нашего имени исключительно для работы сайта:',
         list: [
-          'Провайдеры облачного хостинга и баз данных (Vercel, Neon), которые хранят сайт и его данные.',
-          'Хостинг изображений (Cloudinary), где хранятся фотографии работ.',
-          'Сервис доставки email (Resend), который отправляет коды OTP и уведомления.',
-          'Инструменты перевода и изображений с ИИ (Google Gemini), используемые для подготовки многоязычного текста каталога — никогда для ваших личных сообщений.',
+          'Хостинг сайта и базы данных (Vercel, Neon) — серверы во Франкфурте, Германия.',
+          'Хранилище изображений (Vercel Blob) для фотографий работ.',
+          'Доставка email (Resend): коды подтверждения, ответы и уведомления.',
+          'Защита от спама и злоупотреблений (Upstash): временные счётчики попыток входа и отправки форм, удаляются автоматически не позднее чем через несколько часов.',
+          'Мониторинг ошибок (Sentry, регион ЕС): технические отчёты о сбоях на сайте без IP-адресов и других персональных данных.',
+          'Веб-аналитика (Google Analytics): анонимная статистика посещений с учётом вашего выбора cookie.',
+          'Перевод с помощью ИИ (Google Gemini, Google Translate) — только для текстов каталога, например описаний картин, и никогда для ваших личных сообщений.',
         ],
       },
       {
@@ -127,7 +133,7 @@ const CONTENT = {
       },
       {
         heading: '6. Защита данных и безопасность',
-        body: 'Мы защищаем ваши персональные данные в соответствии с законодательством Республики Узбекистан и стандартными техническими мерами (зашифрованные соединения, хеширование паролей и ограничение попыток входа). Ни одна онлайн-система не является абсолютно безрисковой, но мы принимаем разумные меры для защиты ваших данных от несанкционированного доступа.',
+        body: 'Мы защищаем ваши персональные данные в соответствии с законодательством Республики Узбекистан и стандартными техническими мерами: зашифрованные соединения, хеширование паролей и кодов подтверждения, ограничение попыток входа и зашифрованные ежедневные резервные копии, которые хранятся 30 дней. Ни одна онлайн-система не является абсолютно безрисковой, но мы принимаем разумные меры для защиты ваших данных от несанкционированного доступа.',
       },
       {
         heading: '7. Ваши права',
@@ -180,16 +186,19 @@ const CONTENT = {
       },
       {
         heading: "3. Cookie fayllari va shunga o'xshash texnologiyalar",
-        body: "Biz sizni tizimga kirgan holda saqlash va til/valyuta afzalliklaringizni eslab qolish uchun zarur cookie fayllaridan, shuningdek tashrif buyuruvchilarning saytdan qanday foydalanishini tushunish uchun analitika cookie fayllaridan (Google Analytics) foydalanamiz. Cookie fayllarini brauzer sozlamalari orqali boshqarishingiz mumkin; ularni o'chirish tizimga kirgan holda qolish kabi ba'zi funksiyalarni cheklashi mumkin.",
+        body: "Biz sizni tizimga kirgan holda saqlash hamda til, valyuta va davlat tanlovingizni eslab qolish uchun zarur cookie fayllaridan, shuningdek tashrif buyuruvchilarning saytdan qanday foydalanishini tushunish uchun analitika cookie fayllaridan (Google Analytics) foydalanamiz. YeI, YeIH, Buyuk Britaniya va Shveytsariyadan kelgan tashrif buyuruvchilardan avval ruxsat so'raymiz: analitika cookie fayllari faqat «Qabul qilish» bosilgandan keyin o'rnatiladi, tanlovni esa istalgan vaqtda har bir sahifa pastidagi «Cookie sozlamalari» orqali o'zgartirish mumkin (rad etilganda avval o'rnatilgan analitika cookie fayllari o'chiriladi). Cookie fayllarini brauzer sozlamalari orqali ham boshqarishingiz mumkin; zarur cookie fayllarini o'chirish tizimga kirgan holda qolish kabi funksiyalarni cheklashi mumkin.",
       },
       {
         heading: "4. Ma'lumotlaringizni ulashish",
         body: "Biz shaxsiy ma'lumotlaringizni reklama maqsadida uchinchi shaxslarga sotmaymiz, ijaraga bermaymiz yoki ulashmaymiz. Biz cheklangan ma'lumotni faqat saytni ishlatish uchun bizning nomimizdan ma'lumotni qayta ishlaydigan xizmat ko'rsatuvchilar bilan ulashamiz:",
         list: [
-          "Saytni va uning ma'lumotlarini saqlaydigan bulutli xosting va ma'lumotlar bazasi provayderlari (Vercel, Neon).",
-          "Asarlar va yuklangan suratlarni saqlaydigan rasm xostingi (Cloudinary).",
-          "OTP kodlari va bildirishnoma xatlarini yuboradigan email xizmati (Resend).",
-          "Ko'p tillik katalog matnini tayyorlash uchun ishlatiladigan AI tarjima va rasm vositalari (Google Gemini) — hech qachon sizning shaxsiy xabarlaringiz uchun emas.",
+          "Sayt va ma'lumotlar bazasi xostingi (Vercel, Neon) — serverlar Frankfurtda, Germaniya.",
+          "Asarlar suratlari uchun rasm xotirasi (Vercel Blob).",
+          "Email yuborish xizmati (Resend): tasdiqlash kodlari, javoblar va bildirishnomalar.",
+          "Spam va suiiste'moldan himoya (Upstash): kirish va forma yuborish urinishlarining vaqtinchalik hisoblagichlari, ko'pi bilan bir necha soatda avtomatik o'chiriladi.",
+          "Xatolarni kuzatish (Sentry, YeI hududi): saytdagi nosozliklar haqida texnik hisobotlar, IP-manzil va boshqa shaxsiy ma'lumotlarsiz.",
+          "Veb-analitika (Google Analytics): cookie tanlovingizga muvofiq anonim tashriflar statistikasi.",
+          "AI yordamida tarjima (Google Gemini, Google Translate) — faqat katalog matnlari, masalan kartina tavsiflari uchun, hech qachon shaxsiy xabarlaringiz uchun emas.",
         ],
       },
       {
@@ -198,7 +207,7 @@ const CONTENT = {
       },
       {
         heading: "6. Ma'lumotlarni himoya qilish va xavfsizlik",
-        body: "Biz sizning shaxsiy ma'lumotlaringizni O'zbekiston Respublikasi qonunchiligiga va standart texnik choralarga (shifrlangan ulanishlar, parollarni xesh qilish va kirish urinishlarini cheklash) muvofiq himoya qilamiz. Hech qanday onlayn tizim mutlaqo xavfsiz emas, ammo biz ma'lumotlaringizni ruxsatsiz kirishdan himoya qilish uchun oqilona choralar ko'ramiz.",
+        body: "Biz sizning shaxsiy ma'lumotlaringizni O'zbekiston Respublikasi qonunchiligiga va standart texnik choralarga muvofiq himoya qilamiz: shifrlangan ulanishlar, parollar va tasdiqlash kodlarini xesh qilish, kirish urinishlarini cheklash hamda 30 kun saqlanadigan shifrlangan kundalik zaxira nusxalar. Hech qanday onlayn tizim mutlaqo xavfsiz emas, ammo biz ma'lumotlaringizni ruxsatsiz kirishdan himoya qilish uchun oqilona choralar ko'ramiz.",
       },
       {
         heading: "7. Sizning huquqlaringiz",
