@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   backup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check secrets
@@ -37,6 +37,21 @@ jobs:
             echo "::error::DATABASE_URL and BACKUP_PASSPHRASE repository secrets must be set."
             exit 1
           fi
+          # Common copy/paste mistakes, reported in plain words (GitHub masks
+          # the secret's value itself in these logs).
+          case "$DATABASE_URL" in
+            postgresql://*|postgres://*) ;;
+            *) echo "::error::DATABASE_URL must start with postgresql:// — paste only the connection string (no psql command, no quotes)."; exit 1 ;;
+          esac
+          if printf '%s' "$DATABASE_URL" | grep -q '\*\*\*'; then
+            echo "::error::DATABASE_URL contains a masked password (****). In Neon click 'Show password' (or 'Copy snippet') and copy again."; exit 1
+          fi
+          if printf '%s' "$DATABASE_URL" | grep -q -- '-pooler'; then
+            echo "::error::DATABASE_URL is the pooled connection (-pooler). In Neon turn Connection pooling OFF and copy again."; exit 1
+          fi
+          if printf '%s' "$DATABASE_URL" | grep -q "[[:space:]'\"]"; then
+            echo "::error::DATABASE_URL contains spaces or quotes — paste only the postgresql://... string."; exit 1
+          fi
 
       - name: Install a pg_dump matching the server version
         env:
@@ -47,7 +62,11 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
           # psql from any version can ask the server which major version it runs
           sudo apt-get install -y -qq postgresql-client > /dev/null
-          MAJOR=$(psql "$DATABASE_URL" -tAc "SELECT current_setting('server_version_num')::int / 10000")
+          if ! MAJOR=$(psql "$DATABASE_URL" -tAc "SELECT current_setting('server_version_num')::int / 10000" 2>/tmp/psql.err); then
+            echo "::error::Could not connect to the database: $(tr '
+' ' ' < /tmp/psql.err)"
+            exit 1
+          fi
           echo "Server major version: $MAJOR"
           sudo apt-get install -y -qq "postgresql-client-$MAJOR" > /dev/null
           echo "PG_BIN=/usr/lib/postgresql/$MAJOR/bin" >> "$GITHUB_ENV"
