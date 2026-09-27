@@ -63,8 +63,7 @@ jobs:
           # psql from any version can ask the server which major version it runs
           sudo apt-get install -y -qq postgresql-client > /dev/null
           if ! MAJOR=$(psql "$DATABASE_URL" -tAc "SELECT current_setting('server_version_num')::int / 10000" 2>/tmp/psql.err); then
-            echo "::error::Could not connect to the database: $(tr '
-' ' ' < /tmp/psql.err)"
+            echo "::error::Could not connect to the database: $(tr -s '[:space:]' ' ' < /tmp/psql.err)"
             exit 1
           fi
           echo "Server major version: $MAJOR"
