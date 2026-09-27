@@ -22,13 +22,14 @@ export default function RouteLangProvider({ lang, children }: { lang: Language; 
   const router = useRouter();
   const pathname = usePathname();
 
-  // Switching language = going to the same page in the other language.
+  // Switching language = going to the same page in the other language,
+  // staying where the visitor was on it (not jumping back to the top).
   const setLang = useCallback(
     (next: Language) => {
       rememberLang(next);
       if (next === lang) return;
       const search = typeof window !== 'undefined' ? window.location.search : '';
-      router.push(`${localizePath(splitLangPath(pathname).path, next)}${search}`);
+      router.push(`${localizePath(splitLangPath(pathname).path, next)}${search}`, { scroll: false });
     },
     [lang, pathname, router]
   );
