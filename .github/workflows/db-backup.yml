@@ -1,7 +1,8 @@
-# Nightly encrypted backup of the production database (Neon).
+# Nightly encrypted backup of the production database (Neon) and of every
+# uploaded image it references (Vercel Blob / Cloudinary).
 #
 # Neon's free plan only keeps 6 hours of history, so this keeps a daily
-# copy for 30 days. The dump is encrypted (AES-256, gpg) with
+# copy for 30 days. The archive is encrypted (AES-256, gpg) with
 # BACKUP_PASSPHRASE before upload — this repository is public, so an
 # unencrypted artifact would be readable by anyone.
 #
@@ -10,9 +11,12 @@
 #   BACKUP_PASSPHRASE  long random password — keep a copy somewhere safe,
 #                      without it the backups cannot be opened
 #
-# Restore: download the artifact from the workflow run, then
-#   gpg --batch --passphrase "<passphrase>" -d artqala-YYYY-MM-DD.sql.gz.gpg | gunzip > backup.sql
-#   psql "<target DATABASE_URL>" -f backup.sql
+# Restore: download the artifact from the workflow run (it's a .zip holding
+# the .gpg file), then
+#   gpg --batch --passphrase "<passphrase>" -d artqala-YYYY-MM-DD.tar.gz.gpg | tar -xzf -
+# which gives database.sql, image-urls.txt and images/<host>/<path> —
+#   psql "<target DATABASE_URL>" -f database.sql
+# and re-upload images/ to the same paths if the image storage was lost.
 name: Database backup
 
 on:
@@ -70,16 +74,34 @@ jobs:
           sudo apt-get install -y -qq "postgresql-client-$MAJOR" > /dev/null
           echo "PG_BIN=/usr/lib/postgresql/$MAJOR/bin" >> "$GITHUB_ENV"
 
-      - name: Dump, compress and encrypt
+      - name: Dump database and download images
+        run: |
+          set -o pipefail
+          mkdir -p backup/images
+          "$PG_BIN/pg_dump" "$DB_URL" --no-owner --no-privileges > backup/database.sql
+          # Every uploaded image (paintings, artists, ...) is referenced by URL
+          # somewhere in the database — collect those URLs from the dump and
+          # save the files, so a restore brings the photos back too.
+          grep -oE 'https://[A-Za-z0-9.-]+\.(public\.blob\.vercel-storage\.com|res\.cloudinary\.com)/[A-Za-z0-9._~%/+=-]+' \
+            backup/database.sql | sort -u > backup/image-urls.txt || true
+          FAILED=0
+          while read -r url; do
+            dest="backup/images/${url#https://}"
+            mkdir -p "$(dirname "$dest")"
+            curl -fsSL --retry 2 --max-time 60 -o "$dest" "$url" || { echo "::warning::Could not download $url"; FAILED=$((FAILED + 1)); }
+          done < backup/image-urls.txt
+          echo "Images: $(wc -l < backup/image-urls.txt) referenced, $FAILED failed, $(du -sh backup/images | cut -f1) downloaded"
+
+      - name: Compress and encrypt
         env:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -o pipefail
-          FILE="artqala-$(date -u +%Y-%m-%d).sql.gz.gpg"
-          "$PG_BIN/pg_dump" "$DB_URL" --no-owner --no-privileges \
-            | gzip -9 \
+          FILE="artqala-$(date -u +%Y-%m-%d).tar.gz.gpg"
+          tar -czf - -C backup . \
             | gpg --batch --yes --symmetric --cipher-algo AES256 \
                   --passphrase "$BACKUP_PASSPHRASE" -o "$FILE"
+          rm -rf backup
           ls -lh "$FILE"
           echo "BACKUP_FILE=$FILE" >> "$GITHUB_ENV"
 
