@@ -1,10 +1,12 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import AdminDashboardClient from './AdminDashboardClient';
+import VisitorStats from './VisitorStats';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({ searchParams }: { searchParams: Promise<{ vdays?: string }> }) {
+  const { vdays } = await searchParams;
   const now = new Date();
 
   // 1. Fetch Categories with stats
@@ -197,24 +199,27 @@ export default async function AdminDashboardPage() {
   });
 
   return (
-    <AdminDashboardClient
-      initialSummary={{
-        totalRevenue,
-        totalVisits: totalVisitsCount,
-        totalViews: totalViewsCount,
-        totalInquiries: totalInquiriesCount,
-        totalSales: soldPaintings.length,
-      }}
-      initialTimeline={initialTimeline}
-      initialCategoryStats={categoryStats}
-      initialArtistStats={artistStats}
-      recentInquiries={recentInquiries}
-      topViewedPaintings={topViewedPaintings}
-      contentCounts={{
-        paintings: paintingsCount,
-        artists: artistsCount,
-        categories: categoriesCount,
-      }}
-    />
+    <div className="space-y-10">
+      <AdminDashboardClient
+        initialSummary={{
+          totalRevenue,
+          totalVisits: totalVisitsCount,
+          totalViews: totalViewsCount,
+          totalInquiries: totalInquiriesCount,
+          totalSales: soldPaintings.length,
+        }}
+        initialTimeline={initialTimeline}
+        initialCategoryStats={categoryStats}
+        initialArtistStats={artistStats}
+        recentInquiries={recentInquiries}
+        topViewedPaintings={topViewedPaintings}
+        contentCounts={{
+          paintings: paintingsCount,
+          artists: artistsCount,
+          categories: categoriesCount,
+        }}
+      />
+      <VisitorStats daysParam={vdays} />
+    </div>
   );
 }

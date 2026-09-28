@@ -3,8 +3,6 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { splitLangPath } from '@/lib/i18n/routing';
 
-export const dynamic = 'force-dynamic';
-
 const PERIODS = [
   { days: 1, label: 'Bugun' },
   { days: 7, label: '7 kun' },
@@ -83,11 +81,11 @@ function BarList({ title, rows, total, limit = 10 }: { title: string; rows: Row[
   );
 }
 
-// Where visitors come from and what they look at, from the site's own
-// anonymous page-view log (independent of Google Analytics and the cookie
-// banner, so it counts everyone).
-export default async function AdminVisitorsPage({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
-  const { days: daysParam } = await searchParams;
+// Dashboard section: where visitors come from and what they look at, from
+// the site's own anonymous page-view log (independent of Google Analytics
+// and the cookie banner, so it counts everyone). The daily visits chart is
+// already on the dashboard above, so this shows only the breakdowns.
+export default async function VisitorStats({ daysParam }: { daysParam?: string }) {
   const days = PERIODS.some((p) => String(p.days) === daysParam) ? Number(daysParam) : 30;
 
   const since = new Date();
@@ -139,22 +137,6 @@ export default async function AdminVisitorsPage({ searchParams }: { searchParams
   const byDevice = tally(tracked.map((v) => v.device), (d) => (d ? DEVICE_LABEL[d] || d : 'Unknown'));
   const byLang = tally(tracked.map((v) => v.lang), (l) => (l ? l.toUpperCase() : 'Unknown'));
 
-  // Views per day (or per hour for "today").
-  const buckets = new Map<string, number>();
-  const bucketKey = (d: Date) =>
-    days === 1 ? `${String(d.getHours()).padStart(2, '0')}:00` : d.toISOString().slice(5, 10);
-  if (days === 1) {
-    for (let h = 0; h <= new Date().getHours(); h++) buckets.set(`${String(h).padStart(2, '0')}:00`, 0);
-  } else {
-    for (let d = new Date(since); d <= new Date(); d.setDate(d.getDate() + 1)) buckets.set(bucketKey(d), 0);
-  }
-  for (const v of visits) {
-    const k = bucketKey(new Date(v.created_at));
-    buckets.set(k, (buckets.get(k) || 0) + 1);
-  }
-  const series = [...buckets.entries()];
-  const peak = Math.max(1, ...series.map(([, n]) => n));
-
   const stats = [
     { label: "Sahifa ko'rishlar", value: total },
     { label: 'Tashrif buyuruvchilar', value: uniqueVisitors },
@@ -163,10 +145,10 @@ export default async function AdminVisitorsPage({ searchParams }: { searchParams
   ];
 
   return (
-    <div className="space-y-6">
+    <section id="visitors" className="space-y-5 scroll-mt-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">Visitors</h2>
+          <h2 className="font-serif text-2xl font-semibold text-[#281C18]">Tashrifchilar</h2>
           <p className="text-xs text-[#726861] mt-0.5">
             Saytga kimlar, qayerdan va qanday kirgani — anonim, cookie va IP saqlanmaydi
           </p>
@@ -175,7 +157,8 @@ export default async function AdminVisitorsPage({ searchParams }: { searchParams
           {PERIODS.map((p) => (
             <Link
               key={p.days}
-              href={`/admin/visitors?days=${p.days}`}
+              href={`/admin?vdays=${p.days}#visitors`}
+              scroll={false}
               className={`px-3 py-1.5 rounded-[2px] ${
                 p.days === days ? 'bg-[#BA4E25] text-white' : 'text-[#6B5E55] hover:text-[#281C18]'
               }`}
@@ -195,29 +178,6 @@ export default async function AdminVisitorsPage({ searchParams }: { searchParams
         ))}
       </div>
 
-      <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#8F7E73] mb-4">
-          {days === 1 ? "Soatlar bo'yicha" : "Kunlar bo'yicha"}
-        </h3>
-        <div className="flex items-end gap-[3px] h-40">
-          {series.map(([label, n]) => (
-            <div key={label} className="flex-1 h-full flex flex-col justify-end group relative min-w-0">
-              <div
-                className="bg-[#BA4E25]/70 group-hover:bg-[#BA4E25] rounded-t-[2px] transition-colors"
-                style={{ height: `${(n / peak) * 100}%`, minHeight: n ? 2 : 0 }}
-              />
-              <span className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block whitespace-nowrap text-[10px] bg-[#281C18] text-white px-1.5 py-0.5 rounded">
-                {label}: {n}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-between text-[10px] text-[#A8988E] mt-1.5">
-          <span>{series[0]?.[0]}</span>
-          <span>{series[series.length - 1]?.[0]}</span>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <BarList title="Davlatlar" rows={byCountry} total={tracked.length} limit={15} />
         <BarList title="Qayerdan kelgan (manba)" rows={bySource} total={landing.size} />
@@ -232,6 +192,6 @@ export default async function AdminVisitorsPage({ searchParams }: { searchParams
           {total - tracked.length} ta eski yozuvda faqat sahifa manzili bor (davlat/manba kuzatilishidan oldin).
         </p>
       )}
-    </div>
+    </section>
   );
 }

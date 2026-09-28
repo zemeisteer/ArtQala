@@ -22,7 +22,6 @@ import {
   Loader2,
   Mail,
   Sparkles,
-  Globe,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -75,7 +74,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const navItems = [
     { href: '/admin', label: t.admin.dashboard, icon: LayoutDashboard },
-    { href: '/admin/visitors', label: t.admin.visitors, icon: Globe },
     { href: '/admin/paintings', label: t.admin.paintings, icon: Palette },
     { href: '/admin/artists', label: t.admin.artists, icon: Users },
     { href: '/admin/categories', label: t.admin.categories, icon: Layers },
@@ -93,7 +91,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const getActiveTitle = () => {
     if (pathname === '/admin') return t.admin.dashboard;
-    if (pathname.startsWith('/admin/visitors')) return t.admin.visitors;
     if (pathname.startsWith('/admin/paintings')) return t.admin.paintings;
     if (pathname.startsWith('/admin/artists')) return t.admin.artists;
     if (pathname.startsWith('/admin/categories')) return t.admin.categories;
