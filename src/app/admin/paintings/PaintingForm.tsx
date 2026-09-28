@@ -179,6 +179,49 @@ export default function PaintingForm({
   const [isSold, setIsSold] = useState(initialData?.is_sold || false);
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured !== undefined ? initialData.is_featured : true);
 
+  // AI writer: drafts title + description (UZ/EN/RU) from the first photo
+  // and the admin's notes, via /api/admin/ai-describe.
+  const [aiNotes, setAiNotes] = useState('');
+  const [aiWriting, setAiWriting] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  const handleAiDescribe = async () => {
+    if (!images[0]) return;
+    const hasText = [titleUz, titleEn, titleRu, descriptionUz, descriptionEn, descriptionRu].some((v) => v.trim());
+    if (hasText && !confirm("Sarlavha va tavsif AI yozgan matn bilan almashtirilsinmi?")) return;
+    setAiWriting(true);
+    setAiError('');
+    try {
+      const category =
+        categoriesList.find((c: any) => c.id === categoryId) || categoriesList.find((c: any) => c.id === topCategoryId);
+      const res = await fetch('/api/admin/ai-describe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: images[0],
+          notes: aiNotes,
+          artist: artistsList.find((a: any) => a.id === artistId)?.name,
+          technique: techniqueEn || techniqueUz || techniqueRu,
+          size: sizeWidth && sizeHeight ? `${sizeWidth} × ${sizeHeight} ${sizeUnit}` : '',
+          year,
+          category: category?.name_en || category?.name_uz,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'AI error');
+      setTitleUz(data.title_uz);
+      setTitleEn(data.title_en);
+      setTitleRu(data.title_ru);
+      setDescriptionUz(data.description_uz);
+      setDescriptionEn(data.description_en);
+      setDescriptionRu(data.description_ru);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "AI matn yoza olmadi");
+    } finally {
+      setAiWriting(false);
+    }
+  };
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -596,6 +639,38 @@ export default function PaintingForm({
                 <span className="text-[10.5px] text-[#8F7E73]">
                   Istalgan bitta tilda yozing — qolgan ikkitasi avtomatik tarjima qilinadi
                 </span>
+              </div>
+
+              {/* AI writer */}
+              <div className="rounded-[4px] border border-dashed border-[#DAA932]/60 bg-[#FBF6EA] p-3.5 space-y-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-[#8A6A12] uppercase">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  AI bilan yozish
+                </div>
+                <textarea
+                  value={aiNotes}
+                  onChange={(e) => setAiNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Ixtiyoriy: rasm haqida bilganingizni yozing — masalan, «Xivadagi Kalta Minor, tong payti, rassom bolaligidagi xotirasidan chizgan»"
+                  className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25] resize-y"
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAiDescribe}
+                    disabled={aiWriting || !images[0]}
+                    className="px-3.5 py-2 bg-[#281C18] hover:bg-[#3E2C25] text-[#FAF4EC] text-xs font-semibold rounded-[3px] flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {aiWriting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-[#DAA932]" />}
+                    {aiWriting ? 'Yozilmoqda...' : 'Sarlavha va tavsifni yozish'}
+                  </button>
+                  <span className="text-[10.5px] text-[#8F7E73]">
+                    {images[0]
+                      ? "Birinchi rasm asosida 3 tilda yozadi — saqlashdan oldin tekshirib, tahrirlang"
+                      : 'Avval pastda rasm yuklang'}
+                  </span>
+                </div>
+                {aiError && <p className="text-[11px] text-red-700">{aiError}</p>}
               </div>
 
               {/* Sarlavhalar (3 tilda) */}

@@ -34,6 +34,7 @@ const CONTENT = {
           'Issue official Certificates of Authenticity registered under your name for purchased original artworks.',
           'Respond to contact-form messages and service requests.',
           'Understand aggregate site usage (via Google Analytics) so we can improve the gallery and catalogue.',
+          'Count visits with our own anonymous statistics (page, country and city from your IP, referring site, device type and language). No cookies are used and your IP address is not stored; a daily-changing anonymous code lets us count unique visitors without recognising you on another day.',
         ],
       },
       {
@@ -109,6 +110,7 @@ const CONTENT = {
           'Оформлять официальные Сертификаты подлинности на ваше имя для приобретённых оригинальных работ.',
           'Отвечать на сообщения через форму обратной связи и заявки на услуги.',
           'Понимать общую статистику использования сайта (через Google Analytics), чтобы улучшать галерею и каталог.',
+          'Считать посещения с помощью собственной анонимной статистики (страница, страна и город по IP, сайт-источник перехода, тип устройства и язык). Cookie не используются, IP-адрес не сохраняется; ежедневно меняющийся анонимный код позволяет считать уникальных посетителей, не узнавая вас в другие дни.',
         ],
       },
       {
@@ -184,6 +186,7 @@ const CONTENT = {
           "Sotib olingan asl asarlar uchun sizning nomingizga rasmiy Asillik sertifikatlarini rasmiylashtirish.",
           "Aloqa formasi orqali yuborilgan xabarlarga va xizmat so'rovlariga javob berish.",
           "Galereya va katalogni yaxshilash uchun saytdan umumiy foydalanish statistikasini (Google Analytics orqali) tushunish.",
+          "Tashriflarni o'zimizning anonim statistikamiz orqali hisoblash (sahifa, IP bo'yicha davlat va shahar, qaysi saytdan kelganingiz, qurilma turi va til). Cookie ishlatilmaydi va IP-manzil saqlanmaydi; har kuni o'zgaradigan anonim kod sizni boshqa kunda tanimasdan noyob tashrifchilarni sanash imkonini beradi.",
         ],
       },
       {

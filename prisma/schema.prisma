@@ -303,9 +303,19 @@ model PaintingView {
   @@index([created_at])
 }
 
+// One public page view. No cookies or IPs are kept: `visitor` is a hash of
+// IP + browser + a salt that changes daily, so it counts unique visitors per
+// day but can't follow anyone across days. Older rows (before these columns
+// existed) only have `path`.
 model SiteVisit {
   id         String   @id @default(cuid())
   path       String   @default("/")
+  country    String?  // ISO-3166 alpha-2, from Vercel's IP geolocation
+  city       String?
+  referrer   String?  // external referring host, e.g. "google.com"; null = direct
+  device     String?  // MOBILE | TABLET | DESKTOP
+  lang       String?
+  visitor    String?
   created_at DateTime @default(now())
 
   @@index([created_at])
