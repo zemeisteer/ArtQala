@@ -158,6 +158,21 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
     views: val.views,
   }));
 
+  // 4b. Last 30 days, for the details under the Visits card.
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const [monthVisitors, monthCountries] = await Promise.all([
+    prisma.siteVisit.findMany({
+      where: { created_at: { gte: monthAgo }, visitor: { not: null } },
+      distinct: ['visitor'],
+      select: { visitor: true },
+    }),
+    prisma.siteVisit.findMany({
+      where: { created_at: { gte: monthAgo }, country: { not: null } },
+      distinct: ['country'],
+      select: { country: true },
+    }),
+  ]);
+
   // 5. Counts summary
   const [totalViewsCount, totalVisitsCount, totalInquiriesCount] = await Promise.all([
     prisma.paintingView.count(),
@@ -199,8 +214,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
   });
 
   return (
-    <div className="space-y-10">
-      <AdminDashboardClient
+    <AdminDashboardClient
         initialSummary={{
           totalRevenue,
           totalVisits: totalVisitsCount,
@@ -218,8 +232,8 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
           artists: artistsCount,
           categories: categoriesCount,
         }}
+        visitorSummary={{ visitors: monthVisitors.length, countries: monthCountries.length }}
+        visitorStats={<VisitorStats daysParam={vdays} />}
       />
-      <VisitorStats daysParam={vdays} />
-    </div>
   );
 }

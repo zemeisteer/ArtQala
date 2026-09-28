@@ -77,6 +77,10 @@ interface AdminDashboardClientProps {
   recentInquiries: any[];
   topViewedPaintings: any[];
   contentCounts: ContentCounts;
+  // Last 30 days, from the anonymous visit log.
+  visitorSummary: { visitors: number; countries: number };
+  // Server-rendered country/source/page breakdowns, shown under the chart.
+  visitorStats: React.ReactNode;
 }
 
 export default function AdminDashboardClient({
@@ -87,6 +91,8 @@ export default function AdminDashboardClient({
   recentInquiries,
   topViewedPaintings,
   contentCounts,
+  visitorSummary,
+  visitorStats,
 }: AdminDashboardClientProps) {
   const { t, lang, formatPrice } = useApp();
   const [isMounted, setIsMounted] = useState(false);
@@ -225,6 +231,10 @@ export default function AdminDashboardClient({
           </div>
           <div className="text-xs text-[#429599] font-medium mt-1">
             {t.admin.visits}
+          </div>
+          <div className="text-[11px] text-[#8F8178] mt-2 pt-2 border-t border-[#F0EAE1]">
+            30 kun: <strong className="text-[#281C18]">{visitorSummary.visitors}</strong> kishi ·{' '}
+            <strong className="text-[#281C18]">{visitorSummary.countries}</strong> davlat
           </div>
         </div>
 
@@ -442,6 +452,9 @@ export default function AdminDashboardClient({
           )}
         </div>
       </div>
+
+      {/* 2b. Visitors: countries, sources, pages, devices */}
+      {visitorStats}
 
       {/* 3. Side-by-Side Category & Artist Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

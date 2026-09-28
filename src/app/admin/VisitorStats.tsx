@@ -50,21 +50,21 @@ function tally(values: (string | null)[], labelOf: (v: string | null) => string)
   return [...map.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
 }
 
-function BarList({ title, rows, total, limit = 10 }: { title: string; rows: Row[]; total: number; limit?: number }) {
+function BarList({ title, rows, total, limit = 6 }: { title: string; rows: Row[]; total: number; limit?: number }) {
   return (
-    <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-5">
-      <h3 className="text-xs font-bold uppercase tracking-wider text-[#8F7E73] mb-3">{title}</h3>
+    <div>
+      <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#8F7E73] mb-2">{title}</h3>
       {rows.length === 0 ? (
         <p className="text-xs text-[#A8988E]">{"Hali ma'lumot yo'q"}</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {rows.slice(0, limit).map((r) => (
             <li key={r.label} className="relative">
               <div
                 className="absolute inset-y-0 left-0 bg-[#BA4E25]/10 rounded-[2px]"
                 style={{ width: `${Math.max(2, (r.count / (rows[0]?.count || 1)) * 100)}%` }}
               />
-              <div className="relative flex items-center justify-between gap-3 px-2 py-1.5 text-xs">
+              <div className="relative flex items-center justify-between gap-3 px-2 py-1 text-xs">
                 <span className="text-[#281C18] truncate" title={r.sub || r.label}>
                   {r.label}
                 </span>
@@ -137,20 +137,15 @@ export default async function VisitorStats({ daysParam }: { daysParam?: string }
   const byDevice = tally(tracked.map((v) => v.device), (d) => (d ? DEVICE_LABEL[d] || d : 'Unknown'));
   const byLang = tally(tracked.map((v) => v.lang), (l) => (l ? l.toUpperCase() : 'Unknown'));
 
-  const stats = [
-    { label: "Sahifa ko'rishlar", value: total },
-    { label: 'Tashrif buyuruvchilar', value: uniqueVisitors },
-    { label: 'Davlatlar', value: countries },
-    { label: "Bir kishiga sahifa", value: uniqueVisitors ? (tracked.length / uniqueVisitors).toFixed(1) : '—' },
-  ];
-
   return (
-    <section id="visitors" className="space-y-5 scroll-mt-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section id="visitors" className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 shadow-xs scroll-mt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-[#F0EAE1]">
         <div>
-          <h2 className="font-serif text-2xl font-semibold text-[#281C18]">Tashrifchilar</h2>
+          <h2 className="font-serif text-xl font-semibold text-[#281C18]">Tashrifchilar</h2>
           <p className="text-xs text-[#726861] mt-0.5">
-            Saytga kimlar, qayerdan va qanday kirgani — anonim, cookie va IP saqlanmaydi
+            <strong className="text-[#281C18]">{uniqueVisitors}</strong> kishi ·{' '}
+            <strong className="text-[#281C18]">{countries}</strong> davlat ·{' '}
+            <strong className="text-[#281C18]">{total}</strong> sahifa ko&apos;rish
           </p>
         </div>
         <div className="flex bg-white border border-[#E7E0D8] rounded-[3px] p-0.5 text-xs font-semibold">
@@ -169,29 +164,15 @@ export default async function VisitorStats({ daysParam }: { daysParam?: string }
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-5">
-            <p className="text-[11px] uppercase tracking-wider text-[#8F7E73] font-semibold">{s.label}</p>
-            <p className="font-serif text-3xl font-semibold text-[#281C18] mt-1">{s.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <BarList title="Davlatlar" rows={byCountry} total={tracked.length} limit={15} />
-        <BarList title="Qayerdan kelgan (manba)" rows={bySource} total={landing.size} />
-        <BarList title="Eng ko'p ko'rilgan sahifalar" rows={byPage} total={total} limit={15} />
-        <BarList title="Shaharlar" rows={byCity} total={tracked.length} limit={15} />
+      {/* items-start: each list only as tall as its own rows */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-8 gap-y-6 items-start">
+        <BarList title="Davlatlar" rows={byCountry} total={tracked.length} />
+        <BarList title="Qayerdan kelgan" rows={bySource} total={landing.size} />
+        <BarList title="Shaharlar" rows={byCity} total={tracked.length} />
+        <BarList title="Eng ko'p ko'rilgan sahifalar" rows={byPage} total={total} />
         <BarList title="Qurilma" rows={byDevice} total={tracked.length} />
         <BarList title="Til" rows={byLang} total={tracked.length} />
       </div>
-
-      {total > tracked.length && (
-        <p className="text-[11px] text-[#A8988E]">
-          {total - tracked.length} ta eski yozuvda faqat sahifa manzili bor (davlat/manba kuzatilishidan oldin).
-        </p>
-      )}
     </section>
   );
 }
