@@ -233,8 +233,8 @@ export default function AdminDashboardClient({
             {t.admin.visits}
           </div>
           <div className="text-[11px] text-[#8F8178] mt-2 pt-2 border-t border-[#F0EAE1]">
-            30 kun: <strong className="text-[#281C18]">{visitorSummary.visitors}</strong> kishi ·{' '}
-            <strong className="text-[#281C18]">{visitorSummary.countries}</strong> davlat
+            {t.admin.last30}: <strong className="text-[#281C18]">{visitorSummary.visitors}</strong> {t.admin.people} ·{' '}
+            <strong className="text-[#281C18]">{visitorSummary.countries}</strong> {t.admin.countriesWord}
           </div>
         </div>
 

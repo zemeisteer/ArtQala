@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Sparkles, Trash2, User, Search } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
 
 interface AiMessage {
   id: string;
@@ -21,10 +22,10 @@ interface AiConversation {
   messages: AiMessage[];
 }
 
-const countryName = (code: string | null) => {
+const countryName = (code: string | null, lang: string) => {
   if (!code) return '';
   try {
-    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code;
+    return new Intl.DisplayNames([lang], { type: 'region' }).of(code) || code;
   } catch {
     return code;
   }
@@ -38,6 +39,8 @@ const formatDate = (iso: string) =>
 // wrong answer). Visitors are anonymous — only language, country and the
 // page they started on are kept.
 export default function AdminAiChatsClient({ initialConversations }: { initialConversations: AiConversation[] }) {
+  const { t, lang } = useApp();
+  const a = t.admin;
   const [conversations, setConversations] = useState(initialConversations);
   const [selectedId, setSelectedId] = useState<string | null>(initialConversations[0]?.id || null);
   const [query, setQuery] = useState('');
@@ -51,11 +54,11 @@ export default function AdminAiChatsClient({ initialConversations }: { initialCo
   const selected = conversations.find((c) => c.id === selectedId) || null;
 
   const remove = async (id: string) => {
-    if (!confirm("Bu suhbatni o'chirasizmi?")) return;
+    if (!confirm(a.aiChatsDeleteConfirm)) return;
     const res = await fetch(`/api/admin/ai-chats/${id}`, { method: 'DELETE' });
     const data = await res.json().catch(() => ({}));
     if (!data.success) {
-      alert("O'chirishda xatolik yuz berdi");
+      alert(a.aiChatsDeleteError);
       return;
     }
     const rest = conversations.filter((c) => c.id !== id);
@@ -67,20 +70,20 @@ export default function AdminAiChatsClient({ initialConversations }: { initialCo
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-2.5">
-          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">AI chats</h2>
+          <h2 className="font-serif text-3xl font-semibold text-[#281C18]">{a.aiChats}</h2>
           <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
             {conversations.length}
           </span>
         </div>
         <p className="text-xs text-[#726861] mt-0.5">
-          Saytdagi AI yordamchiga tashrif buyuruvchilar nima deb yozgani va u nima javob bergani
+          {a.aiChatsSubtitle}
         </p>
       </div>
 
       {conversations.length === 0 ? (
         <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] py-16 text-center text-sm text-[#726861]">
           <Sparkles className="w-8 h-8 mx-auto text-[#D2C5BA] mb-2" />
-          {"Hali suhbatlar yo'q"}
+          {a.aiChatsEmpty}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -91,7 +94,7 @@ export default function AdminAiChatsClient({ initialConversations }: { initialCo
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Suhbatlardan qidirish..."
+                placeholder={a.aiChatsSearch}
                 className="w-full pl-9 pr-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] text-xs focus:outline-none focus:border-[#BA4E25]"
               />
             </div>
@@ -110,7 +113,7 @@ export default function AdminAiChatsClient({ initialConversations }: { initialCo
                     <p className="text-xs font-semibold text-[#281C18] line-clamp-2">{firstQuestion}</p>
                     <p className="text-[10.5px] text-[#8F7E73] mt-1">
                       {formatDate(c.updated_at)} · {c.lang.toUpperCase()}
-                      {c.country ? ` · ${countryName(c.country)}` : ''} · {Math.ceil(c.message_count / 2)} savol
+                      {c.country ? ` · ${countryName(c.country, lang)}` : ''} · {Math.ceil(c.message_count / 2)} {a.aiChatsQuestions}
                     </p>
                   </button>
                 );
@@ -124,17 +127,17 @@ export default function AdminAiChatsClient({ initialConversations }: { initialCo
                 <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-[#E7E0D8]">
                   <div className="text-xs text-[#726861] space-y-0.5">
                     <p>
-                      <strong className="text-[#281C18]">{formatDate(selected.created_at)}</strong> · til:{' '}
+                      <strong className="text-[#281C18]">{formatDate(selected.created_at)}</strong> · {a.aiChatsLang}:{' '}
                       {selected.lang.toUpperCase()}
-                      {selected.country ? ` · ${countryName(selected.country)}` : ''}
+                      {selected.country ? ` · ${countryName(selected.country, lang)}` : ''}
                     </p>
-                    {selected.first_page && <p>Boshlangan sahifa: {selected.first_page}</p>}
+                    {selected.first_page && <p>{a.aiChatsStartedOn}: {selected.first_page}</p>}
                   </div>
                   <button
                     type="button"
                     onClick={() => remove(selected.id)}
-                    title="O'chirish"
-                    aria-label="O'chirish"
+                    title={a.delete}
+                    aria-label={a.delete}
                     className="p-2 rounded-[3px] border border-[#E7E0D8] text-[#8F7E73] hover:text-[#C62828] hover:border-[#C62828]/40 hover:bg-red-50 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
