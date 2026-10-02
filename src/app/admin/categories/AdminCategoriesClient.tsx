@@ -238,7 +238,10 @@ export default function AdminCategoriesClient({
       <td className="py-3 px-4 text-[#554740]">{c.name_ru}</td>
       <td className="py-3 px-4 font-mono text-[#8F8178]">{c.slug}</td>
       <td className="py-3 px-4 text-center font-bold text-[#BA4E25]">
-        {c._count?.paintings || 0}
+        {/* A parent's total includes everything filed under its children —
+            paintings are attached to the child (subject), not the parent. */}
+        {(c._count?.paintings || 0) +
+          (isChild ? 0 : childrenOf(c.id).reduce((sum, child) => sum + (child._count?.paintings || 0), 0))}
       </td>
       <td className="py-3 px-4 text-right">
         <div className="flex items-center justify-end gap-1">
