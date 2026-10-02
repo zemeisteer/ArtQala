@@ -579,7 +579,10 @@ export default function AdminArtistsClient({
               {/* PDF (portfolio / CV / catalogue) */}
               <div>
                 <label className="block text-xs font-bold text-[#6B5E55] mb-1">
-                  PDF fayl <span className="font-normal text-[#A8988E]">(ixtiyoriy, 4 MB gacha)</span>
+                  Portfolio (PDF){' '}
+                  <span className="font-normal text-[#A8988E]">
+                    (ixtiyoriy, 4 MB gacha — yuklansa, saytda rassom kartasida ko&apos;rinadi)
+                  </span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   {pdf && (

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, FileText } from 'lucide-react';
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import AnimatedShamchiroq from '@/components/patterns/AnimatedShamchiroq';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -126,6 +126,18 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                         >
                           {expandedBios.has(artist.id) ? t.artists.showLess : t.artists.readMore}
                         </button>
+                      )}
+                      {/* Optional full portfolio, uploaded in the Artists admin form */}
+                      {artist.pdf && (
+                        <a
+                          href={artist.pdf}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 flex w-fit items-center gap-1.5 text-xs font-semibold text-[#BA4E25] border border-[#BA4E25]/30 rounded-full px-3 py-1.5 hover:bg-[#BA4E25]/5 transition-colors"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          {t.artists.portfolioPdf}
+                        </a>
                       )}
                     </div>
                   </div>
