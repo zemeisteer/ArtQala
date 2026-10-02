@@ -3,7 +3,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Trash2, Pencil, X, Loader2, Upload } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, Loader2, Upload, Crop, FileText } from 'lucide-react';
+import ImageCropModal from '../paintings/ImageCropModal';
 import FilterSelect from '@/components/FilterSelect';
 import Pagination from '@/components/Pagination';
 import TranslateStatus from '@/components/TranslateStatus';
@@ -16,6 +17,7 @@ interface ArtistItem {
   name: string;
   initials?: string | null;
   photo?: string | null;
+  pdf?: string | null;
   specialty_en: string;
   specialty_ru?: string;
   specialty_uz?: string;
@@ -69,6 +71,10 @@ export default function AdminArtistsClient({
   const [photo, setPhoto] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // A picked (or re-opened) photo waiting to be positioned in the round frame.
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [pdf, setPdf] = useState('');
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const [loading, setLoading] = useState(false);
   // Edit any language — the other two are translated from it (see
   // src/lib/useAutoTranslate.ts).
@@ -98,6 +104,7 @@ export default function AdminArtistsClient({
     setBioEn('');
     setBioRu('');
     setPhoto('');
+    setPdf('');
     setCategoryId('');
     setIsModalOpen(true);
   };
@@ -119,34 +126,71 @@ export default function AdminArtistsClient({
     setBioEn(artist.bio_en && artist.bio_en !== uzBio ? artist.bio_en : '');
     setBioRu(artist.bio_ru && artist.bio_ru !== uzBio ? artist.bio_ru : '');
     setPhoto(artist.photo || '');
+    setPdf(artist.pdf || '');
     setCategoryId(artist.category_id || '');
     setIsModalOpen(true);
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFile = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json().catch(() => ({}));
+    if (data.success && data.url) return data.url;
+    alert(data.error || 'Faylni yuklashda xatolik yuz berdi');
+    return null;
+  };
 
+  // Picking a photo opens the round-crop step first; nothing is uploaded yet.
+  const handlePhotoPicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) setPendingPhotoFile(file);
+  };
+
+  const handlePhotoCropped = async (file: File) => {
+    setPendingPhotoFile(null);
     setUploadingPhoto(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (data.success && data.url) {
-        setPhoto(data.url);
-      } else {
-        alert(data.error || 'Rasm yuklashda xatolik yuz berdi');
-      }
+      const url = await uploadFile(file);
+      if (url) setPhoto(url);
     } catch {
       alert('Rasm yuklashda xatolik');
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  // Re-open the current photo in the crop step to move/zoom the round frame.
+  const handleRepositionPhoto = async () => {
+    if (!photo) return;
+    setUploadingPhoto(true);
+    try {
+      const blob = await (await fetch(photo)).blob();
+      setPendingPhotoFile(new File([blob], 'artist-photo.jpg', { type: blob.type || 'image/jpeg' }));
+    } catch {
+      alert("Rasmni ochib bo'lmadi — iltimos, uni qaytadan yuklang");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handlePdfPicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('PDF hajmi 4 MB dan oshmasligi kerak');
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const url = await uploadFile(file);
+      if (url) setPdf(url);
+    } catch {
+      alert('PDF yuklashda xatolik');
+    } finally {
+      setUploadingPdf(false);
     }
   };
 
@@ -173,6 +217,7 @@ export default function AdminArtistsClient({
         bio_en: bio.en || firstFilled(bio),
         bio_ru: bio.ru || firstFilled(bio),
         photo: photo || null,
+        pdf: pdf || null,
         category_id: categoryId || null,
       };
 
@@ -474,34 +519,107 @@ export default function AdminArtistsClient({
                 </div>
               </div>
 
-              {/* Photo Upload */}
+              {/* Photo: pick -> position inside the round frame -> upload */}
               <div>
                 <label className="block text-xs font-bold text-[#6B5E55] mb-1">
                   Rassom Fotosi
                 </label>
                 <div className="flex items-center gap-3">
-                  {photo && (
-                    <div className="relative w-10 h-10 rounded-full overflow-hidden border border-[#E7E0D8] shrink-0">
-                      <Image src={photo} alt="Preview" fill className="object-cover" />
-                    </div>
+                  <div className="relative w-20 h-20 rounded-full overflow-hidden border border-[#E7E0D8] bg-[#FAF4EC] shrink-0 flex items-center justify-center">
+                    {photo ? (
+                      <Image src={photo} alt="Preview" fill sizes="80px" className="object-cover" />
+                    ) : (
+                      <span className="text-[10px] text-[#A8988E]">Foto yo&apos;q</span>
+                    )}
+                  </div>
+                  <div className="flex-1 flex flex-wrap gap-2">
+                    <label className="border border-dashed border-[#D2C5BA] rounded px-3 py-2 text-xs text-[#554740] hover:bg-[#FAF4EC] cursor-pointer flex items-center gap-1.5">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoPicked}
+                        className="hidden"
+                        disabled={uploadingPhoto}
+                      />
+                      {uploadingPhoto ? (
+                        <span className="text-[#BA4E25]">Yuklanmoqda...</span>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{photo ? 'Boshqa rasm yuklash' : 'Rasm yuklash'}</span>
+                        </>
+                      )}
+                    </label>
+                    {photo && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleRepositionPhoto}
+                          disabled={uploadingPhoto}
+                          className="border border-[#E7E0D8] rounded px-3 py-2 text-xs text-[#554740] hover:bg-[#FAF4EC] cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Crop className="w-3.5 h-3.5" />
+                          <span>Joylashuvni to&apos;g&apos;irlash</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPhoto('')}
+                          disabled={uploadingPhoto}
+                          className="border border-red-200 bg-red-50 rounded px-3 py-2 text-xs text-red-700 hover:bg-red-100 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Rasmni o&apos;chirish</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* PDF (portfolio / CV / catalogue) */}
+              <div>
+                <label className="block text-xs font-bold text-[#6B5E55] mb-1">
+                  PDF fayl <span className="font-normal text-[#A8988E]">(ixtiyoriy, 4 MB gacha)</span>
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {pdf && (
+                    <a
+                      href={pdf}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#BA4E25] bg-white border border-[#E7E0D8] rounded hover:bg-[#FAF4EC]"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>PDFni ochish</span>
+                    </a>
                   )}
-                  <label className="flex-1 border border-dashed border-[#D2C5BA] rounded p-2 text-center text-xs text-[#554740] hover:bg-[#FAF4EC] cursor-pointer">
+                  <label className="border border-dashed border-[#D2C5BA] rounded px-3 py-2 text-xs text-[#554740] hover:bg-[#FAF4EC] cursor-pointer flex items-center gap-1.5">
                     <input
                       type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
+                      accept="application/pdf"
+                      onChange={handlePdfPicked}
                       className="hidden"
-                      disabled={uploadingPhoto}
+                      disabled={uploadingPdf}
                     />
-                    {uploadingPhoto ? (
+                    {uploadingPdf ? (
                       <span className="text-[#BA4E25]">Yuklanmoqda...</span>
                     ) : (
-                      <span className="flex items-center justify-center gap-1">
+                      <>
                         <Upload className="w-3.5 h-3.5" />
-                        <span>{photo ? 'Fotosuratni almashtirish' : 'Rasm yuklash'}</span>
-                      </span>
+                        <span>{pdf ? 'Boshqa PDF yuklash' : 'PDF yuklash'}</span>
+                      </>
                     )}
                   </label>
+                  {pdf && (
+                    <button
+                      type="button"
+                      onClick={() => setPdf('')}
+                      className="border border-red-200 bg-red-50 rounded px-3 py-2 text-xs text-red-700 hover:bg-red-100 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>PDFni o&apos;chirish</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -524,6 +642,16 @@ export default function AdminArtistsClient({
             </form>
           </div>
         </div>
+      )}
+
+      {pendingPhotoFile && (
+        <ImageCropModal
+          circular
+          file={pendingPhotoFile}
+          onCancel={() => setPendingPhotoFile(null)}
+          onCropped={handlePhotoCropped}
+          onSkip={handlePhotoCropped}
+        />
       )}
     </div>
   );

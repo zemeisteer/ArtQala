@@ -49,6 +49,8 @@ model Artist {
   id           String  @id @default(cuid())
   name         String
   photo        String?
+  // Optional PDF (portfolio / CV / catalogue) uploaded in the Artists admin form.
+  pdf          String?
   initials     String?
   bio_en       String
   bio_ru       String

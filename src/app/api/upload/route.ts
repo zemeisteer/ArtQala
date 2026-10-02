@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic';
 // Paintings are photographed in wildly different resolutions; cap the longest
 // edge so pages stay fast, without cropping into the artwork itself.
 const MAX_DIMENSION = 1800;
+// Vercel rejects request bodies over ~4.5 MB before they reach this route.
+const MAX_PDF_BYTES = 4 * 1024 * 1024;
 
 export async function POST(request: Request) {
   // 1. Enforce admin authentication on uploads
@@ -35,6 +37,19 @@ export async function POST(request: Request) {
     // The rest is deliberately broad — phones commonly export HEIC/HEIF
     // (iPhone default) or AVIF/BMP/TIFF, and rejecting those meant "upload an
     // image" silently only worked for a subset of real photos.
+    // PDFs (an artist's portfolio/CV) are stored untouched. The magic-bytes
+    // check makes sure the file really is a PDF, not something renamed.
+    const isPdf = file.type === 'application/pdf';
+    if (isPdf) {
+      if (buffer.subarray(0, 5).toString('latin1') !== '%PDF-') {
+        return NextResponse.json({ success: false, error: "Bu fayl haqiqiy PDF emas" }, { status: 400 });
+      }
+      if (buffer.length > MAX_PDF_BYTES) {
+        return NextResponse.json({ success: false, error: 'PDF hajmi 4 MB dan oshmasligi kerak' }, { status: 400 });
+      }
+      fileExt = '.pdf';
+    }
+
     const validMimes = [
       'image/jpeg',
       'image/png',
@@ -46,7 +61,7 @@ export async function POST(request: Request) {
       'image/bmp',
       'image/tiff',
     ];
-    if (!validMimes.includes(file.type)) {
+    if (!isPdf && !validMimes.includes(file.type)) {
       return NextResponse.json(
         {
           success: false,
@@ -62,7 +77,7 @@ export async function POST(request: Request) {
     // decode a given format on this platform (e.g. HEIC support varies by
     // build), the catch below falls back to storing the original bytes
     // as-is rather than failing the whole upload.
-    if (file.type !== 'image/gif') {
+    if (!isPdf && file.type !== 'image/gif') {
       try {
         buffer = await sharp(buffer)
           .rotate()
@@ -84,7 +99,7 @@ export async function POST(request: Request) {
     const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
     const cloudinaryPreset = process.env.CLOUDINARY_UPLOAD_PRESET || 'artqala_preset';
 
-    if (cloudinaryCloudName) {
+    if (cloudinaryCloudName && !isPdf) {
       try {
         const formData = new FormData();
         formData.append('file', new Blob([buffer], { type: contentType }), file.name);
@@ -178,6 +193,12 @@ export async function POST(request: Request) {
         fileName,
       });
     } catch (fsErr) {
+      if (isPdf) {
+        return NextResponse.json(
+          { success: false, error: "PDF saqlash uchun fayl ombori sozlanmagan (BLOB_READ_WRITE_TOKEN)" },
+          { status: 500 }
+        );
+      }
       // In read-only serverless environment without cloud storage keys, safely return optimized Base64 data URL
       console.warn('Filesystem read-only (Serverless), falling back to Data URL');
       const base64Data = `data:${contentType};base64,${buffer.toString('base64')}`;

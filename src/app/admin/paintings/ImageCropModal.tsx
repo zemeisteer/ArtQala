@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
-import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
+import ReactCrop, { Crop, PixelCrop, centerCrop, convertToPixelCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { X, Check, Loader2 } from 'lucide-react';
 
@@ -10,6 +10,9 @@ interface ImageCropModalProps {
   onCancel: () => void;
   onCropped: (croppedFile: File) => void;
   onSkip: (originalFile: File) => void;
+  // Round avatar mode (artist photos): the crop is locked to a square shown
+  // as a circle, so the admin picks exactly what lands inside the round frame.
+  circular?: boolean;
 }
 
 function centeredCropFor(width: number, height: number, aspect?: number): Crop {
@@ -28,12 +31,16 @@ function centeredCropFor(width: number, height: number, aspect?: number): Crop {
   );
 }
 
-function getCroppedBlob(image: HTMLImageElement, pixelCrop: PixelCrop): Promise<Blob> {
+function getCroppedBlob(image: HTMLImageElement, pixelCrop: PixelCrop, maxSide?: number): Promise<Blob> {
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(pixelCrop.width * scaleX);
-  canvas.height = Math.round(pixelCrop.height * scaleY);
+  const fullWidth = pixelCrop.width * scaleX;
+  const fullHeight = pixelCrop.height * scaleY;
+  // Avatars don't need camera resolution; a smaller file also uploads reliably.
+  const shrink = maxSide ? Math.min(1, maxSide / Math.max(fullWidth, fullHeight)) : 1;
+  canvas.width = Math.round(fullWidth * shrink);
+  canvas.height = Math.round(fullHeight * shrink);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas not supported');
 
@@ -65,9 +72,9 @@ const ASPECT_PRESETS: { label: string; value: number | undefined }[] = [
   { label: 'Portret 3:4', value: 3 / 4 },
 ];
 
-export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: ImageCropModalProps) {
+export default function ImageCropModal({ file, onCancel, onCropped, onSkip, circular = false }: ImageCropModalProps) {
   const [imageSrc] = useState(() => URL.createObjectURL(file));
-  const [aspect, setAspect] = useState<number | undefined>(undefined);
+  const [aspect, setAspect] = useState<number | undefined>(circular ? 1 : undefined);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [processing, setProcessing] = useState(false);
@@ -76,7 +83,10 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
   const onImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       const { width, height } = e.currentTarget;
-      setCrop(centeredCropFor(width, height, aspect));
+      const initial = centeredCropFor(width, height, aspect);
+      setCrop(initial);
+      // So "save" works straight away, without having to drag the frame first.
+      setCompletedCrop(convertToPixelCrop(initial, width, height));
     },
     [aspect]
   );
@@ -93,7 +103,7 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
     if (!completedCrop || !imgRef.current) return;
     setProcessing(true);
     try {
-      const blob = await getCroppedBlob(imgRef.current, completedCrop);
+      const blob = await getCroppedBlob(imgRef.current, completedCrop, circular ? 1200 : undefined);
       const croppedFile = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), {
         type: 'image/jpeg',
       });
@@ -109,7 +119,9 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
     <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-lg max-w-lg w-full shadow-2xl border border-[#E7E0D8] overflow-hidden">
         <div className="flex items-center justify-between border-b px-5 py-3.5 border-[#E7E0D8]">
-          <h3 className="font-serif text-lg font-bold text-[#281C18]">Rasmni kesish</h3>
+          <h3 className="font-serif text-lg font-bold text-[#281C18]">
+            {circular ? 'Fotoni doiraga joylashtirish' : 'Rasmni kesish'}
+          </h3>
           <button onClick={onCancel} className="text-[#8F8178] hover:text-[#281C18]">
             <X className="w-5 h-5" />
           </button>
@@ -121,6 +133,8 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
             onChange={(_, percentCrop) => setCrop(percentCrop)}
             onComplete={(c) => setCompletedCrop(c)}
             aspect={aspect}
+            circularCrop={circular}
+            keepSelection={circular}
             className="max-h-[400px] max-w-full"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -137,6 +151,12 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
         </div>
 
         <div className="p-5 space-y-4">
+          {circular ? (
+            <p className="text-[11px] text-[#6B5E55]">
+              Doirani suring va burchagidan tortib kattalashtiring yoki kichraytiring — saytda aynan doira ichidagi
+              qism ko&apos;rinadi.
+            </p>
+          ) : (
           <div>
             <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1.5">
               Nisbat
@@ -161,6 +181,7 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
               ))}
             </div>
           </div>
+          )}
 
           <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-[#E7E0D8]">
             <button
@@ -170,13 +191,15 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
             >
               Bekor qilish
             </button>
-            <button
-              type="button"
-              onClick={() => onSkip(file)}
-              className="px-4 py-2 border border-[#E7E0D8] text-xs font-semibold text-[#554740] rounded hover:bg-gray-50"
-            >
-              Kesmasdan yuklash
-            </button>
+            {!circular && (
+              <button
+                type="button"
+                onClick={() => onSkip(file)}
+                className="px-4 py-2 border border-[#E7E0D8] text-xs font-semibold text-[#554740] rounded hover:bg-gray-50"
+              >
+                Kesmasdan yuklash
+              </button>
+            )}
             <button
               type="button"
               onClick={handleConfirmCrop}
@@ -188,7 +211,7 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip }: Im
               ) : (
                 <Check className="w-3.5 h-3.5" />
               )}
-              <span>{processing ? 'Kesilmoqda...' : 'Kesish va yuklash'}</span>
+              <span>{processing ? 'Kesilmoqda...' : circular ? 'Saqlash' : 'Kesish va yuklash'}</span>
             </button>
           </div>
         </div>

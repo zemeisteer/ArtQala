@@ -26,6 +26,7 @@ export async function PUT(
         bio_ru: body.bio_ru,
         bio_uz: body.bio_uz,
         photo: body.photo,
+        pdf: body.pdf,
         category_id: body.category_id || null,
       },
     });

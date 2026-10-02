@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, bio_uz, bio_en, bio_ru, specialty_uz, specialty_en, specialty_ru, photo, initials, category_id } = body;
+    const { name, bio_uz, bio_en, bio_ru, specialty_uz, specialty_en, specialty_ru, photo, pdf, initials, category_id } = body;
 
     if (!name) {
       return NextResponse.json({ success: false, error: 'Name is required' }, { status: 400 });
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
         specialty_ru: specialty_ru || specialty_uz || 'Художник',
         specialty_uz: specialty_uz || 'Rassom',
         photo: photo || null,
+        pdf: pdf || null,
         initials: initials || name.slice(0, 2).toUpperCase(),
         category_id: category_id || null,
       },
