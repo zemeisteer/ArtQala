@@ -6,6 +6,7 @@ import { AppProvider } from '@/context/AppContext';
 import { prisma } from '@/lib/prisma';
 import { safeJsonLdString } from '@/lib/jsonLd';
 import { parseSocialLinks, normalizeSocialUrl, parseLocations } from '@/lib/settingsUtils';
+import { SITE_URL } from '@/lib/siteUrl';
 
 const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
@@ -28,7 +29,7 @@ const workSans = Work_Sans({
 // just on the handful of pages that fetch their own data.
 export const revalidate = 60;
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
+const siteUrl = SITE_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

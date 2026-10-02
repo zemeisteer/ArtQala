@@ -6,13 +6,14 @@ import { safeJsonLdString } from '@/lib/jsonLd';
 import GalleryClient from './GalleryClient';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
+import { SITE_URL } from '@/lib/siteUrl';
 
 // Cached and revalidated every 30s instead of re-querying the DB on every
 // visit — public browsing traffic doesn't need per-request freshness, and
 // this was the single biggest contributor to slow page loads.
 export const revalidate = 30;
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
+const siteUrl = SITE_URL;
 const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Gallery', path: '/gallery' }], siteUrl);
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {

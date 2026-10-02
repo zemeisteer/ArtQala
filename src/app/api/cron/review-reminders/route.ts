@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendReviewRequestEmail } from '@/lib/email';
+import { SITE_URL } from '@/lib/siteUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
     take: 50,
   });
 
-  const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
+  const siteUrl = SITE_URL;
   let sent = 0;
   let skipped = 0;
 

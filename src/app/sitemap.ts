@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
 import { LANGS, localizePath } from '@/lib/i18n/routing';
+import { SITE_URL } from '@/lib/siteUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // each entry listing its other-language versions so search engines connect
 // them instead of treating them as duplicates.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
+  const baseUrl = SITE_URL;
 
   const entriesFor = (
     path: string,
