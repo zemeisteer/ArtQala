@@ -87,11 +87,18 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                 <div className="space-y-4">
                   {/* Avatar & Name Row */}
                   <div className="flex items-center gap-4">
-                    <div
-                      className={`w-14 h-14 rounded-full ${avatarBg} text-white font-serif font-bold text-xl flex items-center justify-center shrink-0 transition-transform duration-400 group-hover:scale-105 group-hover:-rotate-3 shadow-xs`}
-                    >
-                      {artist.initials || artist.name.slice(0, 2).toUpperCase()}
-                    </div>
+                    {/* The artist's photo when one is uploaded, initials otherwise */}
+                    {artist.photo ? (
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden border border-[#E7E0D8] shrink-0 transition-transform duration-400 group-hover:scale-105 shadow-xs">
+                        <Image src={artist.photo} alt={artist.name} fill sizes="64px" className="object-cover" />
+                      </div>
+                    ) : (
+                      <div
+                        className={`w-14 h-14 rounded-full ${avatarBg} text-white font-serif font-bold text-xl flex items-center justify-center shrink-0 transition-transform duration-400 group-hover:scale-105 group-hover:-rotate-3 shadow-xs`}
+                      >
+                        {artist.initials || artist.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
                     <div>
                       <h3 className="font-serif text-xl font-semibold text-[#281C18] leading-tight">
                         {artist.name}
