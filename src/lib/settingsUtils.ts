@@ -10,6 +10,10 @@ export interface DaySchedule {
   isDayOff: boolean;
 }
 
+// The made-up number new installs start with (schema default / empty form).
+// Never publish it as the gallery's real phone, e.g. in JSON-LD.
+export const PLACEHOLDER_PHONE = '+998 66 233 44 55';
+
 export function parsePhones(raw: string | null | undefined): string[] {
   if (!raw) return ['+998 66 233 44 55'];
   try {
@@ -37,6 +41,22 @@ export function getAboutText(
 export interface GalleryLocation {
   address: string;
   url: string;
+  // "latitude, longitude" (e.g. "41.3378, 69.2397") for the JSON-LD geo
+  // coordinates. `auto_coords` is read from the Google Maps link each time
+  // settings are saved (api/settings); `coords` is an optional manual
+  // override typed in Settings, and wins when present.
+  coords?: string;
+  auto_coords?: string;
+}
+
+// "41.3378, 69.2397" -> { lat, lng }; null when empty or not a valid pair.
+export function parseCoords(raw: string | null | undefined): { lat: number; lng: number } | null {
+  const m = String(raw || '').match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+  if (!m) return null;
+  const lat = parseFloat(m[1]);
+  const lng = parseFloat(m[2]);
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
 }
 
 // Admin can list any number of physical addresses, each with its own map
@@ -56,6 +76,8 @@ export function parseLocations(
           .map((l) => ({
             address: String(l.address).trim(),
             url: String(l.url || '').trim(),
+            ...(l.coords ? { coords: String(l.coords).trim() } : {}),
+            ...(l.auto_coords ? { auto_coords: String(l.auto_coords).trim() } : {}),
           }));
         if (locations.length > 0) return locations;
       }

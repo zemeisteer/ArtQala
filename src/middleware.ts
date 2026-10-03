@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { LANG_COOKIE, splitLangPath } from '@/lib/i18n/routing';
+import { SITE_URL } from '@/lib/siteUrl';
 
 if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
   // The fallback below is public (checked into the repo) — running production
@@ -89,7 +90,7 @@ export async function middleware(request: NextRequest) {
 
   const host = request.headers.get('host');
   if (host === LEGACY_VERCEL_HOST) {
-    const canonicalOrigin = process.env.NEXTAUTH_URL || 'https://artqala.com';
+    const canonicalOrigin = SITE_URL;
     return NextResponse.redirect(new URL(`${pathname}${search}`, canonicalOrigin), 308);
   }
 

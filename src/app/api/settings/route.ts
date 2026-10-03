@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
+import { coordsFromMapsLink } from '@/lib/mapsCoords';
+import { parseCoords } from '@/lib/settingsUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +56,31 @@ export async function PUT(req: Request) {
 
     const body = await req.json();
 
+    // Each address gets its map point from its Google Maps link, so the
+    // admin doesn't have to look up coordinates (used in the JSON-LD geo).
+    // Coordinates typed by hand are kept; a link that can't be read just
+    // leaves the address without a point.
+    let locations: unknown = body.locations;
+    try {
+      const list = typeof locations === 'string' ? JSON.parse(locations) : locations;
+      if (Array.isArray(list)) {
+        locations = JSON.stringify(
+          await Promise.all(
+            list.map(async (l) => {
+              if (!l || typeof l !== 'object') return l;
+              const rest = { ...(l as Record<string, unknown>) };
+              delete rest.auto_coords;
+              if (parseCoords(String(rest.coords || '')) || !rest.url) return rest;
+              const auto = await coordsFromMapsLink(String(rest.url));
+              return auto ? { ...rest, auto_coords: auto } : rest;
+            })
+          )
+        );
+      }
+    } catch {
+      // Keep whatever was sent
+    }
+
     const updated = await prisma.siteSettings.upsert({
       where: { id: 'default' },
       update: {
@@ -62,7 +89,7 @@ export async function PUT(req: Request) {
         email: body.email,
         address: body.address,
         location_map: body.location_map,
-        locations: typeof body.locations === 'string' ? body.locations : JSON.stringify(body.locations || []),
+        locations: typeof locations === 'string' ? locations : JSON.stringify(locations || []),
         working_hours: typeof body.working_hours === 'string' ? body.working_hours : JSON.stringify(body.working_hours || ''),
         telegram: body.telegram,
         instagram: body.instagram,

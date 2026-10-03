@@ -7,6 +7,7 @@ import { safeJsonLdString } from '@/lib/jsonLd';
 import PaintingDetailClient from './PaintingDetailClient';
 import type { Language } from '@/lib/i18n/translations';
 import { OG_LOCALE, isLang, languageAlternates, localizePath } from '@/lib/i18n/routing';
+import { SITE_URL } from '@/lib/siteUrl';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // rendering fresh on every request.
@@ -129,7 +130,7 @@ export default async function PaintingDetailPage({ params }: PageProps) {
     painting.category_id
   );
 
-  const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
+  const siteUrl = SITE_URL;
   const productJsonLd = buildProductJsonLd(painting, siteUrl, lang);
   const breadcrumbJsonLd = buildBreadcrumbJsonLd(
     [

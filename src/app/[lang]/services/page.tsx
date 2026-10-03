@@ -6,12 +6,13 @@ import { safeJsonLdString } from '@/lib/jsonLd';
 import ServicesClient from './ServicesClient';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
+import { SITE_URL } from '@/lib/siteUrl';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // force-dynamic.
 export const revalidate = 30;
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
+const siteUrl = SITE_URL;
 const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Services', path: '/services' }], siteUrl);
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {

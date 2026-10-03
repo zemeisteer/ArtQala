@@ -5,8 +5,9 @@ import { safeJsonLdString } from '@/lib/jsonLd';
 import ContactClient from './ContactClient';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
+import { SITE_URL } from '@/lib/siteUrl';
 
-const siteUrl = process.env.NEXTAUTH_URL || 'https://artqala.com';
+const siteUrl = SITE_URL;
 const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Contact', path: '/contact' }], siteUrl);
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {

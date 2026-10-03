@@ -18,7 +18,8 @@ export const translations = {
     },
     // Hero
     hero: {
-      location: 'TASHKENT, UZBEKISTAN',
+      // Small label that is part of the home page <h1> (search keyword).
+      kicker: 'Art Gallery in Tashkent',
       title: 'Paintings that carry the soul of Uzbekistan',
       subtitle: 'Art Qala is a working gallery of historical monuments, portraits and everyday craft, painted by local artists — alongside custom murals, ceramics and hand-painted commissions.',
       exploreBtn: 'Explore the Gallery',
@@ -563,7 +564,7 @@ export const translations = {
     },
     // Hero
     hero: {
-      location: 'ТАШКЕНТ, УЗБЕКИСТАН',
+      kicker: 'Художественная галерея в Ташкенте',
       title: 'Картины, хранящие душу Узбекистана',
       subtitle: 'Art Qala — действующая галерея исторических памятников, портретов и традиционного ремесла ташкентских мастеров, а также роспись стен, керамика и картины на заказ.',
       exploreBtn: 'В галерею',
@@ -1108,7 +1109,7 @@ export const translations = {
     },
     // Hero
     hero: {
-      location: 'TOSHKENT, O\'ZBEKISTON',
+      kicker: "Toshkentdagi san'at galereyasi",
       title: 'O\'zbekiston ruhini o\'zida mujassam etgan kartinalar',
       subtitle: 'Art Qala — Toshkentdagi tarixiy obidalar, portretlar va milliy hunarmandchilik asarlarini jamlagan galereya. Shuningdek, devoriy rasm (mural), keramika va buyurtma asosida rasm chizish xizmatlarini taklif etamiz.',
       exploreBtn: 'Galereyani ko\'rish',

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Settings, Save, CheckCircle2, Loader2, Globe, MapPin, Phone, Mail, Clock, Send, Plus, Trash2, AlertCircle, Languages, MessageSquare } from 'lucide-react';
 import TimePicker from '@/components/TimePicker';
-import { parseSocialLinks, SocialLink, parseLocations, GalleryLocation } from '@/lib/settingsUtils';
+import { parseSocialLinks, SocialLink, parseLocations, parseCoords, GalleryLocation } from '@/lib/settingsUtils';
 
 export default function AdminSettingsPage() {
   const { refreshSettings } = useApp();
@@ -248,6 +248,12 @@ export default function AdminSettingsPage() {
 
       if (res.ok) {
         setSaved(true);
+        // Show the coordinates the server just read from the map links.
+        const savedData = await res.json().catch(() => null);
+        if (savedData?.settings?.locations) {
+          const savedLocations = parseLocations(savedData.settings.locations);
+          if (savedLocations.length > 0) setLocations(savedLocations);
+        }
         await refreshSettings();
         setTimeout(() => setSaved(false), 3000);
       } else {
@@ -515,6 +521,25 @@ export default function AdminSettingsPage() {
                         placeholder="https://maps.google.com/?q=..."
                         className="w-full text-xs px-3 py-2 border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
                       />
+                      {/* Optional — published to Google as the gallery's map point (JSON-LD geo) */}
+                      <input
+                        type="text"
+                        value={loc.coords || ''}
+                        onChange={(e) => handleLocationChange(idx, 'coords', e.target.value)}
+                        placeholder="Koordinatalar — bo'sh qoldiring, havoladan avtomatik olinadi"
+                        className={`w-full text-xs px-3 py-2 border rounded-[3px] focus:outline-none focus:border-[#BA4E25] ${
+                          loc.coords?.trim() && !parseCoords(loc.coords) ? 'border-red-400' : 'border-[#E7E0D8]'
+                        }`}
+                      />
+                      {loc.auto_coords && !loc.coords?.trim() && (
+                        <p className="text-[10.5px] text-[#429599]">Havoladan olingan: {loc.auto_coords}</p>
+                      )}
+                      {idx === 0 && (
+                        <p className="text-[10.5px] text-[#8F7E73]">
+                          Koordinatalar saqlashda Google Maps havolasidan avtomatik olinadi (Google qidiruvi uchun,
+                          faqat birinchi manzil ishlatiladi). Bu maydonni faqat noto&apos;g&apos;ri chiqsa qo&apos;lda to&apos;ldiring.
+                        </p>
+                      )}
                     </div>
                     {locations.length > 1 && (
                       <button

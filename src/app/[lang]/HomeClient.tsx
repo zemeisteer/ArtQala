@@ -86,12 +86,13 @@ export default function HomeClient({ featuredPaintings }: HomeClientProps) {
         <div className="relative z-10 max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           {/* Left Text Block */}
           <div className="flex-1 text-center lg:text-left space-y-5">
-            <span className="inline-block text-xs font-semibold tracking-[4px] text-[#5AB3B7] uppercase">
-              {t.hero.location}
-            </span>
-
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold leading-[1.12] shimmer-gold">
-              {t.hero.title}
+            {/* One <h1>: the small label carries the search keyword ("Art
+                Gallery in Tashkent"), the big line stays the headline. */}
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold leading-[1.12]">
+              <span className="block font-sans text-xs font-semibold tracking-[4px] leading-normal text-[#5AB3B7] uppercase mb-5">
+                {t.hero.kicker}
+              </span>{' '}
+              <span className="block shimmer-gold">{t.hero.title}</span>
             </h1>
 
             <p className="text-base sm:text-lg text-[#D0C2B7] leading-relaxed max-w-xl mx-auto lg:mx-0">
