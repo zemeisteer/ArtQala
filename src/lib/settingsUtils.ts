@@ -41,9 +41,12 @@ export function getAboutText(
 export interface GalleryLocation {
   address: string;
   url: string;
-  // Optional "latitude, longitude" as copied from Google Maps
-  // (e.g. "41.3378, 69.2397") — used for the JSON-LD geo coordinates.
+  // "latitude, longitude" (e.g. "41.3378, 69.2397") for the JSON-LD geo
+  // coordinates. `auto_coords` is read from the Google Maps link each time
+  // settings are saved (api/settings); `coords` is an optional manual
+  // override typed in Settings, and wins when present.
   coords?: string;
+  auto_coords?: string;
 }
 
 // "41.3378, 69.2397" -> { lat, lng }; null when empty or not a valid pair.
@@ -74,6 +77,7 @@ export function parseLocations(
             address: String(l.address).trim(),
             url: String(l.url || '').trim(),
             ...(l.coords ? { coords: String(l.coords).trim() } : {}),
+            ...(l.auto_coords ? { auto_coords: String(l.auto_coords).trim() } : {}),
           }));
         if (locations.length > 0) return locations;
       }

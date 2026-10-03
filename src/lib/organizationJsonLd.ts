@@ -77,7 +77,7 @@ export async function getOrganizationJsonLd(lang: Language) {
 
     const locations = parseLocations(settings.locations, settings.address, settings.location_map);
     const primaryLocation = locations[0];
-    const geo = parseCoords(primaryLocation?.coords);
+    const geo = parseCoords(primaryLocation?.coords) || parseCoords(primaryLocation?.auto_coords);
     const phone = parsePhones(settings.phone).find((p) => p !== PLACEHOLDER_PHONE);
     const hours = openingHours(settings.working_hours);
     const sameAs = parseSocialLinks(settings.social_links, settings.telegram, settings.instagram).map((l) =>

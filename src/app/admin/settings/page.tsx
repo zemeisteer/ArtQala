@@ -248,6 +248,12 @@ export default function AdminSettingsPage() {
 
       if (res.ok) {
         setSaved(true);
+        // Show the coordinates the server just read from the map links.
+        const savedData = await res.json().catch(() => null);
+        if (savedData?.settings?.locations) {
+          const savedLocations = parseLocations(savedData.settings.locations);
+          if (savedLocations.length > 0) setLocations(savedLocations);
+        }
         await refreshSettings();
         setTimeout(() => setSaved(false), 3000);
       } else {
@@ -520,15 +526,18 @@ export default function AdminSettingsPage() {
                         type="text"
                         value={loc.coords || ''}
                         onChange={(e) => handleLocationChange(idx, 'coords', e.target.value)}
-                        placeholder="Koordinatalar (ixtiyoriy): 41.3378, 69.2397"
+                        placeholder="Koordinatalar — bo'sh qoldiring, havoladan avtomatik olinadi"
                         className={`w-full text-xs px-3 py-2 border rounded-[3px] focus:outline-none focus:border-[#BA4E25] ${
                           loc.coords?.trim() && !parseCoords(loc.coords) ? 'border-red-400' : 'border-[#E7E0D8]'
                         }`}
                       />
+                      {loc.auto_coords && !loc.coords?.trim() && (
+                        <p className="text-[10.5px] text-[#429599]">Havoladan olingan: {loc.auto_coords}</p>
+                      )}
                       {idx === 0 && (
                         <p className="text-[10.5px] text-[#8F7E73]">
-                          Google Maps&apos;da joyni o&apos;ng tugma bilan bosing va chiqqan raqamlarni nusxalang. Google
-                          qidiruvi uchun faqat birinchi manzilning koordinatalari ishlatiladi.
+                          Koordinatalar saqlashda Google Maps havolasidan avtomatik olinadi (Google qidiruvi uchun,
+                          faqat birinchi manzil ishlatiladi). Bu maydonni faqat noto&apos;g&apos;ri chiqsa qo&apos;lda to&apos;ldiring.
                         </p>
                       )}
                     </div>
