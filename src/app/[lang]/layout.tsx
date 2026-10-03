@@ -51,7 +51,7 @@ export default async function LangLayout({
   const { lang } = await params;
   if (!isLang(lang)) notFound();
 
-  const orgJsonLd = await getOrganizationJsonLd();
+  const orgJsonLd = await getOrganizationJsonLd(lang);
 
   return (
     <SiteDocument lang={lang} jsonLd={orgJsonLd}>
