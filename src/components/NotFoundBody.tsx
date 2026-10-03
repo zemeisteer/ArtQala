@@ -5,9 +5,9 @@ import Link from '@/components/LocalizedLink';
 import { useApp } from '@/context/AppContext';
 import { Compass, Home } from 'lucide-react';
 
-// The 404 message itself — used by app/not-found.tsx (unknown URLs, with
-// its own header/footer) and app/[lang]/not-found.tsx (e.g. a painting id
-// that doesn't exist, inside the public layout).
+// The 404 message itself — used by app/[lang]/not-found.tsx, inside the
+// public layout: unknown URLs (via app/[lang]/[...rest]) and e.g. a painting
+// id that doesn't exist.
 export default function NotFoundBody() {
   const { t } = useApp();
 
