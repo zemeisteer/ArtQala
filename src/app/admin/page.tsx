@@ -180,12 +180,15 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
     prisma.inquiry.count(),
   ]);
 
-  // 5b. Content inventory — just the three main catalog counts, shown on
-  // the dashboard so the curator can see what's filled in at a glance.
-  const [paintingsCount, artistsCount, categoriesCount] = await Promise.all([
+  // 5b. Content inventory — the main catalog counts, shown on the dashboard
+  // so the curator can see what's filled in at a glance. Categories are
+  // counted the way the Categories page shows them: parent categories
+  // (product types) and their child categories (subjects) separately.
+  const [paintingsCount, artistsCount, categoriesCount, subcategoriesCount] = await Promise.all([
     prisma.painting.count(),
     prisma.artist.count(),
-    prisma.category.count(),
+    prisma.category.count({ where: { parent_id: null } }),
+    prisma.category.count({ where: { parent_id: { not: null } } }),
   ]);
 
   // 6. Recent inquiries
@@ -231,6 +234,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
           paintings: paintingsCount,
           artists: artistsCount,
           categories: categoriesCount,
+          subcategories: subcategoriesCount,
         }}
         visitorSummary={{ visitors: monthVisitors.length, countries: monthCountries.length }}
         visitorStats={<VisitorStats daysParam={vdays} />}

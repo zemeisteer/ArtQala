@@ -15,6 +15,7 @@ import {
   Calendar,
   Layers,
   Palette,
+  CornerDownRight,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -67,6 +68,7 @@ interface ContentCounts {
   paintings: number;
   artists: number;
   categories: number;
+  subcategories: number;
 }
 
 interface AdminDashboardClientProps {
@@ -284,14 +286,15 @@ export default function AdminDashboardClient({
           </h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { href: '/admin/paintings', label: t.admin.paintings, icon: Palette, value: contentCounts.paintings },
             { href: '/admin/artists', label: t.admin.artists, icon: Users, value: contentCounts.artists },
             { href: '/admin/categories', label: t.admin.categories, icon: Layers, value: contentCounts.categories },
+            { href: '/admin/categories', label: t.admin.subcategories, icon: CornerDownRight, value: contentCounts.subcategories },
           ].map((item) => (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
               className="flex flex-col items-center gap-1.5 p-3.5 rounded-[3px] border border-[#E7E0D8] bg-white hover:border-[#BA4E25]/50 hover:shadow-xs transition-all text-center"
             >
