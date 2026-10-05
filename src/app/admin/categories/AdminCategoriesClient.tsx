@@ -273,7 +273,7 @@ export default function AdminCategoriesClient({
               Kategoriyalar Boshqaruvi
             </h2>
             <span className="text-[11px] font-semibold text-[#8F7E73] bg-white border border-[#E7E0D8] px-2 py-0.5 rounded-full">
-              {categories.length}
+              {parents.length} ota · {categories.length - parents.length} bola
             </span>
           </div>
           <p className="text-xs text-[#726861] mt-0.5">
