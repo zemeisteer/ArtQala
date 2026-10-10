@@ -70,7 +70,14 @@ export async function POST(request: Request) {
       email_verified: updated.email_verified,
     };
 
-    const token = createSessionToken(updatedSession);
+    // Same sign-in continues on this device; the admin's other devices are
+    // signed out, since the old password may be what leaked.
+    const sid = auth.user.sid;
+    await prisma.adminSession.updateMany({
+      where: { user_id: updated.id, ended_at: null, ...(sid ? { NOT: { id: sid } } : {}) },
+      data: { ended_at: new Date(), end_reason: 'REVOKED' },
+    });
+    const token = createSessionToken({ ...updatedSession, sid });
 
     const response = NextResponse.json({
       success: true,

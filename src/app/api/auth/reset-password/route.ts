@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { createSessionToken } from '@/lib/auth';
+import { createSessionToken, withAdminSession } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { findValidOtp } from '@/lib/otp';
 
@@ -74,7 +74,14 @@ export async function POST(request: Request) {
       where: { email: normalizedEmail, purpose: 'PASSWORD_RESET' },
     });
 
-    const sessionToken = createSessionToken(updatedUser);
+    // A password reset signs an admin out everywhere else.
+    if (updatedUser.role === 'ADMIN') {
+      await prisma.adminSession.updateMany({
+        where: { user_id: updatedUser.id, ended_at: null },
+        data: { ended_at: new Date(), end_reason: 'REVOKED' },
+      });
+    }
+    const sessionToken = createSessionToken(await withAdminSession(request, updatedUser));
     const response = NextResponse.json({
       success: true,
       message: 'Parol muvaffaqiyatli yangilandi',

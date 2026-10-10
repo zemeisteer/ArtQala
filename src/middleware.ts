@@ -77,6 +77,25 @@ async function verifyToken(token: string | undefined): Promise<{ role: string } 
   }
 }
 
+// The Edge runtime can't query the database, so ask our own API (which
+// can), forwarding the visitor's cookie. Only a clear "no" blocks the page:
+// if the check itself can't be completed (timeout, an error response) the
+// already-verified signature stands, so a hiccup can't lock every admin
+// out — and the admin API routes still enforce the live check on their own.
+async function isAdminSessionLive(request: NextRequest): Promise<boolean> {
+  try {
+    const res = await fetch(new URL('/api/auth/session-check', request.url), {
+      headers: { cookie: request.headers.get('cookie') || '' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return true;
+    return (await res.json()).ok !== false;
+  } catch {
+    return true;
+  }
+}
+
 // The site now lives at the custom domain, but the original Vercel-assigned
 // hostname keeps working too (Vercel never lets you turn it off) — a 200
 // response there is exactly the "two live copies of the same content" setup
@@ -112,6 +131,17 @@ export async function middleware(request: NextRequest) {
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);
       }
+    }
+
+    // A valid signature isn't the whole story for an admin: the sign-in
+    // must still be live in the database (not logged out, not signed out by
+    // another admin — see src/lib/adminSessions.ts). Admin API routes check
+    // that themselves through getServerSession(); admin pages render on the
+    // server straight from the database, so they are checked here.
+    if (isAdminPage && !(await isAdminSessionLive(request))) {
+      const loginUrl = new URL('/admin/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
     }
   }
 

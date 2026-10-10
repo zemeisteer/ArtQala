@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -22,6 +22,8 @@ import {
   Loader2,
   Mail,
   Sparkles,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -36,6 +38,15 @@ export default function AdminShell({ children }: AdminLayoutProps) {
   const { user, authLoading, signOut, t, lang, setLang } = useApp();
 
   const isLoginPage = pathname === '/admin/login';
+
+  // On phones/tablets the sidebar is a slide-out drawer; it closes itself
+  // whenever a link takes the admin to another page.
+  const [navOpen, setNavOpen] = useState(false);
+  const [navPath, setNavPath] = useState(pathname);
+  if (navPath !== pathname) {
+    setNavPath(pathname);
+    setNavOpen(false);
+  }
 
   // 1. Guard: redirect non-admin users to /admin/login (called unconditionally)
   useEffect(() => {
@@ -114,10 +125,26 @@ export default function AdminShell({ children }: AdminLayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-[#FAF4EC] text-[#281C18]">
-      {/* Sidebar matching AdminDashboard.dc.html */}
-      <aside className="w-[236px] bg-[#1D100B] text-[#D8CDC4] flex flex-col shrink-0 border-r border-[#382620]">
+      {/* Dimmed backdrop behind the open drawer (phones/tablets) */}
+      {navOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={() => setNavOpen(false)}
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden cursor-default"
+        />
+      )}
+
+      {/* Sidebar matching AdminDashboard.dc.html. From lg up it's a fixed-
+          height column that stays in view (so Sign out is always reachable,
+          however long the page is); below lg it slides in over the page. */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-[236px] h-dvh bg-[#1D100B] text-[#D8CDC4] flex flex-col shrink-0 border-r border-[#382620] transition-transform duration-200 lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 ${
+          navOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         {/* Admin Logo */}
-        <div className="p-6 border-b border-[#382620]">
+        <div className="p-6 border-b border-[#382620] flex items-center justify-between gap-2">
           <Link href="/admin" className="font-serif text-xl font-bold tracking-wide text-[#FAF4EC] flex items-center gap-2">
             <Image
               src="/logo.png"
@@ -134,10 +161,18 @@ export default function AdminShell({ children }: AdminLayoutProps) {
               </span>
             </div>
           </Link>
+          <button
+            type="button"
+            onClick={() => setNavOpen(false)}
+            aria-label="Close menu"
+            className="lg:hidden p-1.5 -mr-2 text-[#B5A599] hover:text-[#FAF4EC] cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 py-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto py-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -185,12 +220,22 @@ export default function AdminShell({ children }: AdminLayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-16 bg-[#FDFBF9] border-b border-[#E7E0D8] px-8 flex items-center justify-between shrink-0">
-          <h1 className="font-serif text-2xl font-semibold text-[#281C18]">
-            {getActiveTitle()}
-          </h1>
+        <header className="sticky top-0 z-30 h-16 bg-[#FDFBF9] border-b border-[#E7E0D8] px-3 sm:px-8 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => setNavOpen(true)}
+              aria-label="Open menu"
+              className="lg:hidden p-2 -ml-1 text-[#554740] hover:text-[#BA4E25] rounded hover:bg-[#FAF4EC] cursor-pointer"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="font-serif text-xl sm:text-2xl font-semibold text-[#281C18] truncate">
+              {getActiveTitle()}
+            </h1>
+          </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Language Switcher for Admin */}
             <div className="flex items-center bg-[#FAF4EC] border border-[#E7E0D8] rounded-[3px] p-0.5 text-xs font-semibold">
               <button
@@ -236,7 +281,7 @@ export default function AdminShell({ children }: AdminLayoutProps) {
             </Link>
 
             {/* Admin User Profile */}
-            <div className="flex items-center gap-2.5 pl-4 border-l border-[#E7E0D8]">
+            <div className="flex items-center gap-2.5 pl-2 sm:pl-4 border-l border-[#E7E0D8]">
               <div className="w-8 h-8 rounded-full bg-[#BA4E25] text-white font-serif font-bold text-xs flex items-center justify-center shadow-xs uppercase">
                 {user.name.slice(0, 2)}
               </div>
@@ -246,12 +291,23 @@ export default function AdminShell({ children }: AdminLayoutProps) {
                     account this admin session belongs to. */}
                 <div className="text-[10px] text-[#8F8178]">{user.email}</div>
               </div>
+              {/* Sign out, always in view (also at the bottom of the sidebar) */}
+              <button
+                type="button"
+                onClick={handleAdminSignOut}
+                title={t.admin.signOut}
+                aria-label={t.admin.signOut}
+                className="flex items-center gap-1.5 px-2.5 py-2 text-xs font-semibold text-[#726861] border border-[#E7E0D8] rounded-[3px] hover:text-[#C62828] hover:border-[#C62828]/40 hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">{t.admin.signOut}</span>
+              </button>
             </div>
           </div>
         </header>
 
         {/* Content Body */}
-        <main className="flex-1 p-6 sm:p-8 overflow-y-auto">{children}</main>
+        <main className="flex-1 min-w-0 p-3 sm:p-8 overflow-x-auto">{children}</main>
       </div>
 
       {/* Force Password Change on First Login */}

@@ -143,9 +143,31 @@ model User {
   service_requests ServiceRequest[]
   reviews          Review[]
   wishlist_items   WishlistItem[]
+  admin_sessions   AdminSession[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+// One sign-in to the admin panel. The session cookie of an ADMIN carries
+// this row's id (`sid`); the session only works while the row exists and
+// `ended_at` is empty — which is what lets an admin see who is signed in
+// from where and sign any of them out (Admin → Staff).
+model AdminSession {
+  id           String    @id @default(cuid())
+  user_id      String
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  ip           String?
+  country      String?   // ISO-3166 alpha-2, from Vercel's IP geolocation
+  city         String?
+  user_agent   String?
+  created_at   DateTime  @default(now())
+  last_seen_at DateTime  @default(now())
+  ended_at     DateTime?
+  end_reason   String?   // LOGOUT | REVOKED
+
+  @@index([user_id])
+  @@index([created_at])
 }
 
 model Inquiry {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createSessionToken } from '@/lib/auth';
+import { createSessionToken, withAdminSession } from '@/lib/auth';
 import { safeRedirectTarget } from '@/lib/safeRedirect';
 
 interface RouteContext {
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       userData.email,
       userData.name || userData.email.split('@')[0]
     );
-    const sessionToken = createSessionToken(userSession);
+    const sessionToken = createSessionToken(await withAdminSession(request, userSession));
     const response = NextResponse.redirect(new URL(state, request.url));
     return withSessionCookie(response, sessionToken);
   } catch (error) {

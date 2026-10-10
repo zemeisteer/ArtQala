@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createSessionToken } from '@/lib/auth';
+import { createSessionToken, withAdminSession } from '@/lib/auth';
 import { safeRedirectTarget } from '@/lib/safeRedirect';
 
 // Starting a sign-in as someone else ends whoever was signed in before —
@@ -94,7 +94,7 @@ export async function GET(
       must_change_password: false,
     };
 
-    const sessionToken = createSessionToken(userSession);
+    const sessionToken = createSessionToken(await withAdminSession(request, userSession));
 
     const redirectUrl = new URL(redirectTarget, request.url);
     const response = NextResponse.redirect(redirectUrl);
