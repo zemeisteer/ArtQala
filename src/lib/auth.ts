@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { isAdminSessionActive, startAdminSession } from '@/lib/adminSessions';
 
 export interface UserSession {
   id: string;
@@ -10,6 +11,9 @@ export interface UserSession {
   role: string;
   email_verified: boolean;
   must_change_password?: boolean;
+  // ADMIN only: the AdminSession row this sign-in belongs to (see
+  // src/lib/adminSessions.ts). An admin token without a live one is invalid.
+  sid?: string;
 }
 
 if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
@@ -84,17 +88,35 @@ export function verifySessionToken(token: string | undefined | null): UserSessio
       role: data.role,
       email_verified: data.email_verified,
       must_change_password: !!data.must_change_password,
+      ...(typeof data.sid === 'string' ? { sid: data.sid } : {}),
     };
   } catch {
     return null;
   }
 }
 
-// Read current user session on server
+// Read current user session on server. For an ADMIN the signed cookie
+// alone isn't enough: its sign-in must still be live in the database, so
+// logging out or being signed out by another admin takes effect at once
+// (a copied cookie stops working too).
 export async function getServerSession(): Promise<UserSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get('artqala_user')?.value;
-  return verifySessionToken(token);
+  const session = verifySessionToken(token);
+  if (session?.role === 'ADMIN' && !(await isAdminSessionActive(session.sid, session.id))) {
+    return null;
+  }
+  return session;
+}
+
+// The session payload to sign for a user who has just authenticated: an
+// ADMIN gets a new tracked sign-in (sid); everyone else is unchanged.
+export async function withAdminSession<T extends { id: string; role: string }>(
+  request: Request,
+  user: T
+): Promise<T & { sid?: string }> {
+  if (user.role !== 'ADMIN') return user;
+  return { ...user, sid: await startAdminSession(request, user.id) };
 }
 
 // Protect API routes: Ensures requester is authenticated and has role === 'ADMIN'

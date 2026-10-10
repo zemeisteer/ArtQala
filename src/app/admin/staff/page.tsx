@@ -1,6 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import AdminStaffClient from './AdminStaffClient';
+import AdminSessionsPanel from './AdminSessionsPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,5 +18,10 @@ export default async function AdminStaffPage() {
     orderBy: { created_at: 'asc' },
   });
 
-  return <AdminStaffClient initialStaff={staff} />;
+  return (
+    <div className="space-y-10">
+      <AdminStaffClient initialStaff={staff} />
+      <AdminSessionsPanel />
+    </div>
+  );
 }

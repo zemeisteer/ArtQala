@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createSessionToken } from '@/lib/auth';
+import { createSessionToken, withAdminSession } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { findValidOtp } from '@/lib/otp';
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     });
 
     // Set signed session cookie (matches signin/oauth) so the user is actually logged in
-    const sessionToken = createSessionToken(updatedUser);
+    const sessionToken = createSessionToken(await withAdminSession(request, updatedUser));
     response.cookies.set('artqala_user', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

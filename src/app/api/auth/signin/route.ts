@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { createSessionToken } from '@/lib/auth';
+import { createSessionToken, withAdminSession } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, resetRateLimit, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
 import { checkOtpSendAllowed, issueSignupOtp, recordOtpSend } from '@/lib/otp';
@@ -128,7 +128,8 @@ export async function POST(request: Request) {
       must_change_password: user.must_change_password,
     };
 
-    const sessionToken = createSessionToken(userSession);
+    // An admin sign-in is recorded (device, IP, place) — see Admin → Staff.
+    const sessionToken = createSessionToken(await withAdminSession(request, userSession));
 
     const response = NextResponse.json({
       success: true,
