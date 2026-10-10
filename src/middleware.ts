@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { LANG_COOKIE, splitLangPath } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
+import {
+  ADMIN_GATE_COOKIE,
+  ADMIN_GATE_MAX_AGE_S,
+  adminGateEnabled,
+  gateCookieForKey,
+  hasAdminGateCookie,
+} from '@/lib/adminGate';
 
 if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
   // The fallback below is public (checked into the repo) — running production
@@ -115,6 +122,32 @@ export async function middleware(request: NextRequest) {
 
   const isAdminApi = pathname.startsWith('/api/admin');
   const isAdminPage = pathname.startsWith('/admin') && pathname !== '/admin/login';
+
+  // Hidden admin panel (only when ADMIN_ACCESS_KEY is set — see
+  // src/lib/adminGate.ts): a device that hasn't been let in with the secret
+  // link, and isn't signed in as an admin, gets the site's ordinary 404 for
+  // anything under /admin, the login page included.
+  if (adminGateEnabled() && pathname.startsWith('/admin')) {
+    const gateCookie = await gateCookieForKey(request.nextUrl.searchParams.get('key'));
+    if (gateCookie) {
+      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+      response.cookies.set(ADMIN_GATE_COOKIE, gateCookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: ADMIN_GATE_MAX_AGE_S,
+        path: '/',
+      });
+      return response;
+    }
+
+    const admin = await verifyToken(request.cookies.get('artqala_user')?.value);
+    const letIn =
+      admin?.role === 'ADMIN' || (await hasAdminGateCookie(request.cookies.get(ADMIN_GATE_COOKIE)?.value));
+    if (!letIn) {
+      return NextResponse.rewrite(new URL('/en/page-not-found', request.url), { status: 404 });
+    }
+  }
 
   if (isAdminApi || isAdminPage) {
     const token = request.cookies.get('artqala_user')?.value;

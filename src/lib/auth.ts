@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { isAdminSessionActive, startAdminSession } from '@/lib/adminSessions';
+import { ADMIN_GATE_COOKIE, hasAdminGateCookie } from '@/lib/adminGate';
 
 export interface UserSession {
   id: string;
@@ -116,6 +117,18 @@ export async function withAdminSession<T extends { id: string; role: string }>(
   user: T
 ): Promise<T & { sid?: string }> {
   if (user.role !== 'ADMIN') return user;
+
+  // Hidden admin panel (src/lib/adminGate.ts): whichever way an admin
+  // authenticates — password, Google, a password reset — no admin sign-in
+  // is started on a device that wasn't let in with the secret link. Without
+  // a `sid` the resulting cookie is not a working admin session.
+  const gateCookie = (request.headers.get('cookie') || '')
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${ADMIN_GATE_COOKIE}=`))
+    ?.slice(ADMIN_GATE_COOKIE.length + 1);
+  if (!(await hasAdminGateCookie(gateCookie))) return user;
+
   return { ...user, sid: await startAdminSession(request, user.id) };
 }
 

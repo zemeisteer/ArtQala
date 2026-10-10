@@ -5,6 +5,8 @@ import { createSessionToken, withAdminSession } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, resetRateLimit, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
 import { checkOtpSendAllowed, issueSignupOtp, recordOtpSend } from '@/lib/otp';
+import { cookies } from 'next/headers';
+import { ADMIN_GATE_COOKIE, hasAdminGateCookie } from '@/lib/adminGate';
 
 export async function POST(request: Request) {
   try {
@@ -90,6 +92,13 @@ export async function POST(request: Request) {
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
+    }
+
+    // Hidden admin panel (src/lib/adminGate.ts): an admin can only sign in
+    // from a device that was let in with the secret link. Answered exactly
+    // like a wrong password, so it doesn't reveal that the password was right.
+    if (user.role === 'ADMIN' && !(await hasAdminGateCookie((await cookies()).get(ADMIN_GATE_COOKIE)?.value))) {
+      return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
     }
 
     // Correct password but the email was never confirmed: send a fresh code
