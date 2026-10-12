@@ -60,6 +60,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `${title} | Art Qala Gallery`,
       description,
+      url: localizePath(`/gallery/${id}`, lang),
+      type: 'article',
       locale: OG_LOCALE[lang],
       images: [{ url: imageUrl, alt: loc.title }],
     },
@@ -137,7 +139,8 @@ export default async function PaintingDetailPage({ params }: PageProps) {
       { name: 'Gallery', path: localizePath('/gallery', lang) },
       { name: localized(painting, lang).title, path: localizePath(`/gallery/${id}`, lang) },
     ],
-    siteUrl
+    siteUrl,
+    lang
   );
 
   return (

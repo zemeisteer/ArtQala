@@ -13,14 +13,19 @@ import { SITE_URL } from '@/lib/siteUrl';
 export const revalidate = 30;
 
 const siteUrl = SITE_URL;
-const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Reviews', path: '/reviews' }], siteUrl);
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
   return pageMetadata('reviews', isLang(lang) ? lang : 'en');
 }
 
-export default async function ReviewsPage() {
+export default async function ReviewsPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang: rawLang } = await params;
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(
+    [{ name: 'Reviews', path: '/reviews' }],
+    siteUrl,
+    isLang(rawLang) ? rawLang : 'en'
+  );
   const reviews = await prisma.review.findMany({
     where: { is_approved: true },
     include: {
