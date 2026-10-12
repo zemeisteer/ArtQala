@@ -30,9 +30,18 @@ export interface PaintingItem {
 
 interface PaintingCardProps {
   painting: PaintingItem;
+  // How wide the card is laid out, so the browser downloads a version of
+  // that size (default: the 1 / 2 / 4-column listing grid).
+  sizes?: string;
+  // Only for the first card(s) visible when the page opens: loaded straight
+  // away instead of lazily. Every other card loads as it nears the screen.
+  priority?: boolean;
 }
 
-export default function PaintingCard({ painting }: PaintingCardProps) {
+// 1 column on phones, 2 on tablets, 4 in the 1240px desktop container.
+const GRID_SIZES = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px';
+
+export default function PaintingCard({ painting, sizes = GRID_SIZES, priority = false }: PaintingCardProps) {
   const { lang, formatPrice, wishlist, toggleWishlist, t } = useApp();
 
   const title =
@@ -77,7 +86,8 @@ export default function PaintingCard({ painting }: PaintingCardProps) {
               src={imageSrc}
               alt={title}
               fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              sizes={sizes}
+              priority={priority}
               className="object-cover"
             />
           </div>

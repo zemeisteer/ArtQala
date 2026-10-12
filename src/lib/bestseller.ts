@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { prisma } from './prisma';
 
 // A painting is one of a kind, so "bestseller" can't mean "sold many times" —
@@ -7,7 +8,8 @@ import { prisma } from './prisma';
 export const BESTSELLER_MIN_INQUIRIES = 2;
 export const BESTSELLER_TOP_N = 6;
 
-export async function getBestsellerPaintingIds(): Promise<Set<string>> {
+// cache(): one query per page render, however many loaders ask for it.
+export const getBestsellerPaintingIds = cache(async (): Promise<Set<string>> => {
   try {
     const candidates = await prisma.painting.findMany({
       where: { is_sold: false },
@@ -25,7 +27,7 @@ export async function getBestsellerPaintingIds(): Promise<Set<string>> {
     console.error('Error computing bestseller paintings:', error);
     return new Set();
   }
-}
+});
 
 export function withBestsellerFlag<T extends { id: string }>(
   paintings: T[],

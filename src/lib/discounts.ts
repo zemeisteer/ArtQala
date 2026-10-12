@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { prisma } from './prisma';
 
 // Rule-based discounts (the Discount table) — an ARTIST/CATEGORY/SITE rule
@@ -38,7 +39,8 @@ export function isRuleActive(rule: DiscountRule, now = new Date()): boolean {
   return true;
 }
 
-export async function getActiveDiscountRules(): Promise<DiscountRule[]> {
+// cache(): one query per page render, however many loaders ask for it.
+export const getActiveDiscountRules = cache(async (): Promise<DiscountRule[]> => {
   try {
     const rules = await prisma.discount.findMany({
       where: { is_active: true, scope: { in: ['ARTIST', 'CATEGORY', 'SITE'] } },
@@ -49,7 +51,7 @@ export async function getActiveDiscountRules(): Promise<DiscountRule[]> {
     console.error('Error fetching discount rules:', error);
     return [];
   }
-}
+});
 
 // The best matching rule for a painting, most specific first. A CATEGORY
 // rule may target either the painting's own (leaf) category or its parent

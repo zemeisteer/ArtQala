@@ -245,6 +245,7 @@ export default function ContactClient() {
                 src="/assets/p-courtyard.svg"
                 alt="Gallery location preview"
                 fill
+                sizes="(max-width: 1024px) 100vw, 620px"
                 className="object-cover brightness-95 group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-[#1D100B]/20 pointer-events-none" />

@@ -3,6 +3,10 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 
 const nextConfig: NextConfig = {
   images: {
+    // Uploaded artwork never changes under the same URL (every upload gets
+    // a new name), so a resized version can be kept for a month instead of
+    // being regenerated every few hours.
+    minimumCacheTTL: 60 * 60 * 24 * 31,
     remotePatterns: [
       {
         protocol: 'https',

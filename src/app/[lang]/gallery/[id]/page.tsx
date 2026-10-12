@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPaintingById, getRelatedPaintings } from '@/lib/api';
+import { getPaintingById, getRelatedPaintings, slimPainting } from '@/lib/api';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbJsonLd';
 import { safeJsonLdString } from '@/lib/jsonLd';
 import PaintingDetailClient from './PaintingDetailClient';
@@ -12,6 +12,14 @@ import { SITE_URL } from '@/lib/siteUrl';
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // rendering fresh on every request.
 export const revalidate = 30;
+
+// Without this, a page under a dynamic segment ([id]) is rendered from the
+// database on EVERY visit and `revalidate` above does nothing. An empty list
+// = build none in advance, but cache each painting's page the first time
+// it's opened and reuse it (refreshed in the background) after that.
+export function generateStaticParams() {
+  return [];
+}
 
 interface PageProps {
   params: Promise<{ lang: string; id: string }>;
@@ -60,6 +68,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `${title} | Art Qala Gallery`,
       description,
+      url: localizePath(`/gallery/${id}`, lang),
+      type: 'article',
       locale: OG_LOCALE[lang],
       images: [{ url: imageUrl, alt: loc.title }],
     },
@@ -137,7 +147,8 @@ export default async function PaintingDetailPage({ params }: PageProps) {
       { name: 'Gallery', path: localizePath('/gallery', lang) },
       { name: localized(painting, lang).title, path: localizePath(`/gallery/${id}`, lang) },
     ],
-    siteUrl
+    siteUrl,
+    lang
   );
 
   return (
@@ -152,7 +163,7 @@ export default async function PaintingDetailPage({ params }: PageProps) {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }}
       />
-      <PaintingDetailClient painting={painting} relatedPaintings={relatedPaintings} />
+      <PaintingDetailClient painting={painting} relatedPaintings={relatedPaintings.map(slimPainting)} />
     </>
   );
 }

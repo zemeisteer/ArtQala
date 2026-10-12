@@ -139,7 +139,7 @@ export default function WishlistInquiryModal({ paintings, onClose }: WishlistInq
                       className="flex items-center gap-2.5 bg-white border border-[#E7E0D8] rounded-[2px] p-2"
                     >
                       <div className="w-10 h-10 rounded-[2px] overflow-hidden relative shrink-0 bg-[#F4ECE1]">
-                        <Image src={paintingThumb(p.images)} alt={title(p)} fill className="object-cover" />
+                        <Image src={paintingThumb(p.images)} alt={title(p)} fill sizes="40px" className="object-cover" />
                       </div>
                       <span className="text-xs font-medium text-[#281C18] flex-1 truncate">
                         {title(p)}

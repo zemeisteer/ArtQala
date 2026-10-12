@@ -13,7 +13,6 @@ import { SITE_URL } from '@/lib/siteUrl';
 export const revalidate = 30;
 
 const siteUrl = SITE_URL;
-const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Services', path: '/services' }], siteUrl);
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
@@ -54,7 +53,13 @@ async function getRandomCoverImages(categorySlugs: string[] | null, limit: numbe
   return shuffle(urls).slice(0, limit);
 }
 
-export default async function ServicesPage() {
+export default async function ServicesPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang: rawLang } = await params;
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(
+    [{ name: 'Services', path: '/services' }],
+    siteUrl,
+    isLang(rawLang) ? rawLang : 'en'
+  );
   const [ceramicsImages, generalImages] = await Promise.all([
     getRandomCoverImages(['kulolchilik', 'handicrafts'], 6),
     getRandomCoverImages(null, 10),

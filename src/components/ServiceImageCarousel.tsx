@@ -41,6 +41,8 @@ export default function ServiceImageCarousel({ images, fallbackSrc, alt }: Servi
             src={src}
             alt={alt}
             fill
+            // full width on phones, half the 1240px container from md up
+            sizes="(max-width: 768px) 100vw, 620px"
             className="object-cover transition-transform duration-700 group-hover:scale-105"
           />
         </motion.div>

@@ -73,7 +73,7 @@ export default function ChatModal({
           <div className="flex items-center gap-3 overflow-hidden">
             {imageSrc && (
               <div className="w-12 h-12 rounded-[2px] overflow-hidden relative border border-[#4A3B35] shrink-0 bg-[#35251F]">
-                <Image src={imageSrc} alt={title} fill className="object-cover" />
+                <Image src={imageSrc} alt={title} fill sizes="48px" className="object-cover" />
               </div>
             )}
             <div className="overflow-hidden">
