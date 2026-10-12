@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import PaintingCard, { PaintingItem } from '@/components/PaintingCard';
 import WishlistInquiryModal from '@/components/WishlistInquiryModal';
@@ -24,7 +23,6 @@ interface GalleryClientProps {
 
 export default function GalleryClient({ paintings, categories }: GalleryClientProps) {
   const { lang, t, wishlist, currency, currencyRate } = useApp();
-  const searchParams = useSearchParams();
 
   // The top pills are product types only (ota kategoriya — Kartina,
   // Kulolchilik, ...); the subject/theme (bola kategoriya — Portret,
@@ -35,29 +33,68 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
   // every painting actually tagged with one of its themes.
   const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
 
-  // Every filter starts from the URL (and is written back to it below), so
+  // Every filter can come from the URL (and is written back to it below), so
   // a filtered view can be linked, bookmarked or shared — and links like the
   // Artists page's "View works" (?artist=<id>) or ?q=... actually apply.
-  const param = (key: string, fallback = 'all') => searchParams.get(key) || fallback;
-
-  const [selectedCategory, setSelectedCategory] = useState<string>(() => param('category'));
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>(() => param('theme'));
-  const [searchQuery, setSearchQuery] = useState<string>(() => param('q', ''));
-  const [onlyWishlist, setOnlyWishlist] = useState<boolean>(() => searchParams.get('wishlist') === 'true');
+  //
+  // The URL is read in an effect after mount, NOT with useSearchParams():
+  // on a statically generated page that hook opts everything below it out
+  // of server rendering, which left the whole grid out of the HTML (nothing
+  // for search engines, and paintings only appeared once the JavaScript had
+  // loaded). The first render is therefore always the unfiltered first page
+  // — identical on server and client — and URL filters apply right after.
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [onlyWishlist, setOnlyWishlist] = useState<boolean>(false);
   const [showWishlistInquiry, setShowWishlistInquiry] = useState<boolean>(false);
 
   // Advanced filters: artist / year / size / price, plus sort order
-  const [selectedArtistId, setSelectedArtistId] = useState<string>(() => param('artist'));
-  const [selectedYear, setSelectedYear] = useState<string>(() => param('year'));
-  const [selectedSize, setSelectedSize] = useState<string>(() => param('size'));
+  const [selectedArtistId, setSelectedArtistId] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedSize, setSelectedSize] = useState<string>('all');
   // Price bounds are typed in the currency the visitor is browsing in.
-  const [minPrice, setMinPrice] = useState<string>(() => param('min', ''));
-  const [maxPrice, setMaxPrice] = useState<string>(() => param('max', ''));
-  const [sortBy, setSortBy] = useState<string>(() => param('sort', 'newest'));
-  const [page, setPage] = useState<number>(() => Math.max(1, parseInt(param('page', '1')) || 1));
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(
-    () => ['theme', 'artist', 'year', 'size', 'min', 'max'].some((k) => searchParams.get(k))
-  );
+  const [minPrice, setMinPrice] = useState<string>('');
+  const [maxPrice, setMaxPrice] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  const [page, setPage] = useState<number>(1);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+
+  // False until the URL's filters have been applied; the effects that react
+  // to filter changes (reset theme, reset page, write the URL) wait for it
+  // so they don't undo a deep link.
+  const [urlApplied, setUrlApplied] = useState(false);
+  const [prevFilterKey, setPrevFilterKey] = useState('all|all||false|all|all|all|||newest');
+  const skipFilterResets = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const param = (key: string, fallback = 'all') => params.get(key) || fallback;
+    // Syncing React state from an external source (the address bar) once,
+    // after hydration — the case set-state-in-effect is allowed for.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if ([...params.keys()].length > 0) {
+      skipFilterResets.current = param('category') !== 'all';
+      setSelectedCategory(param('category'));
+      setSelectedSubCategory(param('theme'));
+      setSearchQuery(param('q', ''));
+      setOnlyWishlist(params.get('wishlist') === 'true');
+      setSelectedArtistId(param('artist'));
+      setSelectedYear(param('year'));
+      setSelectedSize(param('size'));
+      setMinPrice(param('min', ''));
+      setMaxPrice(param('max', ''));
+      setSortBy(param('sort', 'newest'));
+      // Same key the "back to page 1 when filters change" check below uses,
+      // so applying the URL's filters doesn't throw away its page number.
+      setPrevFilterKey(
+        [param('category'), param('theme'), param('q', ''), params.get('wishlist') === 'true', param('artist'), param('year'), param('size'), param('min', ''), param('max', ''), param('sort', 'newest')].join('|')
+      );
+      setPage(Math.max(1, parseInt(param('page', '1')) || 1));
+      setShowAdvancedFilters(['theme', 'artist', 'year', 'size', 'min', 'max'].some((k) => params.get(k)));
+    }
+    setUrlApplied(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
 
   // Theme/subject options that actually exist under the selected product
   // type — an "All" ota pill has no single parent to scope by, so no theme
@@ -76,6 +113,11 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
   useEffect(() => {
     if (isFirstCategoryRender.current) {
       isFirstCategoryRender.current = false;
+      return;
+    }
+    // The category just came from the URL together with its theme
+    if (skipFilterResets.current) {
+      skipFilterResets.current = false;
       return;
     }
     setSelectedSubCategory('all');
@@ -151,6 +193,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
   // Mirror the filters into the URL. replaceState (not router.replace) so
   // typing in the search box doesn't add history entries or refetch the page.
   useEffect(() => {
+    if (!urlApplied) return;
     const next = new URLSearchParams();
     if (selectedCategory !== 'all') next.set('category', selectedCategory);
     if (selectedSubCategory !== 'all') next.set('theme', selectedSubCategory);
@@ -168,7 +211,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     if (url !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(window.history.state, '', url);
     }
-  }, [selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy, page]);
+  }, [urlApplied, selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy, page]);
 
   // What a visitor actually pays (a discount if there is one), in USD.
   const effectivePrice = (p: any): number =>
@@ -252,7 +295,6 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
   // adjusted during render, not in an effect, so there's no flash of an
   // empty page. A page number from the URL survives the first render.
   const filterKey = [selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy].join('|');
-  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (prevFilterKey !== filterKey) {
     setPrevFilterKey(filterKey);
     setPage(1);

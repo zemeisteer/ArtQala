@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
-import { getFeaturedPaintings } from '@/lib/api';
+import { getFeaturedPaintings, slimPainting } from '@/lib/api';
 import HomeClient from './HomeClient';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
@@ -17,5 +17,5 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 export default async function HomePage() {
   const featuredPaintings = await getFeaturedPaintings();
 
-  return <HomeClient featuredPaintings={featuredPaintings} />;
+  return <HomeClient featuredPaintings={featuredPaintings.map(slimPainting)} />;
 }

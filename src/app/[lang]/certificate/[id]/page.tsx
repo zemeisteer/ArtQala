@@ -8,7 +8,14 @@ interface PageProps {
   params: Promise<{ lang: string; id: string }>;
 }
 
-export const dynamic = 'force-dynamic';
+// Cached per painting and refreshed in the background (it was rendered
+// from the database on every visit). Empty list = nothing prebuilt; each
+// certificate is cached the first time it's opened.
+export const revalidate = 300;
+
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;

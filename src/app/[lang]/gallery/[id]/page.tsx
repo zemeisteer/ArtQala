@@ -13,6 +13,14 @@ import { SITE_URL } from '@/lib/siteUrl';
 // rendering fresh on every request.
 export const revalidate = 30;
 
+// Without this, a page under a dynamic segment ([id]) is rendered from the
+// database on EVERY visit and `revalidate` above does nothing. An empty list
+// = build none in advance, but cache each painting's page the first time
+// it's opened and reuse it (refreshed in the background) after that.
+export function generateStaticParams() {
+  return [];
+}
+
 interface PageProps {
   params: Promise<{ lang: string; id: string }>;
 }

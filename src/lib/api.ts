@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { prisma } from './prisma';
 import { getBestsellerPaintingIds, withBestsellerFlag } from './bestseller';
 import { applyDiscountRules, getActiveDiscountRules } from './discounts';
@@ -84,6 +85,23 @@ export async function getFeaturedPaintings() {
   }
 }
 
+// What a listing (gallery grid, home page row) needs of a painting. The
+// three long descriptions and the artist's full biography are only shown on
+// the painting's own page; leaving them in multiplied the size of every
+// listing page's HTML by the number of paintings on it.
+export function slimPainting<
+  T extends {
+    description_en?: unknown;
+    description_ru?: unknown;
+    description_uz?: unknown;
+    artist?: { id: string; name: string } | null;
+  }
+>(painting: T) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { description_en, description_ru, description_uz, artist, ...rest } = painting;
+  return { ...rest, artist: artist ? { id: artist.id, name: artist.name } : artist };
+}
+
 export async function getAllPaintings(categorySlug?: string) {
   try {
     const where: Record<string, unknown> = {};
@@ -110,7 +128,9 @@ export async function getAllPaintings(categorySlug?: string) {
   }
 }
 
-export async function getPaintingById(id: string) {
+// cache(): generateMetadata() and the page both need the painting — this
+// makes that one database round-trip per render instead of two.
+export const getPaintingById = cache(async (id: string) => {
   try {
     const [painting, bestsellerIds, rules] = await Promise.all([
       prisma.painting.findUnique({
@@ -130,7 +150,7 @@ export async function getPaintingById(id: string) {
     console.error('Error fetching painting by id:', error);
     return null;
   }
-}
+});
 
 // Related paintings for a painting detail page: same artist first, then
 // same category, filling up to `limit` without duplicates.

@@ -1,6 +1,6 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import type { Metadata } from 'next';
-import { getAllPaintings, getCategories } from '@/lib/api';
+import { getAllPaintings, getCategories, slimPainting } from '@/lib/api';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbJsonLd';
 import { safeJsonLdString } from '@/lib/jsonLd';
 import GalleryClient from './GalleryClient';
@@ -24,8 +24,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ lang: 
   const { lang: rawLang } = await params;
   const lang = isLang(rawLang) ? rawLang : 'en';
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Gallery', path: '/gallery' }], siteUrl, lang);
-  const paintings = await getAllPaintings();
-  const categories = await getCategories();
+  const [paintings, categories] = await Promise.all([getAllPaintings(), getCategories()]);
 
   // Lets search engines see the collection as a list of individually
   // crawlable products, each linking to its own Product-schema page.
@@ -53,13 +52,9 @@ export default async function GalleryPage({ params }: { params: Promise<{ lang: 
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListJsonLd) }}
       />
-      {/* GalleryClient reads useSearchParams() (for the ?wishlist=true deep
-          link) — without a Suspense boundary around it, that alone forces
-          this whole route to render dynamically on every request, silently
-          defeating the `revalidate` cache above. */}
-      <Suspense fallback={null}>
-        <GalleryClient paintings={paintings} categories={categories} />
-      </Suspense>
+      {/* Rendered on the server (the grid is in the HTML); it reads URL
+          filters itself after mount — see GalleryClient. */}
+      <GalleryClient paintings={paintings.map(slimPainting)} categories={categories} />
     </>
   );
 }
