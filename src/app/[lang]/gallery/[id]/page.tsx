@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPaintingById, getRelatedPaintings } from '@/lib/api';
+import { getPaintingById, getRelatedPaintings, slimPainting } from '@/lib/api';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbJsonLd';
 import { safeJsonLdString } from '@/lib/jsonLd';
 import PaintingDetailClient from './PaintingDetailClient';
@@ -163,7 +163,7 @@ export default async function PaintingDetailPage({ params }: PageProps) {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }}
       />
-      <PaintingDetailClient painting={painting} relatedPaintings={relatedPaintings} />
+      <PaintingDetailClient painting={painting} relatedPaintings={relatedPaintings.map(slimPainting)} />
     </>
   );
 }

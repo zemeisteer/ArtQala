@@ -665,7 +665,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
             <div className="flex gap-5 overflow-x-auto pb-4 -mx-6 px-6 sm:-mx-10 sm:px-10 lg:-mx-14 lg:px-14 scrollbar-none">
               {relatedPaintings.map((p) => (
                 <div key={p.id} className="w-[240px] sm:w-[260px] shrink-0">
-                  <PaintingCard painting={p as PaintingItem} />
+                  <PaintingCard painting={p as PaintingItem} sizes="260px" />
                 </div>
               ))}
             </div>

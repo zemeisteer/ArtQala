@@ -48,6 +48,24 @@ export default function HomeClient({ featuredPaintings }: HomeClientProps) {
     return () => clearInterval(timer);
   }, [heroSlides.length]);
 
+  // Only the first slide's image is in the page when it opens. The slides
+  // are stacked on top of each other, so "lazy" alone wouldn't help — the
+  // browser sees all five as on-screen and would fetch them together. Each
+  // next slide is added shortly before its turn, then stays for the fade.
+  const [slidesToRender, setSlidesToRender] = useState<number[]>([0]);
+  useEffect(() => {
+    if (heroSlides.length < 2) return;
+    const next = (currentSlide + 1) % heroSlides.length;
+    const add = (list: number[]) => {
+      const missing = [currentSlide, next].filter((i) => !list.includes(i));
+      return missing.length ? [...list, ...missing] : list;
+    };
+    // The slide being shown must be there at once (dot clicks); its
+    // successor can wait until the page has settled.
+    const timer = setTimeout(() => setSlidesToRender(add), currentSlide === 0 ? 2500 : 0);
+    return () => clearTimeout(timer);
+  }, [currentSlide, heroSlides.length]);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -130,7 +148,7 @@ export default function HomeClient({ featuredPaintings }: HomeClientProps) {
             {/* Floating Art Frame Carousel — real featured pieces from the gallery */}
             <div className="relative w-full h-full rounded-[4px] overflow-hidden border border-[#52443E] shadow-[0_35px_70px_-25px_rgba(0,0,0,0.85)] animate-float bg-[#281C18] group">
               {heroSlides.length === 0 ? (
-                <Image src="/assets/p-arch.svg" alt="Art Qala" fill priority className="object-cover" />
+                <Image src="/assets/p-arch.svg" alt="Art Qala" fill priority sizes="(max-width: 480px) 100vw, 480px" className="object-cover" />
               ) : (
                 heroSlides.map((slide, idx) => (
                   <div
@@ -139,15 +157,19 @@ export default function HomeClient({ featuredPaintings }: HomeClientProps) {
                       currentSlide === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'
                     }`}
                   >
-                    <Image
-                      src={slide.image}
-                      alt={
-                        lang === 'uz' ? slide.title_uz : lang === 'ru' ? slide.title_ru : slide.title_en
-                      }
-                      fill
-                      priority={idx === 0}
-                      className="object-cover"
-                    />
+                    {(idx === currentSlide || slidesToRender.includes(idx)) && (
+                      <Image
+                        src={slide.image}
+                        alt={
+                          lang === 'uz' ? slide.title_uz : lang === 'ru' ? slide.title_ru : slide.title_en
+                        }
+                        fill
+                        // The frame is at most 480px wide
+                        sizes="(max-width: 480px) 100vw, 480px"
+                        priority={idx === 0}
+                        className="object-cover"
+                      />
+                    )}
                   </div>
                 ))
               )}

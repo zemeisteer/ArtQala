@@ -452,6 +452,7 @@ export default function AccountPage() {
                               src={thumb}
                               alt={inq.painting?.title_en || t.account.paintingFallback}
                               fill
+                              sizes="64px"
                               className="object-cover"
                             />
                           </div>

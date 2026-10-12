@@ -558,9 +558,12 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
         {/* Gallery Grid */}
         {filteredPaintings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7">
-            {pagedPaintings.map((painting) => (
+            {pagedPaintings.map((painting, idx) => (
               <div key={painting.id}>
-                <PaintingCard painting={painting as PaintingItem} />
+                {/* The first two cards are what a visitor sees first (the
+                    whole screen on a phone): fetched immediately. All the
+                    others load lazily as they approach the viewport. */}
+                <PaintingCard painting={painting as PaintingItem} priority={idx < 2} />
               </div>
             ))}
           </div>

@@ -170,6 +170,8 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                               src={src}
                               alt={p.title_en || 'Artwork'}
                               fill
+                              // a third of the card: ~1/3 of a phone screen, ~120px on desktop
+                              sizes="(max-width: 768px) 30vw, 130px"
                               className="object-cover transition-transform duration-500 hover:scale-115"
                             />
                           </div>
