@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import ChangePasswordModal from './ChangePasswordModal';
+import TranslateProblemToast from '@/components/TranslateProblemToast';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -309,6 +310,9 @@ export default function AdminShell({ children }: AdminLayoutProps) {
         {/* Content Body */}
         <main className="flex-1 min-w-0 p-3 sm:p-8 overflow-x-auto">{children}</main>
       </div>
+
+      {/* Why an auto-translation didn't fill EN/RU (quota, blocked, timeout) */}
+      <TranslateProblemToast />
 
       {/* Force Password Change on First Login */}
       {user?.must_change_password && <ChangePasswordModal />}
