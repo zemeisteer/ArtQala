@@ -5,7 +5,7 @@ import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimi
 import { getServerSession } from '@/lib/auth';
 import { getSizeBucket, largestSizeBucket } from '@/lib/paintingSize';
 import { applyDiscountRules, getActiveDiscountRules } from '@/lib/discounts';
-import { accessoryIdsFrom, resolveAccessories } from '@/lib/accessoryPricing';
+import { accessoryIdsFrom, paintingAccessoryTargets, resolveAccessories } from '@/lib/accessoryPricing';
 import { inquiryItemsInclude, inquiryLines, inquiryTotal } from '@/lib/inquiryItems';
 import { notifyAdmin } from '@/lib/adminNotify';
 
@@ -138,7 +138,11 @@ export async function POST(request: Request) {
     const items = await Promise.all(
       lines.map(async (line, index) => {
         const p = byId.get(line.painting_id)!;
-        const accessories = await resolveAccessories(line.accessory_ids, getSizeBucket(p.size));
+        const accessories = await resolveAccessories(
+          line.accessory_ids,
+          getSizeBucket(p.size),
+          paintingAccessoryTargets(p.category)
+        );
         return {
           painting_id: p.id,
           title_en: p.title_en,
@@ -151,9 +155,11 @@ export async function POST(request: Request) {
         };
       })
     );
+    // Shared add-ons must fit at least one painting in the batch.
     const shared = await resolveAccessories(
       sharedAccessoryIds,
-      largestSizeBucket(items.map((it) => byId.get(it.painting_id)!.size))
+      largestSizeBucket(items.map((it) => byId.get(it.painting_id)!.size)),
+      Array.from(new Set(items.flatMap((it) => paintingAccessoryTargets(byId.get(it.painting_id)!.category))))
     );
 
     const trimmedMessage = message.trim();

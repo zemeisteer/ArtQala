@@ -7,7 +7,7 @@ import { X, Send, CheckCircle2, Info } from 'lucide-react';
 import PhoneInput from '@/components/PhoneInput';
 import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCheckboxes';
 import { getSizeBucket } from '@/lib/paintingSize';
-import { effectiveProductType } from '@/lib/productType';
+import { paintingAccessoryTargets } from '@/lib/productType';
 import { trackLead } from '@/lib/analytics';
 import { mainImage } from '@/lib/paintingImages';
 
@@ -30,12 +30,8 @@ interface WishlistInquiryModalProps {
 
 const paintingThumb = (images: string) => mainImage(images);
 
-// The painting's product type (top-level category) — what accessories are
-// scoped to (see effectiveProductType).
-function productTypesOf(p: WishlistPaintingLite): string[] {
-  const type = effectiveProductType(p.category);
-  return type ? [type] : [];
-}
+// What this painting's accessories are scoped to (its product type).
+const productTypesOf = (p: WishlistPaintingLite) => paintingAccessoryTargets(p.category);
 
 export default function WishlistInquiryModal({ paintings, onClose }: WishlistInquiryModalProps) {
   const { t, lang, user, formatPrice } = useApp();

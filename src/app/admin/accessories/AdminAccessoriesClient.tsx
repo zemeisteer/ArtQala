@@ -219,9 +219,13 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
                       : `$${a.price_small} – $${a.price_large ?? a.price_medium}`}
                   </td>
                   <td className="px-5 py-3.5 text-xs text-[#6E6057]">
-                    {!a.product_types || a.product_types.length === 0
-                      ? 'Barcha turlar'
-                      : a.product_types.map(productTypeLabel).join(', ')}
+                    {!a.product_types || a.product_types.length === 0 ? (
+                      <span className="text-[#B45309] font-semibold" title="Har bir so'rovda taklif qilinadi">
+                        Barcha turlar
+                      </span>
+                    ) : (
+                      a.product_types.map(productTypeLabel).join(', ')
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     <span
@@ -362,9 +366,16 @@ export default function AdminAccessoriesClient({ initialAccessories, categories 
                 <label className="block text-[11px] font-bold text-[#6B5E55] mb-1.5">
                   Qaysi mahsulot turiga tegishli
                 </label>
-                <p className="text-[10.5px] text-[#8F8178] mb-2">
-                  Hech birini belgilamasangiz — barcha turlarga tegishli bo'ladi.
-                </p>
+                {form.product_types.length === 0 ? (
+                  <p className="text-[10.5px] text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] rounded px-2 py-1.5 mb-2">
+                    Hech biri belgilanmagan — bu mahsulot HAMMA joyda (har bir kartina, kulolchilik va xizmat so&apos;rovida) taklif qilinadi.
+                    Faqat ma&apos;lum turlarga taklif qilish uchun ularni quyida belgilang.
+                  </p>
+                ) : (
+                  <p className="text-[10.5px] text-[#8F8178] mb-2">
+                    Faqat belgilangan turlar bo&apos;yicha so&apos;rovlarda taklif qilinadi.
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto">
                   {productTypeOptions.map((pt) => {
                     const selected = form.product_types.includes(pt.value);

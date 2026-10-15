@@ -1,13 +1,18 @@
 import { prisma } from './prisma';
 import { priceForSize, type SizeBucket } from './paintingSize';
 import type { AccessorySnapshot } from './inquiryItems';
+import { accessoryAppliesTo } from './productType';
+
+export { accessoryAppliesTo, paintingAccessoryTargets } from './productType';
 
 // Server-side source of truth for accessory prices: only the ids the
 // customer checked are honored, and name/price always come from the DB
-// (never from the client), priced for the given size tier.
+// (never from the client), priced for the given size tier. Accessories not
+// configured for `targets` are dropped, even if a client sends them.
 export async function resolveAccessories(
   ids: unknown,
-  sizeBucket: SizeBucket | null
+  sizeBucket: SizeBucket | null,
+  targets: string[]
 ): Promise<AccessorySnapshot[]> {
   if (!Array.isArray(ids)) return [];
   const wanted = ids.filter((id): id is string => typeof id === 'string' && id.length > 0);
@@ -22,9 +27,10 @@ export async function resolveAccessories(
       price_small: true,
       price_medium: true,
       price_large: true,
+      product_types: true,
     },
   });
-  return found.map((a) => ({
+  return found.filter((a) => accessoryAppliesTo(a.product_types, targets)).map((a) => ({
     id: a.id,
     name_en: a.name_en,
     name_ru: a.name_ru,

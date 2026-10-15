@@ -35,7 +35,9 @@ export async function GET(request: Request) {
         where,
         include: {
           artist: true,
-          category: true,
+          // parent: the wishlist inquiry scopes accessories by each
+          // painting's product type (its top-level category).
+          category: { include: { parent: true } },
         },
         orderBy: { created_at: 'desc' },
       }),

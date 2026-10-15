@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, CheckCircle2, Shield, User, Clock, Loader2, Mail, Gem, DollarSign, Trash2 } from 'lucide-react';
+import { Send, CheckCircle2, Shield, User, Clock, Loader2, Mail, Gem, DollarSign, Trash2, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import FilterSelect from '@/components/FilterSelect';
 import type { AccessorySnapshot, InquiryLine } from '@/lib/inquiryItems';
@@ -211,6 +211,47 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
       console.error('Failed to save final price:', err);
     } finally {
       setSavingPrice(false);
+    }
+  };
+
+  // Removes one add-on the customer picked by mistake (any accessory —
+  // e.g. a case for a painting); the server recalculates the total.
+  const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const handleRemoveAccessory = async (itemId: string | null, accessory: AccessorySnapshot) => {
+    if (!selected) return;
+    if (!confirm(`"${accessory.name_uz}" qo'shimchasini so'rovdan olib tashlaysizmi? Jami summa qayta hisoblanadi.`)) return;
+    const key = `${itemId || 'inq'}:${accessory.id}`;
+    setRemovingKey(key);
+    try {
+      const res = await fetch(`/api/admin/inquiries/${selected.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remove_accessory_id: accessory.id, item_id: itemId }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.inquiry) {
+        alert(data.error || "Qo'shimchani olib tashlashda xatolik yuz berdi");
+        return;
+      }
+      pollGuardRef.current++;
+      setInquiries((prev) =>
+        prev.map((item) =>
+          item.id === selected.id
+            ? {
+                ...item,
+                selected_accessories: data.inquiry.selected_accessories,
+                items: data.inquiry.items,
+                lines: data.inquiry.lines,
+                shared_accessories: data.inquiry.shared_accessories,
+                total: data.inquiry.total,
+              }
+            : item
+        )
+      );
+    } catch {
+      alert("Serverga bog'lanishda xatolik yuz berdi");
+    } finally {
+      setRemovingKey(null);
     }
   };
 
@@ -530,6 +571,8 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                         accessories={line.accessories}
                         subtotalLabel={isGrouped ? 'Shu kartina bilan:' : 'Kartina + tanlangan mahsulotlar:'}
                         subtotal={line.lineTotal}
+                        onRemove={(a) => handleRemoveAccessory(line.itemId, a)}
+                        removingId={removingKey?.startsWith(`${line.itemId || 'inq'}:`) ? removingKey.split(':')[1] : null}
                       />
                     )}
                   </div>
@@ -537,7 +580,12 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
 
                 {selectedShared.length > 0 && (
                   <div className="bg-white border border-[#E7E0D8] rounded-[4px] p-3">
-                    <AccessoryList accessories={selectedShared} heading="Butun buyurtma uchun qo'shimchalar" />
+                    <AccessoryList
+                      accessories={selectedShared}
+                      heading="Butun buyurtma uchun qo'shimchalar"
+                      onRemove={(a) => handleRemoveAccessory(null, a)}
+                      removingId={removingKey?.startsWith('inq:') ? removingKey.split(':')[1] : null}
+                    />
                   </div>
                 )}
 
@@ -696,11 +744,15 @@ function AccessoryList({
   heading = "Mijoz so'ragan qo'shimcha mahsulotlar",
   subtotalLabel,
   subtotal,
+  onRemove,
+  removingId,
 }: {
   accessories: AccessorySnapshot[];
   heading?: string;
   subtotalLabel?: string;
   subtotal?: number;
+  onRemove?: (accessory: AccessorySnapshot) => void;
+  removingId?: string | null;
 }) {
   return (
     <div>
@@ -712,7 +764,21 @@ function AccessoryList({
         {accessories.map((a) => (
           <li key={a.id} className="flex items-center justify-between gap-2 text-xs text-[#4D3F38]">
             <span>{a.name_uz}</span>
-            <span className="font-semibold text-[#BA4E25]">+${a.price}</span>
+            <span className="flex items-center gap-2">
+              <span className="font-semibold text-[#BA4E25]">+${a.price}</span>
+              {onRemove && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(a)}
+                  disabled={removingId === a.id}
+                  title="So'rovdan olib tashlash"
+                  aria-label={`${a.name_uz} — olib tashlash`}
+                  className="p-0.5 rounded text-[#8F7E73] hover:text-[#C62828] hover:bg-red-50 disabled:opacity-50 cursor-pointer"
+                >
+                  {removingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                </button>
+              )}
+            </span>
           </li>
         ))}
       </ul>

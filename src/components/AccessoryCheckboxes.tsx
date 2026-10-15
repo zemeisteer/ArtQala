@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { priceForSize, type SizeBucket } from '@/lib/paintingSize';
+import { accessoryAppliesTo } from '@/lib/productType';
 
 export interface AccessoryOption {
   id: string;
@@ -24,10 +25,10 @@ export interface SelectedAccessory {
 }
 
 interface AccessoryCheckboxesProps {
-  // Product type(s) relevant to what's being inquired about — a painting's
-  // Category slug(s) (e.g. "handicrafts"), or one of the Services types
-  // ("MURAL" | "CERAMICS" | "CUSTOM"). An accessory with no product_types of
-  // its own applies to everything.
+  // What's being inquired about — a painting's paintingAccessoryTargets()
+  // (its product type, i.e. top-level category slug, plus its own slug), or
+  // one of the Services types ("MURAL" | "CERAMICS" | "CUSTOM"). An
+  // accessory with no product_types of its own applies to everything.
   productTypes: string[];
   // The painting's size bucket, so a size-tiered accessory (case, framing…)
   // charges the right amount instead of one flat price for every size.
@@ -88,21 +89,18 @@ export default function AccessoryCheckboxes({
     };
   }, []);
 
-  const relevant = accessories.filter(
-    (a) => !a.product_types || a.product_types.length === 0 || a.product_types.some((t) => productTypes.includes(t))
-  );
+  // Same rule the server enforces (accessoryAppliesTo): only accessories
+  // configured for this product type / service, or for everything.
+  const relevant = accessories.filter((a) => accessoryAppliesTo(a.product_types, productTypes));
+  const relevantKey = relevant.map((a) => a.id).join(',');
 
   const title = (a: AccessoryOption) =>
     lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en;
 
-  const toggle = (a: AccessoryOption) => {
-    const next = selectedIds.includes(a.id)
-      ? selectedIds.filter((id) => id !== a.id)
-      : [...selectedIds, a.id];
-    setSelectedIds(next);
+  const emit = (ids: string[]) =>
     onChange(
       relevant
-        .filter((acc) => next.includes(acc.id))
+        .filter((acc) => ids.includes(acc.id))
         .map((acc) => ({
           id: acc.id,
           name_en: acc.name_en,
@@ -111,6 +109,24 @@ export default function AccessoryCheckboxes({
           price: priceForSize(acc, sizeBucket),
         }))
     );
+
+  // When what's being inquired about changes (another service type, a
+  // different painting size), drop checked items that no longer apply and
+  // re-report prices — otherwise a hidden, still-"checked" accessory would
+  // be submitted with a stale price.
+  const checkedIds = selectedIds.filter((id) => relevant.some((a) => a.id === id));
+  useEffect(() => {
+    if (selectedIds.length === 0) return;
+    emit(checkedIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relevantKey, sizeBucket]);
+
+  const toggle = (a: AccessoryOption) => {
+    const next = checkedIds.includes(a.id)
+      ? checkedIds.filter((id) => id !== a.id)
+      : [...checkedIds, a.id];
+    setSelectedIds(next);
+    emit(next);
   };
 
   if (loading || relevant.length === 0) return null;
@@ -139,7 +155,7 @@ export default function AccessoryCheckboxes({
             <span className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={selectedIds.includes(a.id)}
+                checked={checkedIds.includes(a.id)}
                 onChange={() => toggle(a)}
                 className="w-3.5 h-3.5 accent-[#BA4E25]"
               />

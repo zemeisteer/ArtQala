@@ -4,7 +4,7 @@ import { validateEmail, validatePhoneOrTelegram } from '@/lib/validation';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { getServerSession } from '@/lib/auth';
 import { getSizeBucket } from '@/lib/paintingSize';
-import { accessoryIdsFrom, resolveAccessories } from '@/lib/accessoryPricing';
+import { accessoryIdsFrom, paintingAccessoryTargets, resolveAccessories } from '@/lib/accessoryPricing';
 import { inquiryLines } from '@/lib/inquiryItems';
 import { notifyAdmin } from '@/lib/adminNotify';
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     const painting = await prisma.painting.findUnique({
       where: { id: painting_id },
-      select: { size: true },
+      select: { size: true, category: { select: { slug: true, parent: { select: { slug: true } } } } },
     });
     if (!painting) {
       return NextResponse.json({ success: false, error: 'Painting not found' }, { status: 404 });
@@ -78,7 +78,8 @@ export async function POST(request: Request) {
     // this painting's actual size.
     const accessories = await resolveAccessories(
       accessoryIdsFrom(selected_accessories),
-      getSizeBucket(painting.size)
+      getSizeBucket(painting.size),
+      paintingAccessoryTargets(painting.category)
     );
     const accessoriesSnapshot = accessories.length > 0 ? JSON.stringify(accessories) : null;
 

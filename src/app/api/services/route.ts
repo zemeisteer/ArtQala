@@ -4,6 +4,7 @@ import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimi
 import { getServerSession } from '@/lib/auth';
 import { validateEmail, validatePhoneOrTelegram } from '@/lib/validation';
 import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
+import { accessoryIdsFrom, resolveAccessories } from '@/lib/accessoryPricing';
 
 export async function POST(request: Request) {
   try {
@@ -53,22 +54,9 @@ export async function POST(request: Request) {
     // Re-fetch accessory name/price from the DB rather than trusting the
     // client — only the ids the customer checked are honored. A service
     // request has no painting size yet, so it's priced at the small/base tier.
-    let accessoriesSnapshot: string | null = null;
-    if (Array.isArray(selected_accessories) && selected_accessories.length > 0) {
-      const ids = selected_accessories.map((a: { id: string }) => a?.id).filter(Boolean);
-      const found = await prisma.accessory.findMany({
-        where: { id: { in: ids }, is_active: true },
-        select: { id: true, name_en: true, name_ru: true, name_uz: true, price_small: true },
-      });
-      const priced = found.map((a) => ({
-        id: a.id,
-        name_en: a.name_en,
-        name_ru: a.name_ru,
-        name_uz: a.name_uz,
-        price: a.price_small,
-      }));
-      if (priced.length > 0) accessoriesSnapshot = JSON.stringify(priced);
-    }
+    // Only accessories configured for this service type (or for everything).
+    const priced = await resolveAccessories(accessoryIdsFrom(selected_accessories), null, [String(service_type)]);
+    const accessoriesSnapshot = priced.length > 0 ? JSON.stringify(priced) : null;
 
     const serviceRequest = await prisma.serviceRequest.create({
       data: {
