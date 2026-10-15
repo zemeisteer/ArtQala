@@ -7,6 +7,7 @@ import ServicesClient from './ServicesClient';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
+import { mainImage } from '@/lib/paintingImages';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // force-dynamic.
@@ -40,14 +41,8 @@ async function getRandomCoverImages(categorySlugs: string[] | null, limit: numbe
 
   const urls: string[] = [];
   for (const p of paintings) {
-    try {
-      const parsed = JSON.parse(p.images);
-      if (Array.isArray(parsed) && parsed[0] && !urls.includes(parsed[0])) {
-        urls.push(parsed[0]);
-      }
-    } catch {
-      // skip malformed image data rather than breaking the carousel
-    }
+    const main = mainImage(p.images, '');
+    if (main && !urls.includes(main)) urls.push(main);
   }
 
   return shuffle(urls).slice(0, limit);

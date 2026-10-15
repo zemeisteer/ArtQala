@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { prisma } from './prisma';
 import { getBestsellerPaintingIds, withBestsellerFlag } from './bestseller';
 import { applyDiscountRules, getActiveDiscountRules } from './discounts';
+import { withMainImageOnly } from './paintingImages';
 
 const FEATURED_COUNT = 8;
 const FEATURED_MAX_PER_ARTIST = 2;
@@ -88,9 +89,11 @@ export async function getFeaturedPaintings() {
 // What a listing (gallery grid, home page row) needs of a painting. The
 // three long descriptions and the artist's full biography are only shown on
 // the painting's own page; leaving them in multiplied the size of every
-// listing page's HTML by the number of paintings on it.
+// listing page's HTML by the number of paintings on it. Same for the extra
+// photos: a listing shows only the main (first) one.
 export function slimPainting<
   T extends {
+    images: string;
     description_en?: unknown;
     description_ru?: unknown;
     description_uz?: unknown;
@@ -99,7 +102,7 @@ export function slimPainting<
 >(painting: T) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { description_en, description_ru, description_uz, artist, ...rest } = painting;
-  return { ...rest, artist: artist ? { id: artist.id, name: artist.name } : artist };
+  return withMainImageOnly({ ...rest, artist: artist ? { id: artist.id, name: artist.name } : artist });
 }
 
 export async function getAllPaintings(categorySlug?: string) {
@@ -199,7 +202,7 @@ export async function getRelatedPaintings(
 
 export async function getArtists() {
   try {
-    return await prisma.artist.findMany({
+    const artists = await prisma.artist.findMany({
       include: {
         paintings: {
           take: 3,
@@ -212,6 +215,8 @@ export async function getArtists() {
       },
       orderBy: { name: 'asc' },
     });
+    // Artist cards show one thumbnail per painting — its main photo.
+    return artists.map((a) => ({ ...a, paintings: a.paintings.map(withMainImageOnly) }));
   } catch (error) {
     console.error('Error fetching artists:', error);
     return [];

@@ -25,6 +25,7 @@ import {
   X,
   Send,
 } from 'lucide-react';
+import { mainImage } from '@/lib/paintingImages';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -427,11 +428,7 @@ export default function AccountPage() {
               {inquiries.length > 0 ? (
                 <div className="space-y-4">
                   {inquiries.map((inq) => {
-                    let thumb = '/assets/p-arch.svg';
-                    try {
-                      const pImages = JSON.parse(inq.painting?.images || '[]');
-                      if (pImages.length > 0) thumb = pImages[0];
-                    } catch {}
+                    const thumb = mainImage(inq.painting?.images);
 
                     const messagesCount = inq.messages?.length || 0;
                     const lastMsg = inq.messages?.[messagesCount - 1];
@@ -735,14 +732,7 @@ export default function AccountPage() {
           onSendMessage={handleSendMessage}
           imageSrc={
             activeChat.type === 'inquiry'
-              ? (() => {
-                  try {
-                    const parsed = JSON.parse(activeChat.item.painting?.images || '[]');
-                    return parsed[0] || '/assets/p-arch.svg';
-                  } catch {
-                    return '/assets/p-arch.svg';
-                  }
-                })()
+              ? mainImage(activeChat.item.painting?.images)
               : undefined
           }
           priceText={

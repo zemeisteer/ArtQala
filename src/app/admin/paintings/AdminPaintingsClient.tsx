@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Plus, Search, Pencil, Trash2, Palette } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
 import Pagination from '@/components/Pagination';
+import { mainImage } from '@/lib/paintingImages';
 
 const PAGE_SIZE = 15;
 
@@ -205,11 +206,7 @@ export default function AdminPaintingsClient({
                 </tr>
               )}
               {paged.map((p) => {
-                let thumb = '/assets/p-arch.svg';
-                try {
-                  const imgs = JSON.parse(p.images);
-                  if (imgs.length > 0) thumb = imgs[0];
-                } catch {}
+                const thumb = mainImage(p.images);
 
                 const hasDiscount = !!p.discount_price && p.discount_price < p.price;
 

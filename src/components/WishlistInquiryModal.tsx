@@ -9,6 +9,7 @@ import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCh
 import { largestSizeBucket } from '@/lib/paintingSize';
 import { effectiveProductType } from '@/lib/productType';
 import { trackLead } from '@/lib/analytics';
+import { mainImage } from '@/lib/paintingImages';
 
 interface WishlistPaintingLite {
   id: string;
@@ -25,15 +26,7 @@ interface WishlistInquiryModalProps {
   onClose: () => void;
 }
 
-function paintingThumb(images: string): string {
-  try {
-    const parsed = JSON.parse(images);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-  } catch {
-    if (images && !images.startsWith('[')) return images;
-  }
-  return '/assets/p-arch.svg';
-}
+const paintingThumb = (images: string) => mainImage(images);
 
 export default function WishlistInquiryModal({ paintings, onClose }: WishlistInquiryModalProps) {
   const { t, lang, user } = useApp();

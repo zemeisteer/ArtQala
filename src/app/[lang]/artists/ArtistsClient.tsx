@@ -9,6 +9,7 @@ import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import AnimatedShamchiroq from '@/components/patterns/AnimatedShamchiroq';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import PublicPagination from '@/components/PublicPagination';
+import { mainImage } from '@/lib/paintingImages';
 
 // Artists per page (5 rows of the 3-column grid).
 const PAGE_SIZE = 15;
@@ -153,13 +154,7 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                   <div className="grid grid-cols-3 gap-2 pt-2">
                     {artist.paintings && artist.paintings.length > 0 ? (
                       artist.paintings.map((p: any, pIdx: number) => {
-                        let src = '/assets/p-arch.svg';
-                        try {
-                          const parsed = JSON.parse(p.images);
-                          if (Array.isArray(parsed) && parsed.length > 0) src = parsed[0];
-                        } catch {
-                          if (p.images) src = p.images;
-                        }
+                        const src = mainImage(p.images);
 
                         return (
                           <div

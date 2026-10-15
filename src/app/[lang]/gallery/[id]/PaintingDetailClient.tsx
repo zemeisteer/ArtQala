@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import ImageLightbox from '@/components/ImageLightbox';
 import { trackLead } from '@/lib/analytics';
+import { parseImages, PLACEHOLDER_IMAGE } from '@/lib/paintingImages';
 
 interface PaintingDetailClientProps {
   painting: any;
@@ -147,17 +148,9 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
       ? painting.category.name_uz
       : painting.category.name_en;
 
-  let imageList: string[] = ['/assets/p-arch.svg'];
-  try {
-    const parsed = JSON.parse(painting.images);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      imageList = parsed;
-    }
-  } catch {
-    if (painting.images && !painting.images.startsWith('[')) {
-      imageList = [painting.images];
-    }
-  }
+  // The detail page shows every photo, main (first) one first.
+  const parsedImages = parseImages(painting.images);
+  const imageList: string[] = parsedImages.length > 0 ? parsedImages : [PLACEHOLDER_IMAGE];
   const imageSrc = imageList[Math.min(activeImage, imageList.length - 1)];
 
   const isFavorited = wishlist.includes(painting.id);

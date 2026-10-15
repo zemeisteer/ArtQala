@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import CardCornerBodom from '@/components/patterns/CardCornerBodom';
+import { mainImage } from '@/lib/paintingImages';
 
 export interface PaintingItem {
   id: string;
@@ -58,17 +59,8 @@ export default function PaintingCard({ painting, sizes = GRID_SIZES, priority = 
       ? painting.category.name_uz
       : painting.category.name_en;
 
-  let imageSrc = '/assets/p-arch.svg';
-  try {
-    const parsed = JSON.parse(painting.images);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      imageSrc = parsed[0];
-    }
-  } catch {
-    if (painting.images && !painting.images.startsWith('[')) {
-      imageSrc = painting.images;
-    }
-  }
+  // Listings show only the main (first) photo.
+  const imageSrc = mainImage(painting.images);
 
   const isFavorited = wishlist.includes(painting.id);
   const hasDiscount = !!painting.discount_price && painting.discount_price < painting.price;

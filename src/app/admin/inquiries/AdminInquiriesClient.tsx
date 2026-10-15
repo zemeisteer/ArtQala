@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, CheckCircle2, Shield, User, Clock, Loader2, Mail, Gem, DollarSign, Trash2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import FilterSelect from '@/components/FilterSelect';
+import { mainImage } from '@/lib/paintingImages';
 
 interface AdminInquiriesClientProps {
   initialInquiries: any[];
@@ -67,15 +68,7 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
     })();
   const accessoriesTotal = selectedAccessories.reduce((sum, a) => sum + a.price, 0);
 
-  const getPaintingThumb = (painting: any): string | null => {
-    if (!painting?.images) return null;
-    try {
-      const parsed = JSON.parse(painting.images);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
-    } catch {
-      return null;
-    }
-  };
+  const getPaintingThumb = (painting: any): string | null => mainImage(painting?.images, '') || null;
 
   // Auto scroll messages to bottom — scrolls only the message thread itself,
   // never the page (scrollIntoView would also drag the whole admin page down).
