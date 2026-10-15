@@ -13,6 +13,9 @@ import {
   Loader2,
   Trash2,
   Sparkles,
+  Star,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import AiBackgroundModal from './AiBackgroundModal';
 import ImageCropModal from './ImageCropModal';
@@ -368,6 +371,18 @@ export default function PaintingForm({
     if (res && !res.ok) throw new Error('discount rule save failed');
   };
 
+  // images[0] is the main photo (listings, cards, OG image all use it).
+  // Moves the photo at `from` to position `to`, shifting the rest.
+  const moveImage = (from: number, to: number) => {
+    setImages((prev) => {
+      if (to < 0 || to >= prev.length || from === to) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+
   // Actually POSTs a file (original or cropped) to the upload API.
   const uploadFile = async (fileToUpload: File) => {
     setUploadingImage(true);
@@ -382,7 +397,9 @@ export default function PaintingForm({
 
       const data = await res.json();
       if (data.success && data.url) {
-        setImages((prev) => [data.url, ...prev]);
+        // Appended, not prepended: a new upload must never silently replace
+        // the main (first) photo — the admin picks the main one explicitly.
+        setImages((prev) => [...prev, data.url]);
       } else {
         alert(data.error || 'Rasm yuklashda xatolik yuz berdi');
       }
@@ -966,48 +983,103 @@ export default function PaintingForm({
                 </span>
               </div>
 
-              {/* Gallery of Uploaded Images */}
+              {/* Gallery of Uploaded Images — the order here is the order on
+                  the site; #1 is the main photo shown in every listing. */}
               {images.length > 0 && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {images.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="relative aspect-4/3 rounded border border-[#E7E0D8] overflow-hidden bg-white group"
-                    >
-                      <Image
-                        src={img}
-                        alt="Painting asset"
-                        fill
-                        sizes="200px"
-                        className="object-contain p-1"
-                      />
-                      {idx === 0 && (
-                        <span className="absolute top-1 left-1 bg-[#BA4E25] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                          Asosiy
-                        </span>
-                      )}
-                      <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <>
+                  <p className="text-[11px] text-[#726861]">
+                    1-rasm — asosiy rasm (galereya, bosh sahifa va boshqa ro&apos;yxatlarda faqat u ko&apos;rinadi).
+                    Rasmni asosiy qilish uchun ustiga bosing, tartibini o&apos;zgartirish uchun ← → tugmalaridan foydalaning.
+                  </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {images.map((img, idx) => (
+                      <div
+                        key={`${img}-${idx}`}
+                        className={`relative aspect-4/3 rounded border overflow-hidden bg-white group ${
+                          idx === 0 ? 'border-[#BA4E25] ring-2 ring-[#BA4E25]/30' : 'border-[#E7E0D8]'
+                        }`}
+                      >
                         <button
                           type="button"
-                          onClick={() => setAiEditIndex(idx)}
-                          title="AI bilan fon yaratish"
-                          className="p-1 bg-black/60 text-white rounded hover:bg-[#BA4E25]"
+                          onClick={() => moveImage(idx, 0)}
+                          disabled={idx === 0}
+                          title={idx === 0 ? 'Asosiy rasm' : 'Asosiy rasm qilish'}
+                          className="absolute inset-0 w-full h-full cursor-pointer disabled:cursor-default"
                         >
-                          <Sparkles className="w-3 h-3" />
+                          <Image
+                            src={img}
+                            alt={`Rasm ${idx + 1}`}
+                            fill
+                            sizes="200px"
+                            className="object-contain p-1"
+                          />
                         </button>
-                        {images.length > 1 && (
+                        <span
+                          className={`absolute top-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded pointer-events-none ${
+                            idx === 0 ? 'bg-[#BA4E25] text-white' : 'bg-black/60 text-white'
+                          }`}
+                        >
+                          {idx === 0 ? '1 · Asosiy' : idx + 1}
+                        </span>
+                        <div className="absolute top-1 right-1 flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
                           <button
                             type="button"
-                            onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
-                            className="p-1 bg-black/60 text-white rounded hover:bg-red-600"
+                            onClick={() => setAiEditIndex(idx)}
+                            title="AI bilan fon yaratish"
+                            className="p-1 bg-black/60 text-white rounded hover:bg-[#BA4E25]"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Sparkles className="w-3 h-3" />
                           </button>
+                          {images.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                              title="O'chirish"
+                              className="p-1 bg-black/60 text-white rounded hover:bg-red-600"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        {images.length > 1 && (
+                          <div className="absolute bottom-1 inset-x-1 flex items-center justify-between gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => moveImage(idx, idx - 1)}
+                              disabled={idx === 0}
+                              title="Oldinga surish"
+                              aria-label="Oldinga surish"
+                              className="p-1 bg-black/60 text-white rounded hover:bg-[#BA4E25] disabled:invisible"
+                            >
+                              <ChevronLeft className="w-3 h-3" />
+                            </button>
+                            {idx !== 0 && (
+                              <button
+                                type="button"
+                                onClick={() => moveImage(idx, 0)}
+                                title="Asosiy rasm qilish"
+                                className="flex items-center gap-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-semibold rounded hover:bg-[#BA4E25]"
+                              >
+                                <Star className="w-2.5 h-2.5" />
+                                <span>Asosiy</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => moveImage(idx, idx + 1)}
+                              disabled={idx === images.length - 1}
+                              title="Orqaga surish"
+                              aria-label="Orqaga surish"
+                              className="p-1 bg-black/60 text-white rounded hover:bg-[#BA4E25] disabled:invisible"
+                            >
+                              <ChevronRight className="w-3 h-3" />
+                            </button>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               )}
 
               {/* Upload Dropzone */}
