@@ -238,6 +238,11 @@ model InquiryItem {
   selected_accessories String?
   position             Int     @default(0)
 
+  // The price this painting actually sold for, agreed with the customer
+  // (entered by the curator in Admin → Inquiries) — internal record only,
+  // used for revenue stats. Null until agreed.
+  final_price Float?
+
   created_at DateTime @default(now())
 
   @@index([inquiry_id])

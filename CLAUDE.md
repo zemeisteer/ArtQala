@@ -72,6 +72,9 @@ snapshot and accessory snapshot); `Inquiry.painting_id` points at the first pain
 older) inquiries have no items and keep accessories in `Inquiry.selected_accessories`. Read inquiries through
 `src/lib/inquiryItems.ts` (`inquiryLines()`, `inquiryTotal()`, `withInquiryTotals()`, `inquiryItemsInclude`)
 rather than `inquiry.painting` directly, so both shapes render the same.
+The agreed sale price is per painting: `InquiryItem.final_price` (grouped) or `Inquiry.final_price` (single);
+revenue stats read it through `src/lib/salePrices.ts#getAgreedPriceByPainting()` — a grouped inquiry's own
+`final_price` is an order total and is never attributed to one painting.
 
 **`Painting.images[0]` is the main photo** (reordered in the Paintings form). Listings show only it — use
 `src/lib/paintingImages.ts` (`mainImage()`, `withMainImageOnly()`); only the detail page shows every photo.

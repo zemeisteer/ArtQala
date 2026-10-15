@@ -214,6 +214,27 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
     }
   };
 
+  // Merges a server-recalculated inquiry (lines, totals) into the list,
+  // keeping its message thread.
+  const applyServerInquiry = (inq: any) => {
+    pollGuardRef.current++;
+    setInquiries((prev) =>
+      prev.map((item) =>
+        item.id === inq.id
+          ? {
+              ...item,
+              selected_accessories: inq.selected_accessories,
+              items: inq.items,
+              lines: inq.lines,
+              shared_accessories: inq.shared_accessories,
+              total: inq.total,
+              agreed_total: inq.agreed_total,
+            }
+          : item
+      )
+    );
+  };
+
   // Removes one add-on the customer picked by mistake (any accessory —
   // e.g. a case for a painting); the server recalculates the total.
   const [removingKey, setRemovingKey] = useState<string | null>(null);
@@ -233,21 +254,7 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
         alert(data.error || "Qo'shimchani olib tashlashda xatolik yuz berdi");
         return;
       }
-      pollGuardRef.current++;
-      setInquiries((prev) =>
-        prev.map((item) =>
-          item.id === selected.id
-            ? {
-                ...item,
-                selected_accessories: data.inquiry.selected_accessories,
-                items: data.inquiry.items,
-                lines: data.inquiry.lines,
-                shared_accessories: data.inquiry.shared_accessories,
-                total: data.inquiry.total,
-              }
-            : item
-        )
-      );
+      applyServerInquiry(data.inquiry);
     } catch {
       alert("Serverga bog'lanishda xatolik yuz berdi");
     } finally {
@@ -566,6 +573,15 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                         </button>
                       )}
                     </div>
+                    {isGrouped && line.itemId && (
+                      <ItemFinalPrice
+                        key={`${selected.id}:${line.itemId}`}
+                        inquiryId={selected.id}
+                        itemId={line.itemId}
+                        initial={line.finalPrice}
+                        onSaved={applyServerInquiry}
+                      />
+                    )}
                     {line.accessories.length > 0 && (
                       <AccessoryList
                         accessories={line.accessories}
@@ -597,7 +613,19 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                 )}
               </div>
 
-              {/* Curator's final agreed price */}
+              {/* Curator's final agreed price — per painting (above) for a
+                  multi-painting inquiry, so each sale is recorded on its own. */}
+              {isGrouped ? (
+                <div className="bg-[#FAF4EC] border border-[#EBE4DA] rounded-[4px] p-4 flex items-center justify-between gap-3 text-sm">
+                  <span className="flex items-center gap-1.5 font-semibold text-[#281C18]">
+                    <DollarSign className="w-3.5 h-3.5 text-[#429599]" />
+                    Kelishilgan narxlar jami:
+                  </span>
+                  <span className="font-bold text-[#16A34A]">
+                    {selected.agreed_total != null ? `$${selected.agreed_total}` : '—'}
+                  </span>
+                </div>
+              ) : (
               <div className="bg-[#FAF4EC] border border-[#EBE4DA] rounded-[4px] p-4 space-y-3">
                 <div>
                   <label className="text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1.5 flex items-center gap-1.5">
@@ -629,6 +657,7 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                 </div>
 
               </div>
+              )}
 
               {/* Thread History */}
               <div ref={messagesContainerRef} className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
@@ -787,6 +816,80 @@ function AccessoryList({
           <span>{subtotalLabel}</span>
           <span>${subtotal}</span>
         </div>
+      )}
+    </div>
+  );
+}
+
+// "Sold for" price of one painting in a multi-painting inquiry — saved to
+// the database per painting, so each sale (and the revenue stats) records
+// exactly which painting went for how much.
+function ItemFinalPrice({
+  inquiryId,
+  itemId,
+  initial,
+  onSaved,
+}: {
+  inquiryId: string;
+  itemId: string;
+  initial: number | null;
+  onSaved: (inquiry: any) => void;
+}) {
+  const [value, setValue] = useState(initial != null ? String(initial) : '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const dirty = value !== (initial != null ? String(initial) : '');
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/inquiries/${inquiryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: itemId, item_final_price: value === '' ? null : value }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.inquiry) {
+        alert(data.error || 'Narxni saqlashda xatolik yuz berdi');
+        return;
+      }
+      onSaved(data.inquiry);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      alert("Serverga bog'lanishda xatolik yuz berdi");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-1">
+      <label className="text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase flex items-center gap-1">
+        <DollarSign className="w-3 h-3 text-[#429599]" />
+        Sotilgan narx ($)
+      </label>
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Kelishilgan summa"
+        className="w-32 text-xs px-2.5 py-1.5 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
+      />
+      <button
+        type="button"
+        onClick={save}
+        disabled={saving || !dirty}
+        className="px-3 py-1.5 bg-[#281C18] hover:bg-[#3D2C26] text-white text-[11px] font-semibold rounded-[3px] transition-all disabled:opacity-40"
+      >
+        {saving ? '...' : 'Saqlash'}
+      </button>
+      {saved && (
+        <span className="text-[11px] text-[#16A34A] font-semibold flex items-center gap-1">
+          <CheckCircle2 className="w-3.5 h-3.5" /> Saqlandi
+        </span>
       )}
     </div>
   );

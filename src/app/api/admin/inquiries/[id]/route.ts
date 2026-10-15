@@ -31,6 +31,28 @@ export async function PUT(request: Request, context: RouteContext) {
       return NextResponse.json({ success: false, error: 'Inquiry not found' }, { status: 404 });
     }
 
+    // The price one painting of a multi-painting inquiry actually sold for
+    // (internal record, feeds revenue stats). Empty value clears it.
+    if (body.item_final_price !== undefined) {
+      const itemId = typeof body.item_id === 'string' ? body.item_id : '';
+      if (!existingInquiry.items.some((it) => it.id === itemId)) {
+        return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+      }
+      const raw = body.item_final_price;
+      const value = raw === null || raw === '' ? null : Number(raw);
+      if (value !== null && (!Number.isFinite(value) || value < 0)) {
+        return NextResponse.json({ success: false, error: "Narx noto'g'ri" }, { status: 400 });
+      }
+      await prisma.inquiryItem.update({ where: { id: itemId }, data: { final_price: value } });
+      // Touch the inquiry so the newest agreement wins in the stats.
+      await prisma.inquiry.update({ where: { id }, data: { updated_at: new Date() } });
+      const refreshed = await prisma.inquiry.findUnique({
+        where: { id },
+        include: { painting: true, items: inquiryItemsInclude },
+      });
+      return NextResponse.json({ success: true, inquiry: refreshed ? withInquiryTotals(refreshed) : null });
+    }
+
     // Admin removes an add-on the customer picked by mistake (e.g. a case
     // for a painting) — works for any accessory, by id. item_id targets
     // one painting of a grouped inquiry; without it, the inquiry's own
