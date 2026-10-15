@@ -22,10 +22,15 @@ export async function GET(request: Request) {
     // Check if user has an inquiry for this painting
     const inquiry = await prisma.inquiry.findFirst({
       where: {
-        painting_id,
-        OR: [
-          { user_id: session.id },
-          { guest_email: session.email.toLowerCase() },
+        // The painting may also be one line of a multi-painting inquiry.
+        AND: [
+          { OR: [{ painting_id }, { items: { some: { painting_id } } }] },
+          {
+            OR: [
+              { user_id: session.id },
+              { guest_email: session.email.toLowerCase() },
+            ],
+          },
         ],
       },
     });

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
+import { inquiryItemsInclude, withInquiryTotals } from '@/lib/inquiryItems';
 
 export async function GET() {
   try {
@@ -26,6 +27,7 @@ export async function GET() {
             title_ru: true,
             title_uz: true,
             price: true,
+            discount_price: true,
             images: true,
             artist: { select: { name: true } },
           },
@@ -33,6 +35,7 @@ export async function GET() {
         messages: {
           orderBy: { created_at: 'asc' },
         },
+        items: inquiryItemsInclude,
       },
       orderBy: { created_at: 'desc' },
     });
@@ -82,7 +85,7 @@ export async function GET() {
       const unreadCount = thread.filter((m) => m.sender === 'ADMIN' && !m.is_read).length;
 
       return {
-        ...inq,
+        ...withInquiryTotals(inq),
         messages: thread,
         unreadCount,
       };

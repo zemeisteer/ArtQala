@@ -6,7 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { X, Send, CheckCircle2, Info } from 'lucide-react';
 import PhoneInput from '@/components/PhoneInput';
 import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCheckboxes';
-import { largestSizeBucket } from '@/lib/paintingSize';
+import { getSizeBucket } from '@/lib/paintingSize';
 import { effectiveProductType } from '@/lib/productType';
 import { trackLead } from '@/lib/analytics';
 import { mainImage } from '@/lib/paintingImages';
@@ -18,6 +18,8 @@ interface WishlistPaintingLite {
   title_uz: string;
   images: string;
   size?: string;
+  price?: number;
+  discount_price?: number | null;
   category?: { slug: string; parent?: { slug: string } | null };
 }
 
@@ -28,8 +30,15 @@ interface WishlistInquiryModalProps {
 
 const paintingThumb = (images: string) => mainImage(images);
 
+// The painting's product type (top-level category) — what accessories are
+// scoped to (see effectiveProductType).
+function productTypesOf(p: WishlistPaintingLite): string[] {
+  const type = effectiveProductType(p.category);
+  return type ? [type] : [];
+}
+
 export default function WishlistInquiryModal({ paintings, onClose }: WishlistInquiryModalProps) {
-  const { t, lang, user } = useApp();
+  const { t, lang, user, formatPrice } = useApp();
 
   const [selectedIds, setSelectedIds] = useState<string[]>(paintings.map((p) => p.id));
   const [guestName, setGuestName] = useState(user?.name || '');
@@ -37,20 +46,22 @@ export default function WishlistInquiryModal({ paintings, onClose }: WishlistInq
   const [guestPhone, setGuestPhone] = useState('');
   const [phoneValid, setPhoneValid] = useState(false);
   const [message, setMessage] = useState('');
-  const [selectedAccessories, setSelectedAccessories] = useState<SelectedAccessory[]>([]);
+  // Accessories are chosen per painting (a case for one canvas, framing for
+  // another) and the whole selection is sent as ONE inquiry.
+  const [accessoriesByPainting, setAccessoriesByPainting] = useState<Record<string, SelectedAccessory[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   const selectedPaintings = paintings.filter((p) => selectedIds.includes(p.id));
 
-  const selectedProductTypes = Array.from(
-    new Set(selectedPaintings.map((p) => effectiveProductType(p.category)).filter((s): s is string => Boolean(s)))
+  const paintingPrice = (p: WishlistPaintingLite) => p.discount_price || p.price || 0;
+  const accessoriesFor = (id: string) => accessoriesByPainting[id] || [];
+  // Indicative only — the server re-prices everything from the DB.
+  const estimatedTotal = selectedPaintings.reduce(
+    (sum, p) => sum + paintingPrice(p) + accessoriesFor(p.id).reduce((s, a) => s + a.price, 0),
+    0
   );
-
-  // A shared "add a case" checkbox applies to the whole batch, so size it to
-  // the largest piece selected (see largestSizeBucket for why).
-  const sharedSizeBucket = largestSizeBucket(selectedPaintings.map((p) => p.size));
 
   const title = (p: WishlistPaintingLite) =>
     lang === 'ru' ? p.title_ru : lang === 'uz' ? p.title_uz : p.title_en;
@@ -71,13 +82,14 @@ export default function WishlistInquiryModal({ paintings, onClose }: WishlistInq
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          painting_ids: selectedIds,
+          items: selectedIds.map((id) => ({
+            painting_id: id,
+            accessory_ids: accessoriesFor(id).map((a) => a.id),
+          })),
           guest_name: guestName,
           guest_email: guestEmail,
           guest_phone: guestPhone,
           message,
-          user_id: user?.id,
-          selected_accessories: selectedAccessories,
         }),
       });
       const data = await res.json();
@@ -125,29 +137,47 @@ export default function WishlistInquiryModal({ paintings, onClose }: WishlistInq
               {selectedPaintings.length === 0 ? (
                 <p className="text-xs text-[#8F8178] italic">{t.wishlistInquiry.emptyAfterRemove}</p>
               ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {selectedPaintings.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center gap-2.5 bg-white border border-[#E7E0D8] rounded-[2px] p-2"
-                    >
-                      <div className="w-10 h-10 rounded-[2px] overflow-hidden relative shrink-0 bg-[#F4ECE1]">
-                        <Image src={paintingThumb(p.images)} alt={title(p)} fill sizes="40px" className="object-cover" />
+                    <div key={p.id} className="bg-white border border-[#E7E0D8] rounded-[2px] p-2 space-y-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-[2px] overflow-hidden relative shrink-0 bg-[#F4ECE1]">
+                          <Image src={paintingThumb(p.images)} alt={title(p)} fill sizes="40px" className="object-cover" />
+                        </div>
+                        <span className="text-xs font-medium text-[#281C18] flex-1 truncate">
+                          {title(p)}
+                        </span>
+                        {paintingPrice(p) > 0 && (
+                          <span className="text-xs font-semibold text-[#554740] shrink-0">{formatPrice(paintingPrice(p))}</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeItem(p.id)}
+                          className="text-[#8F8178] hover:text-[#BA4E25] shrink-0"
+                          aria-label={t.wishlistInquiry.removeItem}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <span className="text-xs font-medium text-[#281C18] flex-1 truncate">
-                        {title(p)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(p.id)}
-                        className="text-[#8F8178] hover:text-[#BA4E25] shrink-0"
-                        aria-label={t.wishlistInquiry.removeItem}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                      <AccessoryCheckboxes
+                        compact
+                        heading={t.wishlistInquiry.addOnsFor}
+                        productTypes={productTypesOf(p)}
+                        sizeBucket={getSizeBucket(p.size)}
+                        onChange={(list) => setAccessoriesByPainting((prev) => ({ ...prev, [p.id]: list }))}
+                      />
                     </div>
                   ))}
                 </div>
+              )}
+              {selectedPaintings.length > 0 && estimatedTotal > 0 && (
+                <div className="mt-2 flex items-center justify-between text-xs font-bold text-[#281C18] border-t border-[#E7E0D8] pt-2">
+                  <span>{t.wishlistInquiry.total}</span>
+                  <span>{formatPrice(estimatedTotal)}</span>
+                </div>
+              )}
+              {selectedPaintings.length > 0 && estimatedTotal > 0 && (
+                <p className="text-[10.5px] text-[#8F8178] mt-0.5">{t.wishlistInquiry.totalHint}</p>
               )}
             </div>
 
@@ -207,12 +237,6 @@ export default function WishlistInquiryModal({ paintings, onClose }: WishlistInq
                   <span>{t.painting.protectiveCaseHint}</span>
                 </p>
               </div>
-
-              <AccessoryCheckboxes
-                productTypes={selectedProductTypes}
-                sizeBucket={sharedSizeBucket}
-                onChange={setSelectedAccessories}
-              />
 
               <button
                 type="submit"

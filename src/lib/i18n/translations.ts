@@ -397,6 +397,8 @@ export const translations = {
       statusCompleted: 'Completed',
       reviewBtn: 'Review',
       paintingFallback: 'Painting',
+      piecesInOneInquiry: 'pieces in one inquiry',
+      inquiryTotal: 'Total',
       serviceRequestSuffix: 'Service Request',
       noSavedArtworksTitle: 'No saved artworks yet',
       noSavedArtworksDesc: 'Browse our collection and tap the heart icon on any canvas to keep it here.',
@@ -477,6 +479,9 @@ export const translations = {
       emptyAfterRemove: 'No pieces left to inquire about.',
       success: 'Thank you! Your inquiry has been sent for all selected pieces.',
       sendBtn: 'Send Inquiry',
+      addOnsFor: 'Add-ons for this piece',
+      total: 'Estimated total',
+      totalHint: 'Final price is confirmed by our curator.',
     },
     // Phone / WhatsApp contact field (shared by inquiry forms)
     phoneInput: {
@@ -943,6 +948,8 @@ export const translations = {
       statusCompleted: 'Завершено',
       reviewBtn: 'Отзыв',
       paintingFallback: 'Картина',
+      piecesInOneInquiry: 'работ в одном запросе',
+      inquiryTotal: 'Итого',
       serviceRequestSuffix: 'заявка на услугу',
       noSavedArtworksTitle: 'Пока нет сохранённых работ',
       noSavedArtworksDesc: 'Просмотрите нашу коллекцию и нажмите на значок сердца, чтобы сохранить понравившуюся картину.',
@@ -1023,6 +1030,9 @@ export const translations = {
       emptyAfterRemove: 'Не осталось работ для запроса.',
       success: 'Спасибо! Ваш запрос отправлен по всем выбранным работам.',
       sendBtn: 'Отправить запрос',
+      addOnsFor: 'Дополнения к этой работе',
+      total: 'Предварительная сумма',
+      totalHint: 'Окончательную цену подтвердит куратор.',
     },
     // Phone / WhatsApp contact field (shared by inquiry forms)
     phoneInput: {
@@ -1489,6 +1499,8 @@ export const translations = {
       statusCompleted: 'Yakunlangan',
       reviewBtn: 'Sharh',
       paintingFallback: 'Kartina',
+      piecesInOneInquiry: "ta asar bitta so'rovda",
+      inquiryTotal: 'Jami',
       serviceRequestSuffix: "xizmat so'rovi",
       noSavedArtworksTitle: "Hali saqlangan asar yo'q",
       noSavedArtworksDesc: "Kolleksiyamizni ko'rib chiqing va istalgan kartinada yurak belgisini bosib, uni shu yerga saqlang.",
@@ -1569,6 +1581,9 @@ export const translations = {
       emptyAfterRemove: "So'rov yuborish uchun asar qolmadi.",
       success: "Rahmat! So'rovingiz barcha tanlangan asarlar bo'yicha yuborildi.",
       sendBtn: "So'rov yuborish",
+      addOnsFor: "Ushbu asar uchun qo'shimchalar",
+      total: 'Taxminiy jami',
+      totalHint: 'Yakuniy narxni kurator tasdiqlaydi.',
     },
     // Phone / WhatsApp contact field (shared by inquiry forms)
     phoneInput: {

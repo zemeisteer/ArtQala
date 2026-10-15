@@ -3,7 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { validateEmail, validatePhoneOrTelegram } from '@/lib/validation';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { getServerSession } from '@/lib/auth';
-import { largestSizeBucket, priceForSize } from '@/lib/paintingSize';
+import { getSizeBucket, largestSizeBucket } from '@/lib/paintingSize';
+import { applyDiscountRules, getActiveDiscountRules } from '@/lib/discounts';
+import { accessoryIdsFrom, resolveAccessories } from '@/lib/accessoryPricing';
+import { inquiryItemsInclude, inquiryLines, inquiryTotal } from '@/lib/inquiryItems';
 import { notifyAdmin } from '@/lib/adminNotify';
 
 const MAX_ITEMS = 20;
@@ -27,16 +30,37 @@ export async function POST(request: Request) {
     await recordFailedAttempt(rateLimitKey);
 
     const body = await request.json();
-    const { painting_ids, guest_name, guest_email, guest_phone, message, selected_accessories } = body;
+    const { guest_name, guest_email, guest_phone, message } = body;
 
-    if (!Array.isArray(painting_ids) || painting_ids.length === 0) {
+    // New clients send items: [{painting_id, accessory_ids}] — accessories
+    // chosen per painting. Older cached clients send painting_ids plus one
+    // shared selected_accessories list for the whole batch.
+    const requested: { painting_id: string; accessory_ids: string[] }[] = Array.isArray(body.items)
+      ? body.items
+          .filter((it: unknown) => typeof (it as { painting_id?: unknown })?.painting_id === 'string')
+          .map((it: { painting_id: string; accessory_ids?: unknown }) => ({
+            painting_id: it.painting_id,
+            accessory_ids: accessoryIdsFrom(it.accessory_ids),
+          }))
+      : Array.isArray(body.painting_ids)
+      ? body.painting_ids
+          .filter((id: unknown): id is string => typeof id === 'string')
+          .map((id: string) => ({ painting_id: id, accessory_ids: [] }))
+      : [];
+    const sharedAccessoryIds = Array.isArray(body.items) ? [] : accessoryIdsFrom(body.selected_accessories);
+
+    // De-duplicate, keeping the customer's order.
+    const seen = new Set<string>();
+    const wanted = requested.filter((r) => (seen.has(r.painting_id) ? false : (seen.add(r.painting_id), true)));
+
+    if (wanted.length === 0) {
       return NextResponse.json(
         { success: false, error: 'At least one painting is required' },
         { status: 400 }
       );
     }
 
-    if (painting_ids.length > MAX_ITEMS) {
+    if (wanted.length > MAX_ITEMS) {
       return NextResponse.json(
         { success: false, error: `You can inquire about up to ${MAX_ITEMS} paintings at once` },
         { status: 400 }
@@ -77,81 +101,133 @@ export async function POST(request: Request) {
       if (existingUser) effectiveUserId = existingUser.id;
     }
 
-    const validPaintings = await prisma.painting.findMany({
-      where: { id: { in: painting_ids } },
-      select: { id: true, size: true, title_en: true, title_uz: true },
-    });
-    const validIds = validPaintings.map((p) => p.id);
+    const [found, rules] = await Promise.all([
+      prisma.painting.findMany({
+        where: { id: { in: wanted.map((w) => w.painting_id) } },
+        select: {
+          id: true,
+          size: true,
+          title_en: true,
+          title_ru: true,
+          title_uz: true,
+          price: true,
+          discount_price: true,
+          discount_starts_at: true,
+          discount_ends_at: true,
+          artist_id: true,
+          category_id: true,
+          category: { select: { slug: true, parent_id: true, parent: { select: { slug: true } } } },
+        },
+      }),
+      getActiveDiscountRules(),
+    ]);
+    // The price the visitor actually saw (own discount or matching rule).
+    const byId = new Map(applyDiscountRules(found, rules).map((p) => [p.id, p]));
+    const lines = wanted.filter((w) => byId.has(w.painting_id));
 
-    if (validIds.length === 0) {
+    if (lines.length === 0) {
       return NextResponse.json(
         { success: false, error: 'No valid paintings found' },
         { status: 400 }
       );
     }
 
-    // Re-fetch accessory name/price from the DB rather than trusting the
-    // client — only the ids the customer checked are honored. Priced for the
-    // largest painting in the batch (matches the client's WishlistInquiryModal).
-    let accessoriesSnapshot: string | null = null;
-    if (Array.isArray(selected_accessories) && selected_accessories.length > 0) {
-      const sizeBucket = largestSizeBucket(validPaintings.map((p) => p.size));
-      const accessoryIds = selected_accessories.map((a: { id: string }) => a?.id).filter(Boolean);
-      const found = await prisma.accessory.findMany({
-        where: { id: { in: accessoryIds }, is_active: true },
-        select: { id: true, name_en: true, name_ru: true, name_uz: true, price_small: true, price_medium: true, price_large: true },
-      });
-      const priced = found.map((a) => ({
-        id: a.id,
-        name_en: a.name_en,
-        name_ru: a.name_ru,
-        name_uz: a.name_uz,
-        price: priceForSize(a, sizeBucket),
-      }));
-      if (priced.length > 0) accessoriesSnapshot = JSON.stringify(priced);
-    }
-
-    const trimmedMessage = message.trim();
-    const inquiries = await prisma.$transaction(
-      validIds.map((paintingId) =>
-        prisma.inquiry.create({
-          data: {
-            painting_id: paintingId,
-            guest_name: guest_name.trim(),
-            guest_email: normalizedEmail,
-            guest_phone: guest_phone.trim(),
-            message: trimmedMessage,
-            user_id: effectiveUserId || null,
-            selected_accessories: accessoriesSnapshot,
-            status: 'NEW',
-            messages: {
-              create: {
-                sender: 'CUSTOMER',
-                message: trimmedMessage,
-                is_read: false,
-              },
-            },
-          },
-        })
-      )
+    // Accessories per painting, priced for THAT painting's size. Shared
+    // (legacy) add-ons are priced for the largest painting in the batch —
+    // undercharging a big canvas is worse than overcharging a small one.
+    const items = await Promise.all(
+      lines.map(async (line, index) => {
+        const p = byId.get(line.painting_id)!;
+        const accessories = await resolveAccessories(line.accessory_ids, getSizeBucket(p.size));
+        return {
+          painting_id: p.id,
+          title_en: p.title_en,
+          title_ru: p.title_ru,
+          title_uz: p.title_uz,
+          price: p.discount_price || p.price,
+          selected_accessories: accessories.length > 0 ? JSON.stringify(accessories) : null,
+          position: index,
+          accessories,
+        };
+      })
+    );
+    const shared = await resolveAccessories(
+      sharedAccessoryIds,
+      largestSizeBucket(items.map((it) => byId.get(it.painting_id)!.size))
     );
 
+    const trimmedMessage = message.trim();
+    const first = items[0];
+    // A single painting is stored exactly like a regular single inquiry.
+    const isGrouped = items.length > 1;
+    const singleAccessories = [...first.accessories, ...shared];
+
+    const inquiry = await prisma.inquiry.create({
+      data: {
+        painting_id: first.painting_id,
+        guest_name: guest_name.trim(),
+        guest_email: normalizedEmail,
+        guest_phone: guest_phone.trim(),
+        message: trimmedMessage,
+        user_id: effectiveUserId || null,
+        selected_accessories: isGrouped
+          ? shared.length > 0
+            ? JSON.stringify(shared)
+            : null
+          : singleAccessories.length > 0
+          ? JSON.stringify(singleAccessories)
+          : null,
+        status: 'NEW',
+        messages: {
+          create: {
+            sender: 'CUSTOMER',
+            message: trimmedMessage,
+            is_read: false,
+          },
+        },
+        ...(isGrouped && {
+          items: {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            create: items.map(({ accessories, ...item }) => item),
+          },
+        }),
+      },
+      include: {
+        painting: { select: { id: true, title_en: true, title_ru: true, title_uz: true, price: true, discount_price: true } },
+        items: inquiryItemsInclude,
+      },
+    });
+
+    const total = inquiryTotal(inquiry);
+    const lineRows: [string, string][] = inquiryLines(inquiry).map((l, i) => [
+      `${i + 1}. ${l.title_uz || l.title_en}`,
+      [`$${l.price}`, ...l.accessories.map((a) => `${a.name_uz} +$${a.price}`)].join(' · ') +
+        (l.accessories.length > 0 ? ` = $${l.lineTotal}` : ''),
+    ]);
+    const sharedRow: [string, string][] = isGrouped && shared.length > 0
+      ? [["Umumiy qo'shimchalar", shared.map((a) => `${a.name_uz} +$${a.price}`).join(' · ')]]
+      : [];
+
     await notifyAdmin({
-      heading: "Yangi so'rov (bir nechta kartina)",
-      summary: `${guest_name.trim()} ${inquiries.length} ta kartina bo'yicha so'rov yubordi.`,
+      heading: isGrouped ? "Yangi so'rov (bir nechta kartina)" : "Yangi so'rov (inquiry)",
+      summary: isGrouped
+        ? `${guest_name.trim()} ${items.length} ta kartina bo'yicha bitta so'rov yubordi.`
+        : `${guest_name.trim()} kartina bo'yicha so'rov yubordi.`,
       details: [
-        ['Kartinalar', validPaintings.map((p) => p.title_uz || p.title_en).join(', ')],
+        ...lineRows,
+        ...sharedRow,
+        ['Jami', `$${total}`],
         ['Ism', guest_name.trim()],
         ['Email', normalizedEmail],
         ['Telefon', guest_phone.trim()],
       ],
       message: trimmedMessage,
       adminPath: '/admin/inquiries',
-      subject: `Yangi so'rov: ${inquiries.length} ta kartina — ${guest_name.trim()}`,
+      subject: `Yangi so'rov: ${isGrouped ? `${items.length} ta kartina` : first.title_uz || first.title_en} — ${guest_name.trim()}`,
       customerEmail: normalizedEmail,
     });
 
-    return NextResponse.json({ success: true, count: inquiries.length });
+    return NextResponse.json({ success: true, id: inquiry.id, count: items.length, total });
   } catch (error) {
     console.error('Bulk inquiry error:', error);
     return NextResponse.json(

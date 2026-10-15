@@ -37,9 +37,37 @@ interface AccessoryCheckboxesProps {
   onChange: (selected: SelectedAccessory[]) => void;
   // Use dark-form styling (matches the Services page's dark quote-request card).
   dark?: boolean;
+  // Smaller rows + custom heading, for one list per painting inside the
+  // wishlist inquiry modal.
+  compact?: boolean;
+  heading?: string;
 }
 
-export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange, dark = false }: AccessoryCheckboxesProps) {
+// One request per page load, however many checkbox lists are on screen
+// (the wishlist inquiry shows one per painting). Cleared on failure so a
+// later mount can retry.
+let accessoriesRequest: Promise<AccessoryOption[]> | null = null;
+function loadAccessories(): Promise<AccessoryOption[]> {
+  if (!accessoriesRequest) {
+    accessoriesRequest = fetch('/api/accessories')
+      .then((res) => res.json())
+      .then((data) => (data.success ? (data.accessories as AccessoryOption[]) : Promise.reject(new Error('failed'))))
+      .catch((err) => {
+        accessoriesRequest = null;
+        throw err;
+      });
+  }
+  return accessoriesRequest;
+}
+
+export default function AccessoryCheckboxes({
+  productTypes,
+  sizeBucket,
+  onChange,
+  dark = false,
+  compact = false,
+  heading,
+}: AccessoryCheckboxesProps) {
   const { lang, t } = useApp();
   const [accessories, setAccessories] = useState<AccessoryOption[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -47,10 +75,9 @@ export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/accessories')
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled && data.success) setAccessories(data.accessories);
+    loadAccessories()
+      .then((list) => {
+        if (!cancelled) setAccessories(list);
       })
       .catch(() => {})
       .finally(() => {
@@ -91,17 +118,19 @@ export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange
   return (
     <div>
       <label
-        className={`block text-[10.5px] font-bold tracking-wider uppercase mb-1.5 ${
+        className={`block font-bold tracking-wider uppercase ${compact ? 'text-[9.5px] mb-1' : 'text-[10.5px] mb-1.5'} ${
           dark ? 'text-[#A8988E]' : 'text-[#6B5E55]'
         }`}
       >
-        {t.accessories.heading}
+        {heading || t.accessories.heading}
       </label>
-      <div className="space-y-1.5">
+      <div className={compact ? 'space-y-1' : 'space-y-1.5'}>
         {relevant.map((a) => (
           <label
             key={a.id}
-            className={`flex items-center justify-between gap-2 text-xs rounded-[2px] px-3 py-2 cursor-pointer border ${
+            className={`flex items-center justify-between gap-2 rounded-[2px] cursor-pointer border ${
+              compact ? 'text-[11px] px-2 py-1' : 'text-xs px-3 py-2'
+            } ${
               dark
                 ? 'bg-[#362722] border-[#4D3932] hover:border-[#BA4E25]/50'
                 : 'bg-white border-[#E7E0D8] hover:border-[#BA4E25]/50'

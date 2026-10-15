@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
 import { FROM_EMAIL, escapeHtml, getGalleryReplyTo } from '@/lib/email';
 import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
+import { inquiryItemsInclude, inquiryLines, inquiryTitleUz } from '@/lib/inquiryItems';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -81,6 +82,7 @@ export async function POST(request: Request, context: RouteContext) {
       include: {
         painting: true,
         user: { select: { id: true, name: true, email: true } },
+        items: inquiryItemsInclude,
       },
     });
 
@@ -130,7 +132,13 @@ export async function POST(request: Request, context: RouteContext) {
     if (effectiveSender === 'ADMIN') {
       const recipientEmail = existingInquiry.guest_email || existingInquiry.user?.email;
       const recipientName = existingInquiry.guest_name || existingInquiry.user?.name || 'Valued Art Lover';
-      const paintingTitle = existingInquiry.painting?.title_en || 'Artwork';
+      const lines = inquiryLines(existingInquiry);
+      const paintingTitle = inquiryTitleUz(existingInquiry);
+      // "X" kartinasi — or, for a multi-painting inquiry, 3 ta kartina ("X", "Y", "Z").
+      const aboutHtml =
+        lines.length > 1
+          ? `<strong>${lines.length} ta kartina</strong> (${lines.map((l) => `"${escapeHtml(l.title_uz || l.title_en)}"`).join(', ')})`
+          : `<strong>"${escapeHtml(lines[0]?.title_uz || lines[0]?.title_en || 'Artwork')}"</strong> kartinasi`;
 
       if (recipientEmail) {
         const emailHtml = `
@@ -142,7 +150,7 @@ export async function POST(request: Request, context: RouteContext) {
             <hr style="border: 0; border-top: 1px solid #E7E0D8; margin: 20px 0;" />
             <p style="font-size: 15px; margin-bottom: 12px;">Assalomu alaykum, ${escapeHtml(recipientName)},</p>
             <p style="font-size: 14px; line-height: 1.6; color: #554740;">
-              Art Qala galereyasi kuratori sizning <strong>"${escapeHtml(paintingTitle)}"</strong> kartinasi bo'yicha so'rovingizga javob qoldirdi:
+              Art Qala galereyasi kuratori sizning ${aboutHtml} bo'yicha so'rovingizga javob qoldirdi:
             </p>
             <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 16px 20px; margin: 20px 0; font-size: 14px; line-height: 1.6; color: #281C18; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
               "${escapeHtml(message.trim())}"
@@ -194,7 +202,7 @@ export async function POST(request: Request, context: RouteContext) {
     // instead of relying on someone checking the admin panel.
     if (effectiveSender === 'CUSTOMER') {
       const customerName = existingInquiry.guest_name || existingInquiry.user?.name || 'Mijoz';
-      const paintingTitle = existingInquiry.painting?.title_uz || existingInquiry.painting?.title_en;
+      const paintingTitle = inquiryTitleUz(existingInquiry);
       await notifyAdmin({
         heading: "So'rovga yangi xabar",
         summary: `${customerName} so'rov bo'yicha yangi xabar yozdi.`,

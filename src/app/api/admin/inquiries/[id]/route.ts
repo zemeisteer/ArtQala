@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { sendCuratorReplyNotification, sendReviewRequestEmail } from '@/lib/email';
+import { inquiryItemsInclude, inquiryTitleEn, withInquiryTotals } from '@/lib/inquiryItems';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,7 @@ export async function PUT(request: Request, context: RouteContext) {
       include: {
         painting: true,
         user: { select: { id: true, name: true, email: true } },
+        items: inquiryItemsInclude,
       },
     });
 
@@ -57,6 +59,7 @@ export async function PUT(request: Request, context: RouteContext) {
       },
       include: {
         painting: true,
+        items: inquiryItemsInclude,
       },
     });
 
@@ -75,7 +78,7 @@ export async function PUT(request: Request, context: RouteContext) {
       const recipientEmail = existingInquiry.guest_email || existingInquiry.user?.email;
       if (recipientEmail) {
         const recipientName = existingInquiry.guest_name || existingInquiry.user?.name || 'Valued Collector';
-        const paintingTitle = existingInquiry.painting?.title_en || 'Artwork';
+        const paintingTitle = inquiryTitleEn(existingInquiry);
         const threadUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/account`;
 
         // Awaited: a Vercel function can be frozen right after responding,
@@ -100,14 +103,14 @@ export async function PUT(request: Request, context: RouteContext) {
         await sendReviewRequestEmail({
           to: buyerEmail,
           recipientName: existingInquiry.guest_name || existingInquiry.user?.name || '',
-          paintingTitle: existingInquiry.painting?.title_en || 'your artwork',
+          paintingTitle: inquiryTitleEn(existingInquiry),
           paintingUrl: `${siteUrl}/gallery/${existingInquiry.painting_id}#reviews`,
           signupUrl: `${siteUrl}/signup`,
         }).catch((err) => console.error('Failed to send review request email:', err));
       }
     }
 
-    return NextResponse.json({ success: true, inquiry: updated });
+    return NextResponse.json({ success: true, inquiry: withInquiryTotals(updated) });
   } catch (error) {
     console.error('Update inquiry error:', error);
     return NextResponse.json({ success: false, error: 'Failed to update inquiry' }, { status: 500 });

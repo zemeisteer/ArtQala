@@ -3,7 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { validateEmail, validatePhoneOrTelegram } from '@/lib/validation';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { getServerSession } from '@/lib/auth';
-import { getSizeBucket, priceForSize } from '@/lib/paintingSize';
+import { getSizeBucket } from '@/lib/paintingSize';
+import { accessoryIdsFrom, resolveAccessories } from '@/lib/accessoryPricing';
+import { inquiryLines } from '@/lib/inquiryItems';
 import { notifyAdmin } from '@/lib/adminNotify';
 
 export async function POST(request: Request) {
@@ -63,30 +65,22 @@ export async function POST(request: Request) {
       }
     }
 
+    const painting = await prisma.painting.findUnique({
+      where: { id: painting_id },
+      select: { size: true },
+    });
+    if (!painting) {
+      return NextResponse.json({ success: false, error: 'Painting not found' }, { status: 404 });
+    }
+
     // Re-fetch accessory name/price from the DB rather than trusting the
     // client — only the ids the customer checked are honored, priced for
     // this painting's actual size.
-    let accessoriesSnapshot: string | null = null;
-    if (Array.isArray(selected_accessories) && selected_accessories.length > 0) {
-      const painting = await prisma.painting.findUnique({
-        where: { id: painting_id },
-        select: { size: true },
-      });
-      const sizeBucket = getSizeBucket(painting?.size);
-      const ids = selected_accessories.map((a: { id: string }) => a?.id).filter(Boolean);
-      const found = await prisma.accessory.findMany({
-        where: { id: { in: ids }, is_active: true },
-        select: { id: true, name_en: true, name_ru: true, name_uz: true, price_small: true, price_medium: true, price_large: true },
-      });
-      const priced = found.map((a) => ({
-        id: a.id,
-        name_en: a.name_en,
-        name_ru: a.name_ru,
-        name_uz: a.name_uz,
-        price: priceForSize(a, sizeBucket),
-      }));
-      if (priced.length > 0) accessoriesSnapshot = JSON.stringify(priced);
-    }
+    const accessories = await resolveAccessories(
+      accessoryIdsFrom(selected_accessories),
+      getSizeBucket(painting.size)
+    );
+    const accessoriesSnapshot = accessories.length > 0 ? JSON.stringify(accessories) : null;
 
     const inquiry = await prisma.inquiry.create({
       data: {
@@ -108,18 +102,19 @@ export async function POST(request: Request) {
       },
       include: {
         messages: true,
+        painting: { select: { id: true, title_en: true, title_ru: true, title_uz: true, price: true, discount_price: true } },
       },
     });
 
-    const paintingForNotice = await prisma.painting.findUnique({
-      where: { id: painting_id },
-      select: { title_en: true, title_uz: true },
-    });
+    const paintingForNotice = inquiry.painting;
+    const [line] = inquiryLines(inquiry);
     await notifyAdmin({
       heading: "Yangi so'rov (inquiry)",
       summary: `${inquiry.guest_name} kartina bo'yicha so'rov yubordi.`,
       details: [
         ['Kartina', paintingForNotice?.title_uz || paintingForNotice?.title_en],
+        ...accessories.map((a): [string, string] => [a.name_uz, `+$${a.price}`]),
+        ['Jami', `$${line.lineTotal}`],
         ['Ism', inquiry.guest_name],
         ['Email', inquiry.guest_email],
         ['Telefon', inquiry.guest_phone],

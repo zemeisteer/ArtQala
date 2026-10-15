@@ -26,6 +26,7 @@ import {
   Send,
 } from 'lucide-react';
 import { mainImage } from '@/lib/paintingImages';
+import type { InquiryLine } from '@/lib/inquiryItems';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -429,6 +430,10 @@ export default function AccountPage() {
                 <div className="space-y-4">
                   {inquiries.map((inq) => {
                     const thumb = mainImage(inq.painting?.images);
+                    const lines: InquiryLine[] = inq.lines || [];
+                    const grouped = lines.length > 1;
+                    const lineTitle = (l: InquiryLine) =>
+                      (lang === 'ru' ? l.title_ru : lang === 'uz' ? l.title_uz : l.title_en) || t.account.paintingFallback;
 
                     const messagesCount = inq.messages?.length || 0;
                     const lastMsg = inq.messages?.[messagesCount - 1];
@@ -455,28 +460,69 @@ export default function AccountPage() {
                           </div>
                           <div className="space-y-1 flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <Link
-                                href={`/gallery/${inq.painting?.id}`}
-                                className="font-serif font-semibold text-lg text-[#281C18] hover:text-[#BA4E25] flex items-center gap-1.5 truncate"
-                              >
-                                <span>
-                                  {(lang === 'ru'
-                                    ? inq.painting?.title_ru
-                                    : lang === 'uz'
-                                    ? inq.painting?.title_uz
-                                    : inq.painting?.title_en) || t.account.paintingFallback}
+                              {grouped ? (
+                                <span className="font-serif font-semibold text-lg text-[#281C18]">
+                                  {lines.length} {t.account.piecesInOneInquiry}
                                 </span>
-                                <ExternalLink className="w-3.5 h-3.5 text-[#8F8178]" />
-                              </Link>
+                              ) : (
+                                <Link
+                                  href={`/gallery/${inq.painting?.id}`}
+                                  className="font-serif font-semibold text-lg text-[#281C18] hover:text-[#BA4E25] flex items-center gap-1.5 truncate"
+                                >
+                                  <span>
+                                    {(lang === 'ru'
+                                      ? inq.painting?.title_ru
+                                      : lang === 'uz'
+                                      ? inq.painting?.title_uz
+                                      : inq.painting?.title_en) || t.account.paintingFallback}
+                                  </span>
+                                  <ExternalLink className="w-3.5 h-3.5 text-[#8F8178]" />
+                                </Link>
+                              )}
                               {hasUnread && (
                                 <span className="bg-[#BA4E25] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                                   {inq.unreadCount} {t.chat.newInquiryBadge}
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-[#726861]">
-                              {t.gallery.byArtist} {inq.painting?.artist?.name} · {formatPrice(inq.painting?.price || 0)}
-                            </p>
+                            {grouped ? (
+                              <ul className="text-xs text-[#554740] space-y-1">
+                                {lines.map((l, i) => (
+                                  <li key={l.itemId || i} className="flex flex-wrap items-center gap-x-1.5">
+                                    {l.paintingId && l.painting ? (
+                                      <Link href={`/gallery/${l.paintingId}`} className="font-semibold text-[#281C18] hover:text-[#BA4E25]">
+                                        {lineTitle(l)}
+                                      </Link>
+                                    ) : (
+                                      <span className="font-semibold text-[#281C18]">{lineTitle(l)}</span>
+                                    )}
+                                    <span>· {formatPrice(l.price)}</span>
+                                    {l.accessories.map((a) => (
+                                      <span key={a.id} className="text-[#8F8178]">
+                                        + {lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en} ({formatPrice(a.price)})
+                                      </span>
+                                    ))}
+                                    {l.paintingId && l.painting && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenReview({ ...inq, painting: { ...l.painting, id: l.paintingId } })}
+                                        className="text-[#BA4E25] hover:underline inline-flex items-center gap-0.5"
+                                        title={t.account.reviewBtn}
+                                      >
+                                        <Star className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </li>
+                                ))}
+                                <li className="font-bold text-[#281C18] pt-0.5">
+                                  {t.account.inquiryTotal}: {formatPrice(inq.total || 0)}
+                                </li>
+                              </ul>
+                            ) : (
+                              <p className="text-xs text-[#726861]">
+                                {t.gallery.byArtist} {inq.painting?.artist?.name} · {formatPrice(inq.total || inq.painting?.price || 0)}
+                              </p>
+                            )}
                             {lastMsg && (
                               <p className="text-xs text-[#554740] bg-[#F7F3EE] p-2 rounded-[2px] line-clamp-2 max-w-xl border border-[#EFE8DE]">
                                 <strong className="text-[#281C18]">
@@ -497,13 +543,15 @@ export default function AccountPage() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleOpenReview(inq)}
-                              className="border border-[#BA4E25] text-[#BA4E25] hover:bg-[#BA4E25] hover:text-white text-xs font-semibold px-3 py-2 rounded-[3px] transition flex items-center gap-1.5 shadow-xs"
-                            >
-                              <Star className="w-3.5 h-3.5 fill-current" />
-                              <span>{t.account.reviewBtn}</span>
-                            </button>
+                            {!grouped && (
+                              <button
+                                onClick={() => handleOpenReview(inq)}
+                                className="border border-[#BA4E25] text-[#BA4E25] hover:bg-[#BA4E25] hover:text-white text-xs font-semibold px-3 py-2 rounded-[3px] transition flex items-center gap-1.5 shadow-xs"
+                              >
+                                <Star className="w-3.5 h-3.5 fill-current" />
+                                <span>{t.account.reviewBtn}</span>
+                              </button>
+                            )}
 
                             <button
                               onClick={() => handleOpenChat('inquiry', inq)}
@@ -714,7 +762,9 @@ export default function AccountPage() {
           onClose={() => setActiveChat(null)}
           title={
             activeChat.type === 'inquiry'
-              ? (lang === 'ru'
+              ? (activeChat.item.lines || []).length > 1
+                ? `${activeChat.item.lines.length} ${t.account.piecesInOneInquiry}`
+                : (lang === 'ru'
                   ? activeChat.item.painting?.title_ru
                   : lang === 'uz'
                   ? activeChat.item.painting?.title_uz
@@ -723,7 +773,11 @@ export default function AccountPage() {
           }
           subtitle={
             activeChat.type === 'inquiry'
-              ? `${t.gallery.byArtist} ${activeChat.item.painting?.artist?.name || 'Art Qala Artist'}`
+              ? (activeChat.item.lines || []).length > 1
+                ? (activeChat.item.lines as InquiryLine[])
+                    .map((l) => (lang === 'ru' ? l.title_ru : lang === 'uz' ? l.title_uz : l.title_en))
+                    .join(', ')
+                : `${t.gallery.byArtist} ${activeChat.item.painting?.artist?.name || 'Art Qala Artist'}`
               : `${t.account.contactLabel}: ${activeChat.item.guest_contact}`
           }
           status={activeChat.item.status}
@@ -737,7 +791,7 @@ export default function AccountPage() {
           }
           priceText={
             activeChat.type === 'inquiry'
-              ? formatPrice(activeChat.item.painting?.price || 0)
+              ? formatPrice(activeChat.item.total || activeChat.item.painting?.price || 0)
               : undefined
           }
         />
