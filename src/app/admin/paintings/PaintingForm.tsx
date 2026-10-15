@@ -24,6 +24,7 @@ import DatePicker from '@/components/DatePicker';
 import type { DiscountRule } from '@/lib/discounts';
 import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
 import TranslateStatus from '@/components/TranslateStatus';
+import { PLACEHOLDER_IMAGE } from '@/lib/paintingImages';
 
 interface PaintingFormProps {
   initialData?: any;
@@ -121,7 +122,8 @@ export default function PaintingForm({
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return ['/assets/p-arch.svg'];
+    // No photos yet (saving with none still stores the placeholder).
+    return [];
   })();
   const [images, setImages] = useState<string[]>(initialImages);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -399,7 +401,8 @@ export default function PaintingForm({
       if (data.success && data.url) {
         // Appended, not prepended: a new upload must never silently replace
         // the main (first) photo — the admin picks the main one explicitly.
-        setImages((prev) => [...prev, data.url]);
+        // The placeholder never stays in front of a real photo.
+        setImages((prev) => [...prev.filter((u) => u !== PLACEHOLDER_IMAGE), data.url]);
       } else {
         alert(data.error || 'Rasm yuklashda xatolik yuz berdi');
       }
@@ -536,7 +539,7 @@ export default function PaintingForm({
       discount_ends_at: ownDiscount && calculatedDiscountPrice && discountEnds ? new Date(discountEnds) : null,
       is_sold: isSold,
       is_featured: isFeatured,
-      images: JSON.stringify(images.length > 0 ? images : ['/assets/p-arch.svg']),
+      images: JSON.stringify(images.length > 0 ? images : [PLACEHOLDER_IMAGE]),
     };
 
     try {
