@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { sendCuratorReplyNotification, sendReviewRequestEmail } from '@/lib/email';
+import { inquiryItemsInclude, inquiryTitleEn, parseAccessories, withInquiryTotals } from '@/lib/inquiryItems';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,11 +23,45 @@ export async function PUT(request: Request, context: RouteContext) {
       include: {
         painting: true,
         user: { select: { id: true, name: true, email: true } },
+        items: inquiryItemsInclude,
       },
     });
 
     if (!existingInquiry) {
       return NextResponse.json({ success: false, error: 'Inquiry not found' }, { status: 404 });
+    }
+
+    // Admin removes an add-on the customer picked by mistake (e.g. a case
+    // for a painting) — works for any accessory, by id. item_id targets
+    // one painting of a grouped inquiry; without it, the inquiry's own
+    // list (a single-painting inquiry, or a grouped one's shared add-ons).
+    // The total is recomputed server-side from what remains.
+    if (body.remove_accessory_id !== undefined) {
+      const accessoryId = typeof body.remove_accessory_id === 'string' ? body.remove_accessory_id : '';
+      const itemId = typeof body.item_id === 'string' && body.item_id ? body.item_id : null;
+      if (!accessoryId) {
+        return NextResponse.json({ success: false, error: 'remove_accessory_id is required' }, { status: 400 });
+      }
+      const target = itemId ? existingInquiry.items.find((it) => it.id === itemId) : existingInquiry;
+      if (!target) {
+        return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+      }
+      const before = parseAccessories(target.selected_accessories);
+      const remaining = before.filter((a) => a.id !== accessoryId);
+      if (remaining.length === before.length) {
+        return NextResponse.json({ success: false, error: "Bu qo'shimcha so'rovda topilmadi" }, { status: 404 });
+      }
+      const snapshot = remaining.length > 0 ? JSON.stringify(remaining) : null;
+      if (itemId) {
+        await prisma.inquiryItem.update({ where: { id: itemId }, data: { selected_accessories: snapshot } });
+      } else {
+        await prisma.inquiry.update({ where: { id }, data: { selected_accessories: snapshot } });
+      }
+      const refreshed = await prisma.inquiry.findUnique({
+        where: { id },
+        include: { painting: true, items: inquiryItemsInclude },
+      });
+      return NextResponse.json({ success: true, inquiry: refreshed ? withInquiryTotals(refreshed) : null });
     }
 
     // Auto-link user_id if missing
@@ -57,6 +92,7 @@ export async function PUT(request: Request, context: RouteContext) {
       },
       include: {
         painting: true,
+        items: inquiryItemsInclude,
       },
     });
 
@@ -75,7 +111,7 @@ export async function PUT(request: Request, context: RouteContext) {
       const recipientEmail = existingInquiry.guest_email || existingInquiry.user?.email;
       if (recipientEmail) {
         const recipientName = existingInquiry.guest_name || existingInquiry.user?.name || 'Valued Collector';
-        const paintingTitle = existingInquiry.painting?.title_en || 'Artwork';
+        const paintingTitle = inquiryTitleEn(existingInquiry);
         const threadUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/account`;
 
         // Awaited: a Vercel function can be frozen right after responding,
@@ -100,14 +136,14 @@ export async function PUT(request: Request, context: RouteContext) {
         await sendReviewRequestEmail({
           to: buyerEmail,
           recipientName: existingInquiry.guest_name || existingInquiry.user?.name || '',
-          paintingTitle: existingInquiry.painting?.title_en || 'your artwork',
+          paintingTitle: inquiryTitleEn(existingInquiry),
           paintingUrl: `${siteUrl}/gallery/${existingInquiry.painting_id}#reviews`,
           signupUrl: `${siteUrl}/signup`,
         }).catch((err) => console.error('Failed to send review request email:', err));
       }
     }
 
-    return NextResponse.json({ success: true, inquiry: updated });
+    return NextResponse.json({ success: true, inquiry: withInquiryTotals(updated) });
   } catch (error) {
     console.error('Update inquiry error:', error);
     return NextResponse.json({ success: false, error: 'Failed to update inquiry' }, { status: 500 });

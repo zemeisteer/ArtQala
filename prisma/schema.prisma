@@ -37,6 +37,7 @@ model Painting {
   category    Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
   inquiries      Inquiry[]
+  inquiry_items  InquiryItem[]
   reviews        Review[]
   wishlist_items WishlistItem[]
   views          PaintingView[]
@@ -158,13 +159,13 @@ model AdminSession {
   user_id      String
   user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   ip           String?
-  country      String?   // ISO-3166 alpha-2, from Vercel's IP geolocation
+  country      String? // ISO-3166 alpha-2, from Vercel's IP geolocation
   city         String?
   user_agent   String?
   created_at   DateTime  @default(now())
   last_seen_at DateTime  @default(now())
   ended_at     DateTime?
-  end_reason   String?   // LOGOUT | REVOKED
+  end_reason   String? // LOGOUT | REVOKED
 
   @@index([user_id])
   @@index([created_at])
@@ -203,8 +204,44 @@ model Inquiry {
 
   messages InquiryMessage[]
 
+  // A multi-painting inquiry (wishlist "inquire about all") is ONE Inquiry
+  // with one InquiryItem per painting; painting_id above then points at the
+  // first item's painting (the "primary" one, used for thumbnails/links).
+  // A single-painting inquiry has no items — its accessories live in
+  // selected_accessories above. Older multi-painting submissions were saved
+  // as separate single inquiries and stay that way.
+  items InquiryItem[]
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+model InquiryItem {
+  id         String  @id @default(cuid())
+  inquiry_id String
+  inquiry    Inquiry @relation(fields: [inquiry_id], references: [id], onDelete: Cascade)
+
+  // SetNull: deleting a painting later keeps the line (with its snapshot
+  // title/price) in the customer's inquiry instead of erasing it.
+  painting_id String?
+  painting    Painting? @relation(fields: [painting_id], references: [id], onDelete: SetNull)
+
+  // Snapshots at submission time, like selected_accessories.
+  title_en String
+  title_ru String?
+  title_uz String?
+  price    Float // the painting's price the customer saw (discount applied)
+
+  // JSON array of {id,name_en,name_ru,name_uz,price} — the accessories the
+  // customer chose for THIS painting, priced for its size, re-resolved
+  // server-side from the DB.
+  selected_accessories String?
+  position             Int     @default(0)
+
+  created_at DateTime @default(now())
+
+  @@index([inquiry_id])
+  @@index([painting_id])
 }
 
 model ServiceRequest {
@@ -334,10 +371,10 @@ model PaintingView {
 model SiteVisit {
   id         String   @id @default(cuid())
   path       String   @default("/")
-  country    String?  // ISO-3166 alpha-2, from Vercel's IP geolocation
+  country    String? // ISO-3166 alpha-2, from Vercel's IP geolocation
   city       String?
-  referrer   String?  // external referring host, e.g. "google.com"; null = direct
-  device     String?  // MOBILE | TABLET | DESKTOP
+  referrer   String? // external referring host, e.g. "google.com"; null = direct
+  device     String? // MOBILE | TABLET | DESKTOP
   lang       String?
   visitor    String?
   created_at DateTime @default(now())

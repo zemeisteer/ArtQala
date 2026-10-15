@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { priceForSize, type SizeBucket } from '@/lib/paintingSize';
+import { accessoryAppliesTo } from '@/lib/productType';
 
 export interface AccessoryOption {
   id: string;
@@ -24,10 +25,10 @@ export interface SelectedAccessory {
 }
 
 interface AccessoryCheckboxesProps {
-  // Product type(s) relevant to what's being inquired about — a painting's
-  // Category slug(s) (e.g. "handicrafts"), or one of the Services types
-  // ("MURAL" | "CERAMICS" | "CUSTOM"). An accessory with no product_types of
-  // its own applies to everything.
+  // What's being inquired about — a painting's paintingAccessoryTargets()
+  // (its product type, i.e. top-level category slug, plus its own slug), or
+  // one of the Services types ("MURAL" | "CERAMICS" | "CUSTOM"). An
+  // accessory with no product_types of its own applies to everything.
   productTypes: string[];
   // The painting's size bucket, so a size-tiered accessory (case, framing…)
   // charges the right amount instead of one flat price for every size.
@@ -37,9 +38,37 @@ interface AccessoryCheckboxesProps {
   onChange: (selected: SelectedAccessory[]) => void;
   // Use dark-form styling (matches the Services page's dark quote-request card).
   dark?: boolean;
+  // Smaller rows + custom heading, for one list per painting inside the
+  // wishlist inquiry modal.
+  compact?: boolean;
+  heading?: string;
 }
 
-export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange, dark = false }: AccessoryCheckboxesProps) {
+// One request per page load, however many checkbox lists are on screen
+// (the wishlist inquiry shows one per painting). Cleared on failure so a
+// later mount can retry.
+let accessoriesRequest: Promise<AccessoryOption[]> | null = null;
+function loadAccessories(): Promise<AccessoryOption[]> {
+  if (!accessoriesRequest) {
+    accessoriesRequest = fetch('/api/accessories')
+      .then((res) => res.json())
+      .then((data) => (data.success ? (data.accessories as AccessoryOption[]) : Promise.reject(new Error('failed'))))
+      .catch((err) => {
+        accessoriesRequest = null;
+        throw err;
+      });
+  }
+  return accessoriesRequest;
+}
+
+export default function AccessoryCheckboxes({
+  productTypes,
+  sizeBucket,
+  onChange,
+  dark = false,
+  compact = false,
+  heading,
+}: AccessoryCheckboxesProps) {
   const { lang, t } = useApp();
   const [accessories, setAccessories] = useState<AccessoryOption[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -47,10 +76,9 @@ export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/accessories')
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled && data.success) setAccessories(data.accessories);
+    loadAccessories()
+      .then((list) => {
+        if (!cancelled) setAccessories(list);
       })
       .catch(() => {})
       .finally(() => {
@@ -61,21 +89,18 @@ export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange
     };
   }, []);
 
-  const relevant = accessories.filter(
-    (a) => !a.product_types || a.product_types.length === 0 || a.product_types.some((t) => productTypes.includes(t))
-  );
+  // Same rule the server enforces (accessoryAppliesTo): only accessories
+  // configured for this product type / service, or for everything.
+  const relevant = accessories.filter((a) => accessoryAppliesTo(a.product_types, productTypes));
+  const relevantKey = relevant.map((a) => a.id).join(',');
 
   const title = (a: AccessoryOption) =>
     lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en;
 
-  const toggle = (a: AccessoryOption) => {
-    const next = selectedIds.includes(a.id)
-      ? selectedIds.filter((id) => id !== a.id)
-      : [...selectedIds, a.id];
-    setSelectedIds(next);
+  const emit = (ids: string[]) =>
     onChange(
       relevant
-        .filter((acc) => next.includes(acc.id))
+        .filter((acc) => ids.includes(acc.id))
         .map((acc) => ({
           id: acc.id,
           name_en: acc.name_en,
@@ -84,6 +109,24 @@ export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange
           price: priceForSize(acc, sizeBucket),
         }))
     );
+
+  // When what's being inquired about changes (another service type, a
+  // different painting size), drop checked items that no longer apply and
+  // re-report prices — otherwise a hidden, still-"checked" accessory would
+  // be submitted with a stale price.
+  const checkedIds = selectedIds.filter((id) => relevant.some((a) => a.id === id));
+  useEffect(() => {
+    if (selectedIds.length === 0) return;
+    emit(checkedIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relevantKey, sizeBucket]);
+
+  const toggle = (a: AccessoryOption) => {
+    const next = checkedIds.includes(a.id)
+      ? checkedIds.filter((id) => id !== a.id)
+      : [...checkedIds, a.id];
+    setSelectedIds(next);
+    emit(next);
   };
 
   if (loading || relevant.length === 0) return null;
@@ -91,17 +134,19 @@ export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange
   return (
     <div>
       <label
-        className={`block text-[10.5px] font-bold tracking-wider uppercase mb-1.5 ${
+        className={`block font-bold tracking-wider uppercase ${compact ? 'text-[9.5px] mb-1' : 'text-[10.5px] mb-1.5'} ${
           dark ? 'text-[#A8988E]' : 'text-[#6B5E55]'
         }`}
       >
-        {t.accessories.heading}
+        {heading || t.accessories.heading}
       </label>
-      <div className="space-y-1.5">
+      <div className={compact ? 'space-y-1' : 'space-y-1.5'}>
         {relevant.map((a) => (
           <label
             key={a.id}
-            className={`flex items-center justify-between gap-2 text-xs rounded-[2px] px-3 py-2 cursor-pointer border ${
+            className={`flex items-center justify-between gap-2 rounded-[2px] cursor-pointer border ${
+              compact ? 'text-[11px] px-2 py-1' : 'text-xs px-3 py-2'
+            } ${
               dark
                 ? 'bg-[#362722] border-[#4D3932] hover:border-[#BA4E25]/50'
                 : 'bg-white border-[#E7E0D8] hover:border-[#BA4E25]/50'
@@ -110,7 +155,7 @@ export default function AccessoryCheckboxes({ productTypes, sizeBucket, onChange
             <span className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={selectedIds.includes(a.id)}
+                checked={checkedIds.includes(a.id)}
                 onChange={() => toggle(a)}
                 className="w-3.5 h-3.5 accent-[#BA4E25]"
               />

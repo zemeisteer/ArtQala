@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getBestsellerPaintingIds, withBestsellerFlag } from '@/lib/bestseller';
 import { applyDiscountRules, getActiveDiscountRules } from '@/lib/discounts';
+import { withMainImageOnly } from '@/lib/paintingImages';
 
 export async function GET(request: Request) {
   try {
@@ -34,7 +35,9 @@ export async function GET(request: Request) {
         where,
         include: {
           artist: true,
-          category: true,
+          // parent: the wishlist inquiry scopes accessories by each
+          // painting's product type (its top-level category).
+          category: { include: { parent: true } },
         },
         orderBy: { created_at: 'desc' },
       }),
@@ -44,7 +47,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      paintings: withBestsellerFlag(applyDiscountRules(paintings, rules), bestsellerIds),
+      // A listing (the account wishlist) — only the main photo is needed.
+      paintings: withBestsellerFlag(applyDiscountRules(paintings, rules), bestsellerIds).map(withMainImageOnly),
     });
   } catch (error) {
     console.error('API paintings error:', error);

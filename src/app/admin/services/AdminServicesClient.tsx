@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Wrench, CheckCircle2, Send, Shield, User, Loader2, Mail, Gem, DollarSign, Trash2 } from 'lucide-react';
+import { Wrench, CheckCircle2, Send, Shield, User, Loader2, Mail, Gem, DollarSign, Trash2, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import FilterSelect from '@/components/FilterSelect';
 
@@ -63,6 +63,36 @@ export default function AdminServicesClient({ initialRequests }: AdminServicesCl
       }
     })();
   const accessoriesTotal = selectedAccessories.reduce((sum, a) => sum + a.price, 0);
+
+  // Removes one add-on the customer picked by mistake (any accessory).
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const handleRemoveAccessory = async (accessory: { id: string; name_uz: string }) => {
+    if (!selected) return;
+    if (!confirm(`"${accessory.name_uz}" qo'shimchasini so'rovdan olib tashlaysizmi? Jami summa qayta hisoblanadi.`)) return;
+    setRemovingId(accessory.id);
+    try {
+      const res = await fetch(`/api/admin/services/${selected.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remove_accessory_id: accessory.id }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || "Qo'shimchani olib tashlashda xatolik yuz berdi");
+        return;
+      }
+      pollGuardRef.current++;
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === selected.id ? { ...r, selected_accessories: data.serviceRequest.selected_accessories } : r
+        )
+      );
+    } catch {
+      alert("Serverga bog'lanishda xatolik yuz berdi");
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   // Scrolls only the message thread itself, never the page.
   useEffect(() => {
@@ -381,9 +411,21 @@ export default function AdminServicesClient({ initialRequests }: AdminServicesCl
                     </div>
                     <ul className="space-y-1">
                       {selectedAccessories.map((a) => (
-                        <li key={a.id} className="flex items-center justify-between text-xs text-[#4D3F38]">
+                        <li key={a.id} className="flex items-center justify-between gap-2 text-xs text-[#4D3F38]">
                           <span>{a.name_uz}</span>
-                          <span className="font-semibold text-[#BA4E25]">+${a.price}</span>
+                          <span className="flex items-center gap-2">
+                            <span className="font-semibold text-[#BA4E25]">+${a.price}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAccessory(a)}
+                              disabled={removingId === a.id}
+                              title="So'rovdan olib tashlash"
+                              aria-label={`${a.name_uz} — olib tashlash`}
+                              className="p-0.5 rounded text-[#8F7E73] hover:text-[#C62828] hover:bg-red-50 disabled:opacity-50 cursor-pointer"
+                            >
+                              {removingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                            </button>
+                          </span>
                         </li>
                       ))}
                     </ul>

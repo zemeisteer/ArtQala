@@ -135,6 +135,18 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   try {
     const { id } = await context.params;
+    // A multi-painting inquiry points its painting_id at its first painting,
+    // and that relation cascades — re-point such inquiries at another of
+    // their paintings first, so deleting one painting doesn't erase the
+    // customer's whole inquiry (its own InquiryItem is kept via SetNull).
+    const groupedInquiries = await prisma.inquiry.findMany({
+      where: { painting_id: id, items: { some: { painting_id: { not: id } } } },
+      select: { id: true, items: { where: { painting_id: { not: id } }, orderBy: { position: 'asc' }, take: 1, select: { painting_id: true } } },
+    });
+    for (const inq of groupedInquiries) {
+      const next = inq.items[0]?.painting_id;
+      if (next) await prisma.inquiry.update({ where: { id: inq.id }, data: { painting_id: next } });
+    }
     await prisma.painting.delete({ where: { id } });
     return NextResponse.json({ success: true, message: 'Deleted' });
   } catch (error) {

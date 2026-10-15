@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, CheckCircle2, Shield, User, Clock, Loader2, Mail, Gem, DollarSign, Trash2 } from 'lucide-react';
+import { Send, CheckCircle2, Shield, User, Clock, Loader2, Mail, Gem, DollarSign, Trash2, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import FilterSelect from '@/components/FilterSelect';
+import type { AccessorySnapshot, InquiryLine } from '@/lib/inquiryItems';
+import { mainImage } from '@/lib/paintingImages';
 
 interface AdminInquiriesClientProps {
   initialInquiries: any[];
@@ -43,7 +45,6 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
     initialInquiries[0]?.final_price != null ? String(initialInquiries[0].final_price) : ''
   );
   const [savingPrice, setSavingPrice] = useState(false);
-  const [savingSold, setSavingSold] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   // Bumped on every successful mutation so an in-flight poll started before
   // it (and therefore reflecting pre-mutation data) gets discarded instead
@@ -56,26 +57,27 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
   // state) so it can never drift out of sync with the list's own badge.
   const selectedStatus = selected?.status || 'NEW';
 
-  const selectedAccessories: { id: string; name_en: string; name_ru: string; name_uz: string; price: number }[] =
-    (() => {
-      if (!selected?.selected_accessories) return [];
-      try {
-        return JSON.parse(selected.selected_accessories);
-      } catch {
-        return [];
-      }
-    })();
-  const accessoriesTotal = selectedAccessories.reduce((sum, a) => sum + a.price, 0);
+  // Server-computed (withInquiryTotals): one line per painting — a grouped
+  // multi-painting inquiry has several, an old/single one has exactly one.
+  const selectedLines: InquiryLine[] = selected?.lines || [];
+  const selectedShared: AccessorySnapshot[] = selected?.shared_accessories || [];
+  const isGrouped = selectedLines.length > 1;
 
-  const getPaintingThumb = (painting: any): string | null => {
-    if (!painting?.images) return null;
+  // Re-reads the list from the server (e.g. after a painting's sold flag
+  // changed, which every inquiry containing that painting shows).
+  const refreshInquiries = async () => {
+    pollGuardRef.current++;
+    const versionAtStart = pollGuardRef.current;
     try {
-      const parsed = JSON.parse(painting.images);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
-    } catch {
-      return null;
+      const res = await fetch('/api/admin/inquiries');
+      const data = await res.json();
+      if (data.success && pollGuardRef.current === versionAtStart) setInquiries(data.inquiries);
+    } catch (err) {
+      console.error('Failed to refresh inquiries:', err);
     }
   };
+
+  const getPaintingThumb = (painting: any): string | null => mainImage(painting?.images, '') || null;
 
   // Auto scroll messages to bottom — scrolls only the message thread itself,
   // never the page (scrollIntoView would also drag the whole admin page down).
@@ -212,34 +214,69 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
     }
   };
 
-  const handleToggleSold = async (nextIsSold: boolean) => {
-    if (!selected?.painting?.id) return;
-    setSavingSold(true);
+  // Removes one add-on the customer picked by mistake (any accessory —
+  // e.g. a case for a painting); the server recalculates the total.
+  const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const handleRemoveAccessory = async (itemId: string | null, accessory: AccessorySnapshot) => {
+    if (!selected) return;
+    if (!confirm(`"${accessory.name_uz}" qo'shimchasini so'rovdan olib tashlaysizmi? Jami summa qayta hisoblanadi.`)) return;
+    const key = `${itemId || 'inq'}:${accessory.id}`;
+    setRemovingKey(key);
     try {
-      const res = await fetch(`/api/admin/paintings/${selected.painting.id}`, {
+      const res = await fetch(`/api/admin/inquiries/${selected.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remove_accessory_id: accessory.id, item_id: itemId }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.inquiry) {
+        alert(data.error || "Qo'shimchani olib tashlashda xatolik yuz berdi");
+        return;
+      }
+      pollGuardRef.current++;
+      setInquiries((prev) =>
+        prev.map((item) =>
+          item.id === selected.id
+            ? {
+                ...item,
+                selected_accessories: data.inquiry.selected_accessories,
+                items: data.inquiry.items,
+                lines: data.inquiry.lines,
+                shared_accessories: data.inquiry.shared_accessories,
+                total: data.inquiry.total,
+              }
+            : item
+        )
+      );
+    } catch {
+      alert("Serverga bog'lanishda xatolik yuz berdi");
+    } finally {
+      setRemovingKey(null);
+    }
+  };
+
+  const [savingSoldId, setSavingSoldId] = useState<string | null>(null);
+  const handleToggleSold = async (paintingId: string, nextIsSold: boolean) => {
+    if (!selected || !paintingId) return;
+    setSavingSoldId(paintingId);
+    try {
+      const res = await fetch(`/api/admin/paintings/${paintingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_sold: nextIsSold }),
       });
       const data = await res.json();
       if (data.success) {
-        pollGuardRef.current++;
-        // Other inquiries pointing at the same painting show the same badge.
-        setInquiries((prev) =>
-          prev.map((item) =>
-            item.painting?.id === selected.painting.id
-              ? { ...item, painting: { ...item.painting, is_sold: nextIsSold } }
-              : item
-          )
+        // Marking the painting(s) sold means this deal is done — reflect
+        // that on the inquiry's own status too. For a multi-painting
+        // inquiry, only once every painting in it is sold.
+        const allSold = selectedLines.every((l) =>
+          !l.paintingId ? true : l.paintingId === paintingId ? nextIsSold : !!l.painting?.is_sold
         );
-
-        // Marking the painting sold means this specific deal is done —
-        // reflect that on the inquiry's own status too, otherwise it stays
-        // stuck on whatever it was (e.g. "In progress") even though the
-        // sale card right above it says "Kartina sotilgan deb belgilangan".
-        if (nextIsSold && selectedStatus !== 'COMPLETED') {
+        if (nextIsSold && allSold && selectedStatus !== 'COMPLETED') {
           await handleStatusChange('COMPLETED');
         }
+        await refreshInquiries();
       } else {
         alert(data.error || "Kartinani sotilgan deb belgilashda xatolik yuz berdi");
       }
@@ -247,7 +284,7 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
       console.error('Failed to toggle sold status:', err);
       alert("Serverga bog'lanishda xatolik yuz berdi");
     } finally {
-      setSavingSold(false);
+      setSavingSoldId(null);
     }
   };
 
@@ -353,25 +390,40 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                 </div>
 
                 <div className="flex items-center gap-2 mb-1">
-                  {getPaintingThumb(inq.painting) && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={getPaintingThumb(inq.painting)!}
-                      alt=""
-                      className="w-7 h-7 rounded-[2px] object-cover border border-[#E7E0D8] shrink-0"
-                    />
-                  )}
+                  <div className="flex -space-x-2 shrink-0">
+                    {(inq.lines || []).slice(0, 3).map((l: InquiryLine, i: number) =>
+                      getPaintingThumb(l.painting) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={i}
+                          src={getPaintingThumb(l.painting)!}
+                          alt=""
+                          className="w-7 h-7 rounded-[2px] object-cover border border-[#E7E0D8] bg-white"
+                        />
+                      ) : null
+                    )}
+                  </div>
                   <div className="text-xs text-[#726861] truncate">
-                    {inq.painting?.title_en || 'Artwork inquiry'} ·{' '}
-                    {inq.painting?.discount_price ? (
+                    {(inq.lines || []).length > 1 ? (
                       <>
-                        <span className="line-through text-[#B5A599]">${inq.painting.price}</span>{' '}
-                        <span className="text-[#BA4E25] font-semibold">${inq.painting.discount_price}</span>
+                        <span className="font-semibold text-[#554740]">{inq.lines.length} ta kartina</span>
+                        {' · '}
+                        <span className="text-[#BA4E25] font-semibold">Jami ${inq.total}</span>
                       </>
-                    ) : inq.painting?.price ? (
-                      `$${inq.painting.price}`
                     ) : (
-                      ''
+                      <>
+                        {inq.lines?.[0]?.title_en || 'Artwork inquiry'} ·{' '}
+                        {inq.painting?.discount_price ? (
+                          <>
+                            <span className="line-through text-[#B5A599]">${inq.painting.price}</span>{' '}
+                            <span className="text-[#BA4E25] font-semibold">${inq.painting.discount_price}</span>
+                          </>
+                        ) : inq.painting?.price ? (
+                          `$${inq.painting.price}`
+                        ) : (
+                          ''
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -441,71 +493,112 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                 </div>
               </div>
 
-              {/* Which painting this inquiry is about — image, price, discount */}
-              {selected.painting && (
-                <a
-                  href={`/gallery/${selected.painting.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 bg-white border border-[#E7E0D8] rounded-[4px] p-3 hover:border-[#BA4E25]/50 transition-colors"
-                >
-                  {getPaintingThumb(selected.painting) && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={getPaintingThumb(selected.painting)!}
-                      alt=""
-                      className="w-14 h-14 rounded-[3px] object-cover border border-[#E7E0D8] shrink-0"
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#281C18] truncate flex items-center gap-1.5">
-                      {selected.painting.title_en}
-                      {selected.painting.is_sold && (
-                        <span className="bg-[#DCFCE7] text-[#16A34A] text-[9.5px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
-                          SOTILGAN
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs mt-0.5">
-                      {selected.painting.discount_price ? (
-                        <>
-                          <span className="line-through text-[#B5A599]">${selected.painting.price}</span>{' '}
-                          <span className="text-[#BA4E25] font-bold">${selected.painting.discount_price}</span>
-                          <span className="text-[#8F8178]"> (skidkadagi narx)</span>
-                        </>
-                      ) : (
-                        <span className="text-[#554740] font-semibold">${selected.painting.price}</span>
-                      )}
-                    </p>
+              {/* The painting(s) this inquiry is about — each with its own
+                  accessories and price, then the total (server-calculated). */}
+              <div className="space-y-2">
+                {isGrouped && (
+                  <div className="text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase">
+                    {selectedLines.length} ta kartina bitta so&apos;rovda
                   </div>
-                </a>
-              )}
+                )}
+                {selectedLines.map((line, idx) => (
+                  <div key={line.itemId || line.paintingId || idx} className="bg-white border border-[#E7E0D8] rounded-[4px] p-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      {getPaintingThumb(line.painting) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={getPaintingThumb(line.painting)!}
+                          alt=""
+                          className="w-14 h-14 rounded-[3px] object-cover border border-[#E7E0D8] shrink-0"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        {line.paintingId && line.painting ? (
+                          <a
+                            href={`/gallery/${line.paintingId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold text-[#281C18] hover:text-[#BA4E25] truncate flex items-center gap-1.5"
+                          >
+                            {isGrouped && <span className="text-[#8F8178]">{idx + 1}.</span>}
+                            <span className="truncate">{line.title_en}</span>
+                            {line.painting.is_sold && (
+                              <span className="bg-[#DCFCE7] text-[#16A34A] text-[9.5px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                                SOTILGAN
+                              </span>
+                            )}
+                          </a>
+                        ) : (
+                          <p className="text-sm font-semibold text-[#281C18] truncate">
+                            {isGrouped && <span className="text-[#8F8178]">{idx + 1}. </span>}
+                            {line.title_en} <span className="text-[10.5px] text-[#8F8178] font-normal">(kartina o&apos;chirilgan)</span>
+                          </p>
+                        )}
+                        <p className="text-xs mt-0.5">
+                          {!line.itemId && line.painting?.discount_price ? (
+                            <>
+                              <span className="line-through text-[#B5A599]">${line.painting.price}</span>{' '}
+                              <span className="text-[#BA4E25] font-bold">${line.price}</span>
+                              <span className="text-[#8F8178]"> (skidkadagi narx)</span>
+                            </>
+                          ) : (
+                            <span className="text-[#554740] font-semibold">${line.price}</span>
+                          )}
+                          {line.itemId && <span className="text-[#8F8178]"> (so&apos;rov paytidagi narx)</span>}
+                        </p>
+                      </div>
+                      {line.paintingId && line.painting && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSold(line.paintingId as string, !line.painting?.is_sold)}
+                          disabled={savingSoldId === line.paintingId}
+                          className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-[3px] transition-all disabled:opacity-50 shrink-0 ${
+                            line.painting.is_sold
+                              ? 'bg-white border border-[#E7E0D8] text-[#726861] hover:bg-gray-50'
+                              : 'bg-[#16A34A] hover:bg-[#128038] text-white'
+                          }`}
+                        >
+                          {savingSoldId === line.paintingId
+                            ? '...'
+                            : line.painting.is_sold
+                            ? 'Sotilganini bekor qilish'
+                            : 'Sotildi deb belgilash'}
+                        </button>
+                      )}
+                    </div>
+                    {line.accessories.length > 0 && (
+                      <AccessoryList
+                        accessories={line.accessories}
+                        subtotalLabel={isGrouped ? 'Shu kartina bilan:' : 'Kartina + tanlangan mahsulotlar:'}
+                        subtotal={line.lineTotal}
+                        onRemove={(a) => handleRemoveAccessory(line.itemId, a)}
+                        removingId={removingKey?.startsWith(`${line.itemId || 'inq'}:`) ? removingKey.split(':')[1] : null}
+                      />
+                    )}
+                  </div>
+                ))}
 
-              {/* Requested accessories + curator's final agreed price */}
-              <div className="bg-[#FAF4EC] border border-[#EBE4DA] rounded-[4px] p-4 space-y-3">
-                {selectedAccessories.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1.5 flex items-center gap-1.5">
-                      <Gem className="w-3.5 h-3.5 text-[#BA4E25]" />
-                      <span>Mijoz so'ragan qo'shimcha mahsulotlar</span>
-                    </div>
-                    <ul className="space-y-1">
-                      {selectedAccessories.map((a) => (
-                        <li key={a.id} className="flex items-center justify-between text-xs text-[#4D3F38]">
-                          <span>{a.name_uz}</span>
-                          <span className="font-semibold text-[#BA4E25]">+${a.price}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="flex items-center justify-between text-xs font-bold text-[#281C18] pt-1.5 mt-1.5 border-t border-[#E7E0D8]">
-                      <span>Kartina + tanlangan mahsulotlar:</span>
-                      <span>
-                        ${(selected.painting?.discount_price || selected.painting?.price || 0) + accessoriesTotal}
-                      </span>
-                    </div>
+                {selectedShared.length > 0 && (
+                  <div className="bg-white border border-[#E7E0D8] rounded-[4px] p-3">
+                    <AccessoryList
+                      accessories={selectedShared}
+                      heading="Butun buyurtma uchun qo'shimchalar"
+                      onRemove={(a) => handleRemoveAccessory(null, a)}
+                      removingId={removingKey?.startsWith('inq:') ? removingKey.split(':')[1] : null}
+                    />
                   </div>
                 )}
 
+                {(isGrouped || selectedShared.length > 0) && (
+                  <div className="flex items-center justify-between text-sm font-bold text-[#281C18] bg-[#FAF4EC] border border-[#EBE4DA] rounded-[4px] px-3 py-2">
+                    <span>Jami (kartinalar + qo&apos;shimchalar):</span>
+                    <span className="text-[#BA4E25]">${selected.total}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Curator's final agreed price */}
+              <div className="bg-[#FAF4EC] border border-[#EBE4DA] rounded-[4px] p-4 space-y-3">
                 <div>
                   <label className="text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1.5 flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 text-[#429599]" />
@@ -535,35 +628,6 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                   </p>
                 </div>
 
-                {selected.painting?.id && (
-                  <div className="flex items-center justify-between pt-3 border-t border-[#E7E0D8]">
-                    <div className="text-xs text-[#4D3F38]">
-                      {selected.painting.is_sold ? (
-                        <span className="inline-flex items-center gap-1.5 text-[#16A34A] font-semibold">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Kartina sotilgan deb belgilangan
-                        </span>
-                      ) : (
-                        'Kelishuv yakunlansa, kartinani shu yerdan sotilgan deb belgilashingiz mumkin.'
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleSold(!selected.painting.is_sold)}
-                      disabled={savingSold}
-                      className={`px-3.5 py-2 text-xs font-semibold rounded-[3px] transition-all disabled:opacity-50 shrink-0 ${
-                        selected.painting.is_sold
-                          ? 'bg-white border border-[#E7E0D8] text-[#726861] hover:bg-gray-50'
-                          : 'bg-[#16A34A] hover:bg-[#128038] text-white'
-                      }`}
-                    >
-                      {savingSold
-                        ? '...'
-                        : selected.painting.is_sold
-                        ? 'Sotilganini bekor qilish'
-                        : 'Sotildi deb belgilash'}
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* Thread History */}
@@ -670,6 +734,60 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Accessories the customer picked (for one painting, or for the whole order).
+function AccessoryList({
+  accessories,
+  heading = "Mijoz so'ragan qo'shimcha mahsulotlar",
+  subtotalLabel,
+  subtotal,
+  onRemove,
+  removingId,
+}: {
+  accessories: AccessorySnapshot[];
+  heading?: string;
+  subtotalLabel?: string;
+  subtotal?: number;
+  onRemove?: (accessory: AccessorySnapshot) => void;
+  removingId?: string | null;
+}) {
+  return (
+    <div>
+      <div className="text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1 flex items-center gap-1.5">
+        <Gem className="w-3.5 h-3.5 text-[#BA4E25]" />
+        <span>{heading}</span>
+      </div>
+      <ul className="space-y-1">
+        {accessories.map((a) => (
+          <li key={a.id} className="flex items-center justify-between gap-2 text-xs text-[#4D3F38]">
+            <span>{a.name_uz}</span>
+            <span className="flex items-center gap-2">
+              <span className="font-semibold text-[#BA4E25]">+${a.price}</span>
+              {onRemove && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(a)}
+                  disabled={removingId === a.id}
+                  title="So'rovdan olib tashlash"
+                  aria-label={`${a.name_uz} — olib tashlash`}
+                  className="p-0.5 rounded text-[#8F7E73] hover:text-[#C62828] hover:bg-red-50 disabled:opacity-50 cursor-pointer"
+                >
+                  {removingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                </button>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {subtotalLabel && subtotal !== undefined && (
+        <div className="flex items-center justify-between text-xs font-bold text-[#281C18] pt-1.5 mt-1.5 border-t border-[#E7E0D8]">
+          <span>{subtotalLabel}</span>
+          <span>${subtotal}</span>
+        </div>
+      )}
     </div>
   );
 }

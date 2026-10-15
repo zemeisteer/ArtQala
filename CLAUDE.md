@@ -62,6 +62,20 @@ in a multi-item wishlist inquiry so a shared "add a case" checkbox doesn't under
 actually charged is always re-resolved server-side from the DB in the inquiry/service-request
 API routes — never trust a client-submitted accessory price.
 
+**Accessory scoping is enforced server-side** via `src/lib/productType.ts#accessoryAppliesTo()` /
+`paintingAccessoryTargets()` (shared by `AccessoryCheckboxes` and `src/lib/accessoryPricing.ts#resolveAccessories()`,
+which every inquiry/service route uses) — an accessory not configured for the painting's product type or the
+service type is dropped even if a client sends it.
+
+**A multi-painting inquiry is ONE `Inquiry` with an `InquiryItem` per painting** (each with its own price
+snapshot and accessory snapshot); `Inquiry.painting_id` points at the first painting. Single-painting (and
+older) inquiries have no items and keep accessories in `Inquiry.selected_accessories`. Read inquiries through
+`src/lib/inquiryItems.ts` (`inquiryLines()`, `inquiryTotal()`, `withInquiryTotals()`, `inquiryItemsInclude`)
+rather than `inquiry.painting` directly, so both shapes render the same.
+
+**`Painting.images[0]` is the main photo** (reordered in the Paintings form). Listings show only it — use
+`src/lib/paintingImages.ts` (`mainImage()`, `withMainImageOnly()`); only the detail page shows every photo.
+
 **Artist can carry a default product-type category** (`Artist.category_id`, a top-level
 Category). Selecting that artist anywhere in the Paintings admin form auto-fills
 ota-kategoriya (product type), leaving only bola-kategoriya (subject) for the admin to pick.
@@ -103,6 +117,11 @@ to change).
 Accessories) call `/api/admin/translate` (Gemini) `onBlur` of the UZ field to fill EN/RU, and
 never overwrite a field the admin already typed into. When adding a new trilingual field to an
 admin form, follow this same pattern rather than leaving EN/RU to be filled by hand.
+
+**Admin translate** (`/api/admin/translate`) tries `GEMINI_TEXT_MODEL`, then the comma-separated
+`GEMINI_TRANSLATE_FALLBACK_MODELS` (each Gemini model has its own free-tier daily quota; a model that 429s/503s
+is skipped for a while), then Google Translate's public endpoint (often 429 from cloud IPs). Failures surface
+to the admin as a toast (`TranslateProblemToast` in `AdminShell`), never silently.
 
 **Rate limiting** (`src/lib/rateLimit.ts`) uses Upstash Redis (`UPSTASH_REDIS_REST_URL` /
 `UPSTASH_REDIS_REST_TOKEN`) when those env vars are set, so limits are shared correctly across

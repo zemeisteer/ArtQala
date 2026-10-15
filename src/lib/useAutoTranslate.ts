@@ -23,11 +23,44 @@ export async function requestTranslation(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, sourceLang, field }),
     });
-    const data = await res.json();
-    return data.success && data.translations ? data.translations : null;
+    let data: { success?: boolean; translations?: Partial<Record<Lang, string>>; error?: string; warning?: string; details?: string[] } | null = null;
+    try {
+      data = await res.json();
+    } catch {
+      // e.g. a gateway timeout page instead of JSON
+    }
+    if (data?.success && data.translations) {
+      if (data.warning) reportTranslateProblem(data.warning, data.details);
+      return data.translations;
+    }
+    reportTranslateProblem(
+      data?.error ||
+        (res.status === 504
+          ? "Tarjima serveri o'z vaqtida javob bermadi. EN/RU maydonlarini qo'lda to'ldiring yoki qayta urinib ko'ring."
+          : `Avtomatik tarjima ishlamadi (xato ${res.status}). EN/RU maydonlarini qo'lda to'ldiring.`),
+      data?.details
+    );
+    return null;
   } catch {
+    reportTranslateProblem("Avtomatik tarjima ishlamadi: serverga bog'lanib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.");
     return null;
   }
+}
+
+// Failures used to be swallowed silently (the EN/RU fields just stayed
+// empty). Every admin page listens for this event in AdminShell and shows
+// the message, so no form has to wire up its own error display.
+export const TRANSLATE_PROBLEM_EVENT = 'admin-translate-problem';
+export interface TranslateProblem {
+  message: string;
+  details?: string[];
+}
+
+function reportTranslateProblem(message: string, details?: string[]) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent<TranslateProblem>(TRANSLATE_PROBLEM_EVENT, { detail: { message, details } })
+  );
 }
 
 // Save-time safety net: if the admin submitted before a blur translation

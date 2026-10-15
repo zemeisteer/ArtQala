@@ -8,6 +8,7 @@ import PaintingDetailClient from './PaintingDetailClient';
 import type { Language } from '@/lib/i18n/translations';
 import { OG_LOCALE, isLang, languageAlternates, localizePath } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
+import { mainImage } from '@/lib/paintingImages';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // rendering fresh on every request.
@@ -45,15 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  let imageUrl = '/assets/p-arch.svg';
-  try {
-    const parsed = JSON.parse(painting.images);
-    if (Array.isArray(parsed) && parsed.length > 0) imageUrl = parsed[0];
-  } catch {
-    if (painting.images && !painting.images.startsWith('[')) {
-      imageUrl = painting.images;
-    }
-  }
+  const imageUrl = mainImage(painting.images);
 
   const loc = localized(painting, lang);
   const title = `${loc.title} — ${painting.artist.name}`;
@@ -84,15 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 function buildProductJsonLd(painting: any, siteUrl: string, lang: Language) {
   const loc = localized(painting, lang);
-  let imageUrl = `${siteUrl}/assets/p-arch.svg`;
-  try {
-    const parsed = JSON.parse(painting.images);
-    if (Array.isArray(parsed) && parsed.length > 0) imageUrl = parsed[0];
-  } catch {
-    if (painting.images && !painting.images.startsWith('[')) {
-      imageUrl = painting.images;
-    }
-  }
+  let imageUrl = mainImage(painting.images);
   // Structured-data image must be an absolute URL — prefix relative /assets paths.
   if (imageUrl.startsWith('/')) {
     imageUrl = `${siteUrl}${imageUrl}`;

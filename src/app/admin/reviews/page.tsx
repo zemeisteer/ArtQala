@@ -13,6 +13,7 @@ import {
   Filter,
   ExternalLink,
 } from 'lucide-react';
+import { mainImage } from '@/lib/paintingImages';
 
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
@@ -195,11 +196,7 @@ export default function AdminReviewsPage() {
         ) : filteredReviews.length > 0 ? (
           <div className="divide-y divide-[#F0EAE1]">
             {filteredReviews.map((rev) => {
-              let thumb = '/assets/p-arch.svg';
-              try {
-                const parsed = JSON.parse(rev.painting?.images || '[]');
-                if (Array.isArray(parsed) && parsed.length > 0) thumb = parsed[0];
-              } catch {}
+              const thumb = mainImage(rev.painting?.images);
 
               const isPending = !rev.is_approved;
               const isActionRunning = actionLoading === rev.id;

@@ -88,10 +88,15 @@ export async function POST(request: Request) {
     // Verify that the user has a valid inquiry for this specific artwork
     const existingInquiry = await prisma.inquiry.findFirst({
       where: {
-        painting_id,
-        OR: [
-          { user_id: session.id },
-          { guest_email: session.email.toLowerCase() },
+        // The painting may also be one line of a multi-painting inquiry.
+        AND: [
+          { OR: [{ painting_id }, { items: { some: { painting_id } } }] },
+          {
+            OR: [
+              { user_id: session.id },
+              { guest_email: session.email.toLowerCase() },
+            ],
+          },
         ],
       },
     });

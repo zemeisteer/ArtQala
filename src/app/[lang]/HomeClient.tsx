@@ -9,16 +9,9 @@ import { Palette, Users, Brush, ArrowRight } from 'lucide-react';
 import AnimatedGirihWatermark from '@/components/patterns/AnimatedGirihWatermark';
 import AnimatedIslimiyDivider from '@/components/patterns/AnimatedIslimiyDivider';
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
+import { mainImage } from '@/lib/paintingImages';
 
-function firstImage(images: string): string {
-  try {
-    const parsed = JSON.parse(images);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-  } catch {
-    if (images && !images.startsWith('[')) return images;
-  }
-  return '/assets/p-arch.svg';
-}
+const firstImage = (images: string) => mainImage(images);
 
 interface HomeClientProps {
   featuredPaintings: any[];
