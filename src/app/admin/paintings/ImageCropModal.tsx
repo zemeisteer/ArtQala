@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactCrop, { Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { X, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { X, Check, Loader2, AlertTriangle, RotateCcw, RotateCw, FlipHorizontal2, FlipVertical2, Undo2 } from 'lucide-react';
 
 interface ImageCropModalProps {
   file: File;
@@ -74,11 +74,51 @@ function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-// Crops the image by a percent frame, at the image's natural resolution,
-// scaled down to at most `maxSide` on the longest edge.
-function getCroppedBlob(image: HTMLImageElement, crop: Crop, maxSide: number): Promise<Blob> {
-  const W = image.naturalWidth;
-  const H = image.naturalHeight;
+// Rotation in quarter turns + mirroring, all relative to what the admin
+// sees (a mirror after a rotation flips the rotated picture).
+interface Transform {
+  rotation: 0 | 90 | 180 | 270;
+  flipH: boolean;
+  flipV: boolean;
+}
+const IDENTITY: Transform = { rotation: 0, flipH: false, flipV: false };
+const isIdentity = (t: Transform) => t.rotation === 0 && !t.flipH && !t.flipV;
+
+// iOS Safari refuses canvases above ~16.7 million pixels (a 48 MP photo).
+const MAX_CANVAS_PIXELS = 16_000_000;
+const PREVIEW_SIDE = 1600;
+
+// Draws the whole image rotated/mirrored onto a new canvas, scaled so its
+// longest side is at most `maxSide` (and within the canvas pixel limit).
+function drawTransformed(image: HTMLImageElement, t: Transform, maxSide: number): HTMLCanvasElement {
+  const w = image.naturalWidth;
+  const h = image.naturalHeight;
+  const scale = Math.min(1, maxSide / Math.max(w, h), Math.sqrt(MAX_CANVAS_PIXELS / (w * h)));
+  const dw = Math.max(1, Math.round(w * scale));
+  const dh = Math.max(1, Math.round(h * scale));
+  const quarter = t.rotation === 90 || t.rotation === 270;
+  const canvas = document.createElement('canvas');
+  canvas.width = quarter ? dh : dw;
+  canvas.height = quarter ? dw : dh;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas not supported');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  // Mirror first (outermost), then rotate: the mirror acts on the picture
+  // as displayed, i.e. after the rotation.
+  ctx.scale(t.flipH ? -1 : 1, t.flipV ? -1 : 1);
+  ctx.rotate((t.rotation * Math.PI) / 180);
+  ctx.drawImage(image, -dw / 2, -dh / 2, dw, dh);
+  return canvas;
+}
+
+// Crops an image (or an already rotated/mirrored canvas) by a percent
+// frame, at full resolution, scaled down to at most `maxSide`.
+function getCroppedBlob(source: HTMLImageElement | HTMLCanvasElement, crop: Crop, maxSide: number): Promise<Blob> {
+  const W = source instanceof HTMLImageElement ? source.naturalWidth : source.width;
+  const H = source instanceof HTMLImageElement ? source.naturalHeight : source.height;
   const sx = Math.max(0, (crop.x / 100) * W);
   const sy = Math.max(0, (crop.y / 100) * H);
   const sw = Math.min(W - sx, (crop.width / 100) * W);
@@ -95,7 +135,7 @@ function getCroppedBlob(image: HTMLImageElement, crop: Crop, maxSide: number): P
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
   return canvasToJpeg(canvas);
 }
 
@@ -114,7 +154,28 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip, circ
   const [crop, setCrop] = useState<Crop>();
   const [loadFailed, setLoadFailed] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [transform, setTransform] = useState<Transform>(IDENTITY);
+  // What ReactCrop shows: the original, or a rotated/mirrored preview of
+  // it — so the frame always lies on exactly the picture that gets saved.
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  // The original photo, decoded once into its own (detached) element; every
+  // rotation is drawn from it. Not the displayed <img>, whose src becomes
+  // the rotated preview.
+  const sourceRef = useRef<HTMLImageElement | null>(null);
+  const [sourceReady, setSourceReady] = useState(false);
+  useEffect(() => {
+    if (!imageSrc) return;
+    const source = new Image();
+    source.onload = () => {
+      sourceRef.current = source;
+      setSourceReady(true);
+    };
+    source.src = imageSrc;
+    return () => {
+      source.onload = null;
+    };
+  }, [imageSrc]);
   const maxSide = circular ? AVATAR_OUTPUT_SIDE : MAX_OUTPUT_SIDE;
 
   // Created and revoked with the modal (the old version leaked one blob URL
@@ -132,6 +193,42 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip, circ
       URL.revokeObjectURL(url);
     };
   }, [file]);
+
+  // Builds the rotated/mirrored preview whenever the transform changes.
+  useEffect(() => {
+    const source = sourceRef.current;
+    if (isIdentity(transform) || !sourceReady || !source?.naturalWidth) {
+      Promise.resolve().then(() => setPreviewSrc(null));
+      return;
+    }
+    let url: string | null = null;
+    let active = true;
+    drawTransformed(source, transform, PREVIEW_SIDE).toBlob(
+      (blob) => {
+        if (!blob || !active) return;
+        url = URL.createObjectURL(blob);
+        setPreviewSrc(url);
+      },
+      'image/jpeg',
+      0.9
+    );
+    return () => {
+      active = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [transform, sourceReady]);
+
+  // Each rotation changes the picture's shape: start a fresh frame on it.
+  const applyTransform = (next: Transform) => {
+    setTransform(next);
+    setCrop(undefined);
+  };
+  const rotate = (delta: 90 | -90) => {
+    // With exactly one mirror on, turning the picture right means turning
+    // the un-mirrored original left.
+    const d = transform.flipH !== transform.flipV ? -delta : delta;
+    applyTransform({ ...transform, rotation: (((transform.rotation + d) % 360) + 360) % 360 as Transform['rotation'] });
+  };
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
@@ -152,7 +249,13 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip, circ
     if (!crop || !img?.naturalWidth) return;
     setProcessing(true);
     try {
-      const blob = await getCroppedBlob(img, crop, maxSide);
+      // Rotated/mirrored: crop from a full-resolution transformed copy of
+      // the original, not from the smaller on-screen preview.
+      const source =
+        !isIdentity(transform) && sourceRef.current
+          ? drawTransformed(sourceRef.current, transform, Number.MAX_SAFE_INTEGER)
+          : img;
+      const blob = await getCroppedBlob(source, crop, maxSide);
       onCropped(new File([blob], jpegName(file.name), { type: 'image/jpeg' }));
     } catch {
       alert('Kesishda xatolik yuz berdi');
@@ -167,13 +270,17 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip, circ
   const handleSkip = async () => {
     const img = imgRef.current;
     const common = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
-    if ((common && file.size <= SAFE_ORIGINAL_BYTES) || loadFailed || !img?.naturalWidth) {
+    const transformed = !isIdentity(transform) && !!sourceRef.current;
+    if (!transformed && ((common && file.size <= SAFE_ORIGINAL_BYTES) || loadFailed || !img?.naturalWidth)) {
       onSkip(file);
       return;
     }
     setProcessing(true);
     try {
-      const blob = await getCroppedBlob(img, { unit: '%', x: 0, y: 0, width: 100, height: 100 }, maxSide);
+      // Keeps the rotation/mirroring, without cropping.
+      const blob = transformed
+        ? await canvasToJpeg(drawTransformed(sourceRef.current!, transform, maxSide))
+        : await getCroppedBlob(img!, { unit: '%', x: 0, y: 0, width: 100, height: 100 }, maxSide);
       onSkip(new File([blob], jpegName(file.name), { type: 'image/jpeg' }));
     } catch {
       onSkip(file);
@@ -221,7 +328,7 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip, circ
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   ref={imgRef}
-                  src={imageSrc}
+                  src={previewSrc || imageSrc}
                   alt="Kesiladigan rasm"
                   onLoad={onImageLoad}
                   onError={() => setLoadFailed(true)}
@@ -235,6 +342,59 @@ export default function ImageCropModal({ file, onCancel, onCropped, onSkip, circ
         </div>
 
         <div className="p-5 space-y-4">
+          {!loadFailed && (
+            <div>
+              <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1.5">
+                Burish va ko&apos;zgu
+              </label>
+              <div className="flex gap-1.5 flex-wrap">
+                {[
+                  { label: 'Chapga 90°', icon: RotateCcw, onClick: () => rotate(-90) },
+                  { label: "O'ngga 90°", icon: RotateCw, onClick: () => rotate(90) },
+                  {
+                    label: 'Gorizontal ko\'zgu',
+                    icon: FlipHorizontal2,
+                    onClick: () => applyTransform({ ...transform, flipH: !transform.flipH }),
+                    active: transform.flipH,
+                  },
+                  {
+                    label: 'Vertikal ko\'zgu',
+                    icon: FlipVertical2,
+                    onClick: () => applyTransform({ ...transform, flipV: !transform.flipV }),
+                    active: transform.flipV,
+                  },
+                ].map(({ label, icon: Icon, onClick, active }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={onClick}
+                    disabled={processing}
+                    title={label}
+                    className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all disabled:opacity-50 ${
+                      active
+                        ? 'bg-[#281C18] text-[#FAF4EC] border-[#281C18]'
+                        : 'bg-white text-[#554740] border-[#E7E0D8] hover:border-[#BA4E25]'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+                {!isIdentity(transform) && (
+                  <button
+                    type="button"
+                    onClick={() => applyTransform(IDENTITY)}
+                    disabled={processing}
+                    className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 text-[#429599] hover:underline disabled:opacity-50"
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    <span>Asl holiga</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {!loadFailed &&
             (circular ? (
               <p className="text-[11px] text-[#6B5E55]">
