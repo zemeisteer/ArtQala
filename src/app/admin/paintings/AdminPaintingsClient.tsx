@@ -244,10 +244,12 @@ export default function AdminPaintingsClient({
                           <span className="bg-[#E7DFD9] text-[#7A6B62] text-[10.5px] font-bold px-2.5 py-0.5 rounded-full self-start">
                             Sold
                           </span>
-                          {p.inquiries?.[0]?.final_price != null && (
+                          {p.sale_price != null ? (
                             <span className="text-[10.5px] text-[#8F7E73]">
-                              Sotilgan narx: <strong className="text-[#281C18]">${p.inquiries[0].final_price}</strong>
+                              Sotilgan narx: <strong className="text-[#281C18]">${p.sale_price}</strong>
                             </span>
+                          ) : (
+                            <span className="text-[10.5px] text-[#B45309]">Sotilgan narx yozilmagan</span>
                           )}
                         </div>
                       ) : (

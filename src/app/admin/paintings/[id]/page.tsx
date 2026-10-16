@@ -2,6 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getActiveDiscountRules } from '@/lib/discounts';
+import { getAgreedPriceByPainting } from '@/lib/salePrices';
 import PaintingForm from '../PaintingForm';
 
 interface PageProps {
@@ -14,16 +15,18 @@ export default async function EditPaintingPage({ params }: PageProps) {
   const { id } = await params;
   const painting = await prisma.painting.findUnique({
     where: { id },
+    omit: { sold_price: false },
   });
 
   if (!painting) {
     notFound();
   }
 
-  const [artists, categories, discountRules] = await Promise.all([
+  const [artists, categories, discountRules, agreed] = await Promise.all([
     prisma.artist.findMany(),
     prisma.category.findMany(),
     getActiveDiscountRules(),
+    getAgreedPriceByPainting([id]),
   ]);
 
   return (
@@ -33,6 +36,7 @@ export default async function EditPaintingPage({ params }: PageProps) {
       categories={categories}
       discountRules={discountRules}
       isNew={false}
+      agreedSalePrice={agreed.get(id) ?? null}
     />
   );
 }

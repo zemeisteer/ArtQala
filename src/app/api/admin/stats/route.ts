@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
-import { getAgreedPriceByPainting } from '@/lib/salePrices';
+import { getSalePriceByPainting } from '@/lib/salePrices';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,9 +91,9 @@ export async function GET(request: Request) {
       },
     });
 
-    // A curator-agreed sale price (entered per painting in Admin → Inquiries)
+    // The recorded sale price (Paintings form, or agreed in Admin → Inquiries)
     // overrides the painting's list/discount price for revenue purposes.
-    const finalPriceByPainting = await getAgreedPriceByPainting(soldPaintings.map((p) => p.id));
+    const finalPriceByPainting = await getSalePriceByPainting(soldPaintings.map((p) => p.id));
 
     const effectivePrice = (p: { id: string; price: number; discount_price: number | null }) =>
       finalPriceByPainting.get(p.id) ?? (p.discount_price || p.price);

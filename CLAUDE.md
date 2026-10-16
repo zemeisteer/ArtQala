@@ -75,6 +75,11 @@ rather than `inquiry.painting` directly, so both shapes render the same.
 The agreed sale price is per painting: `InquiryItem.final_price` (grouped) or `Inquiry.final_price` (single);
 revenue stats read it through `src/lib/salePrices.ts#getAgreedPriceByPainting()` — a grouped inquiry's own
 `final_price` is an order total and is never attributed to one painting.
+A painting sold outside the website gets its price in the Paintings form (`Painting.sold_price`, required
+when marking sold unless an inquiry already holds an agreed price; "Asl narxi" fills the listed price).
+`getSalePriceByPainting()` = inquiry agreement, else `sold_price`. `sold_price` is internal: the Prisma
+client omits it globally (`src/lib/prisma.ts`), so admin queries must ask for it with
+`omit: { sold_price: false }` or an explicit select — the public site keeps showing the listed price.
 
 **`Painting.images[0]` is the main photo** (reordered in the Paintings form). Listings show only it — use
 `src/lib/paintingImages.ts` (`mainImage()`, `withMainImageOnly()`); only the detail page shows every photo.
