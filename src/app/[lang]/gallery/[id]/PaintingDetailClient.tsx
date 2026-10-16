@@ -148,6 +148,14 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
       ? painting.category.name_uz
       : painting.category.name_en;
 
+  // "Order a similar piece" on a sold painting: pre-fill the inquiry
+  // message (unless the visitor already typed one) and jump to the form.
+  const orderSimilar = () => {
+    if (!message.trim()) setMessage(t.painting.soldSimilarMessage.replace('{title}', title));
+    document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => document.getElementById('inquiry-message')?.focus({ preventScroll: true }), 400);
+  };
+
   // The detail page shows every photo, main (first) one first.
   const parsedImages = parseImages(painting.images);
   const imageList: string[] = parsedImages.length > 0 ? parsedImages : [PLACEHOLDER_IMAGE];
@@ -524,6 +532,25 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
               </span>
             </div>
 
+            {/* Sold: the original is gone, but the artist can make a similar
+                piece — the button pre-fills the inquiry form below. Worded as
+                "similar", never "this one again": originals are unique. */}
+            {painting.is_sold && (
+              <div className="p-4 bg-[#FAF4EC] border border-[#EBE4DA] rounded-[3px] flex flex-col sm:flex-row sm:items-center gap-3">
+                <p className="text-xs text-[#4D3F38] leading-relaxed flex-1 flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 shrink-0 text-[#BA4E25] mt-0.5" />
+                  <span>{t.painting.soldSimilarText}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={orderSimilar}
+                  className="shrink-0 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white text-xs font-semibold px-4 py-2.5 rounded-[3px] transition-colors"
+                >
+                  {t.painting.soldSimilarBtn}
+                </button>
+              </div>
+            )}
+
             {/* Specifications */}
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
@@ -551,7 +578,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
             <ShippingEstimator sizeString={painting.size} />
 
             {/* Direct Inquiry Form */}
-            <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[3px] p-6 space-y-4 shadow-sm">
+            <div id="inquiry-form" className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[3px] p-6 space-y-4 shadow-sm scroll-mt-24">
               <h3 className="font-serif text-xl font-semibold text-[#281C18]">
                 {t.painting.inquireTitle}
               </h3>
@@ -611,6 +638,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                       {t.painting.yourMessage} *
                     </label>
                     <textarea
+                      id="inquiry-message"
                       required
                       rows={3}
                       value={message}
