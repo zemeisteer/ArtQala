@@ -203,7 +203,14 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
         pollGuardRef.current++;
         setInquiries((prev) =>
           prev.map((item) =>
-            item.id === selected.id ? { ...item, final_price: data.inquiry.final_price } : item
+            item.id === selected.id
+              ? {
+                  ...item,
+                  final_price: data.inquiry.final_price,
+                  lines: data.inquiry.lines ?? item.lines,
+                  customer_total: data.inquiry.customer_total ?? item.customer_total,
+                }
+              : item
           )
         );
       }
@@ -229,6 +236,7 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
               shared_accessories: inq.shared_accessories,
               total: inq.total,
               agreed_total: inq.agreed_total,
+              customer_total: inq.customer_total,
             }
           : item
       )
@@ -619,10 +627,10 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                 <div className="bg-[#FAF4EC] border border-[#EBE4DA] rounded-[4px] p-4 flex items-center justify-between gap-3 text-sm">
                   <span className="flex items-center gap-1.5 font-semibold text-[#281C18]">
                     <DollarSign className="w-3.5 h-3.5 text-[#429599]" />
-                    Kelishilgan narxlar jami:
+                    Kelishilgan jami (mijozga shu ko&apos;rinadi):
                   </span>
                   <span className="font-bold text-[#16A34A]">
-                    {selected.agreed_total != null ? `$${selected.agreed_total}` : '—'}
+                    {selected.agreed_total != null ? `$${selected.customer_total}` : '—'}
                   </span>
                 </div>
               ) : (
@@ -652,7 +660,7 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
                     </button>
                   </div>
                   <p className="text-[10.5px] text-[#8F8178] mt-1">
-                    Telegram/WhatsApp'da kelishilgan yakuniy summani shu yerga yozib qo'ying — faqat ichki hisobot uchun.
+                    Telegram/WhatsApp&apos;da kelishilgan yakuniy summani (qo&apos;shimchalari bilan) shu yerga yozing — mijoz kabinetida ham shu narx ko&apos;rinadi va savdo hisobiga kiradi.
                   </p>
                 </div>
 
@@ -867,7 +875,7 @@ function ItemFinalPrice({
     <div className="flex flex-wrap items-center gap-2 pt-1">
       <label className="text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase flex items-center gap-1">
         <DollarSign className="w-3 h-3 text-[#429599]" />
-        Sotilgan narx ($)
+        Kelishilgan narx ($)
       </label>
       <input
         type="number"
@@ -875,7 +883,7 @@ function ItemFinalPrice({
         min="0"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Kelishilgan summa"
+        placeholder="Qo'shimchalari bilan"
         className="w-32 text-xs px-2.5 py-1.5 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
       />
       <button
@@ -891,6 +899,9 @@ function ItemFinalPrice({
           <CheckCircle2 className="w-3.5 h-3.5" /> Saqlandi
         </span>
       )}
+      <p className="basis-full text-[10.5px] text-[#8F8178]">
+        Shu kartina qo&apos;shimchalari bilan birga necha pulga kelishilgan bo&apos;lsa, shuni yozing — mijoz kabinetida ham shu narx ko&apos;rinadi.
+      </p>
     </div>
   );
 }

@@ -496,12 +496,24 @@ export default function AccountPage() {
                                     ) : (
                                       <span className="font-semibold text-[#281C18]">{lineTitle(l)}</span>
                                     )}
-                                    <span>· {formatPrice(l.price)}</span>
+                                    {/* Once the curator agreed a price for this piece,
+                                        it replaces the listed price (+ add-ons). */}
+                                    <span className={l.finalPrice != null ? 'line-through text-[#B5A599]' : ''}>
+                                      · {formatPrice(l.price)}
+                                    </span>
                                     {l.accessories.map((a) => (
-                                      <span key={a.id} className="text-[#8F8178]">
+                                      <span
+                                        key={a.id}
+                                        className={l.finalPrice != null ? 'line-through text-[#B5A599]' : 'text-[#8F8178]'}
+                                      >
                                         + {lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en} ({formatPrice(a.price)})
                                       </span>
                                     ))}
+                                    {l.finalPrice != null && (
+                                      <span className="font-semibold text-[#16A34A]">
+                                        {t.account.agreedPrice}: {formatPrice(l.finalPrice)}
+                                      </span>
+                                    )}
                                     {l.paintingId && l.painting && (
                                       <button
                                         type="button"
@@ -515,12 +527,32 @@ export default function AccountPage() {
                                   </li>
                                 ))}
                                 <li className="font-bold text-[#281C18] pt-0.5">
-                                  {t.account.inquiryTotal}: {formatPrice(inq.total || 0)}
+                                  {t.account.inquiryTotal}:{' '}
+                                  {inq.customer_total != null && inq.customer_total !== inq.total ? (
+                                    <>
+                                      <span className="line-through text-[#B5A599] font-normal">{formatPrice(inq.total || 0)}</span>{' '}
+                                      <span className="text-[#16A34A]">{formatPrice(inq.customer_total)}</span>
+                                    </>
+                                  ) : (
+                                    formatPrice(inq.total || 0)
+                                  )}
                                 </li>
                               </ul>
                             ) : (
                               <p className="text-xs text-[#726861]">
-                                {t.gallery.byArtist} {inq.painting?.artist?.name} · {formatPrice(inq.total || inq.painting?.price || 0)}
+                                {t.gallery.byArtist} {inq.painting?.artist?.name} ·{' '}
+                                {inq.final_price != null ? (
+                                  <>
+                                    <span className="line-through text-[#B5A599]">
+                                      {formatPrice(inq.total || inq.painting?.price || 0)}
+                                    </span>{' '}
+                                    <span className="font-semibold text-[#16A34A]">
+                                      {t.account.agreedPrice}: {formatPrice(inq.final_price)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  formatPrice(inq.total || inq.painting?.price || 0)
+                                )}
                               </p>
                             )}
                             {lastMsg && (
@@ -791,7 +823,9 @@ export default function AccountPage() {
           }
           priceText={
             activeChat.type === 'inquiry'
-              ? formatPrice(activeChat.item.total || activeChat.item.painting?.price || 0)
+              ? formatPrice(
+                  activeChat.item.customer_total ?? activeChat.item.total ?? activeChat.item.painting?.price ?? 0
+                )
               : undefined
           }
         />

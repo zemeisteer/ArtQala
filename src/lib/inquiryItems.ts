@@ -149,6 +149,14 @@ export function agreedTotal(inq: InquiryLike): number | null {
   return prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) * 100) / 100 : null;
 }
 
+// What the customer now owes: each painting at its agreed price (which
+// covers that painting together with its add-ons) where the curator entered
+// one, otherwise at its listed price + add-ons; plus any shared add-ons.
+export function customerTotal(inq: InquiryLike): number {
+  const lines = inquiryLines(inq).reduce((sum, l) => sum + (l.finalPrice ?? l.lineTotal), 0);
+  return Math.round((lines + sumAccessories(sharedAccessories(inq))) * 100) / 100;
+}
+
 // Server-side: attach the computed lines/total to inquiries before sending
 // them to a client, so every screen shows the same server-calculated total.
 export function withInquiryTotals<T extends InquiryLike>(inq: T) {
@@ -158,6 +166,7 @@ export function withInquiryTotals<T extends InquiryLike>(inq: T) {
     shared_accessories: sharedAccessories(inq),
     total: inquiryTotal(inq),
     agreed_total: agreedTotal(inq),
+    customer_total: customerTotal(inq),
   };
 }
 
