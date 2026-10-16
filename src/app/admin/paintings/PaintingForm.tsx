@@ -34,6 +34,11 @@ interface PaintingFormProps {
   // show which rule a painting already falls under instead of a blank field.
   discountRules?: DiscountRule[];
   isNew?: boolean;
+  // Price agreed in Admin → Inquiries for this painting (sold through the
+  // website) — then that is the sale price and none is asked for here.
+  agreedSalePrice?: number | null;
+  // The Paintings list URL (page + filters) to return to after save/cancel.
+  backHref?: string;
 }
 
 // Numeric fields are kept as strings while editing: a controlled
@@ -57,6 +62,8 @@ export default function PaintingForm({
   categories: initialCategories,
   discountRules = [],
   isNew = false,
+  agreedSalePrice = null,
+  backHref = '/admin/paintings',
 }: PaintingFormProps) {
   const router = useRouter();
 
@@ -182,6 +189,11 @@ export default function PaintingForm({
 
   // Toggles
   const [isSold, setIsSold] = useState(initialData?.is_sold || false);
+  // What it actually sold for (internal; the site keeps the listed price).
+  const [soldPrice, setSoldPrice] = useState<string>(
+    initialData?.sold_price != null ? String(initialData.sold_price) : ''
+  );
+  const needsSoldPrice = isSold && agreedSalePrice == null;
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured !== undefined ? initialData.is_featured : true);
 
   // AI writer: drafts title + description (UZ/EN/RU) from the first photo
@@ -504,6 +516,11 @@ export default function PaintingForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (needsSoldPrice && !soldPrice.trim()) {
+      setMessage("Sotilgan narxni yozing yoki \"Asl narxi\" tugmasini bosing.");
+      document.getElementById('sold-price-input')?.focus();
+      return;
+    }
     setLoading(true);
     setMessage('');
 
@@ -538,6 +555,7 @@ export default function PaintingForm({
       discount_starts_at: ownDiscount && calculatedDiscountPrice && discountStarts ? new Date(discountStarts) : null,
       discount_ends_at: ownDiscount && calculatedDiscountPrice && discountEnds ? new Date(discountEnds) : null,
       is_sold: isSold,
+      sold_price: needsSoldPrice ? soldPrice : null,
       is_featured: isFeatured,
       images: JSON.stringify(images.length > 0 ? images : [PLACEHOLDER_IMAGE]),
     };
@@ -564,7 +582,7 @@ export default function PaintingForm({
       if (data.success) {
         setMessage('Kartina muvaffaqiyatli saqlandi!');
         setTimeout(() => {
-          router.push('/admin/paintings');
+          router.push(backHref);
         }, 1000);
       } else {
         setMessage(data.error || 'Kartinani saqlashda xatolik yuz berdi.');
@@ -583,7 +601,7 @@ export default function PaintingForm({
     try {
       const res = await fetch(`/api/admin/paintings/${initialData.id}`, { method: 'DELETE' });
       if (res.ok) {
-        router.push('/admin/paintings');
+        router.push(backHref);
       } else {
         alert('O\'chirishda xatolik yuz berdi.');
       }
@@ -601,7 +619,7 @@ export default function PaintingForm({
         <div className="flex items-center justify-between pb-2 border-b border-[#E7E0D8]">
           <div className="flex items-center gap-3">
             <Link
-              href="/admin/paintings"
+              href={backHref}
               className="p-1.5 text-[#726861] hover:text-[#BA4E25] rounded hover:bg-[#FAF4EC]"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -624,7 +642,7 @@ export default function PaintingForm({
               </button>
             )}
             <Link
-              href="/admin/paintings"
+              href={backHref}
               className="px-4 py-2 border border-[#E7E0D8] bg-white text-xs font-semibold text-[#554740] rounded-[3px] hover:bg-[#FAF4EC] transition-colors"
             >
               Bekor qilish
@@ -1244,6 +1262,54 @@ export default function PaintingForm({
                   className="w-4 h-4 accent-[#BA4E25]"
                 />
               </label>
+
+              {isSold &&
+                (agreedSalePrice != null ? (
+                  <p className="text-[11px] text-[#554740] bg-[#FAF4EC] border border-[#EBE4DA] rounded-[3px] px-3 py-2">
+                    So&apos;rov orqali sotilgan — kelishilgan narx: <strong>${agreedSalePrice}</strong>. Uni Admin → So&apos;rovlar
+                    bo&apos;limida o&apos;zgartirasiz.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label htmlFor="sold-price-input" className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase">
+                      Sotilgan narx ($) *
+                    </label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <input
+                        id="sold-price-input"
+                        type="text"
+                        inputMode="decimal"
+                        value={soldPrice}
+                        onChange={(e) => setSoldPrice(decimalOnly(e.target.value))}
+                        placeholder="Masalan: 450"
+                        className={`w-28 text-xs px-3 py-2 bg-white border rounded-[3px] focus:outline-none focus:border-[#BA4E25] ${
+                          !soldPrice.trim() ? 'border-[#F59E0B]' : 'border-[#E7E0D8]'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSoldPrice(numPrice > 0 ? String(numPrice) : '')}
+                        disabled={numPrice <= 0}
+                        className="px-2.5 py-2 text-[11px] font-semibold rounded-[3px] border border-[#E7E0D8] bg-white text-[#554740] hover:border-[#BA4E25] disabled:opacity-50"
+                      >
+                        Asl narxi (${numPrice})
+                      </button>
+                      {calculatedDiscountPrice != null && (
+                        <button
+                          type="button"
+                          onClick={() => setSoldPrice(String(calculatedDiscountPrice))}
+                          className="px-2.5 py-2 text-[11px] font-semibold rounded-[3px] border border-[#E7E0D8] bg-white text-[#554740] hover:border-[#BA4E25]"
+                        >
+                          Chegirmali (${calculatedDiscountPrice})
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-[#8F8178]">
+                      Saytdan tashqari sotgan bo&apos;lsangiz, haqiqiy summani yozing. Faqat savdo hisobi uchun — saytda asl narx
+                      ko&apos;rinishda qoladi.
+                    </p>
+                  </div>
+                ))}
 
               <label className="flex items-center justify-between cursor-pointer pt-3 border-t border-[#E7E0D8]">
                 <div>

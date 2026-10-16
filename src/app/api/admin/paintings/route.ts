@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { parseSoldPrice } from '@/lib/salePriceInput';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
       discount_starts_at,
       discount_ends_at,
       is_sold,
+      sold_price,
       is_featured,
       images,
       artist_id,
@@ -69,6 +71,8 @@ export async function POST(request: Request) {
         discount_starts_at: discount_starts_at ? new Date(discount_starts_at) : null,
         discount_ends_at: discount_ends_at ? new Date(discount_ends_at) : null,
         is_sold: Boolean(is_sold),
+        sold_at: is_sold ? new Date() : null,
+        sold_price: is_sold ? parseSoldPrice(sold_price) : null,
         is_featured: Boolean(is_featured),
         images: images || JSON.stringify(['/assets/p-arch.svg']),
         artist_id,

@@ -32,3 +32,26 @@ export async function getAgreedPriceByPainting(paintingIds: string[]): Promise<M
   }
   return result;
 }
+
+// What each sold painting actually brought in, for revenue stats and the
+// Paintings list:
+// 1. the price agreed in an inquiry (getAgreedPriceByPainting) — a sale made
+//    through the website keeps working exactly as before;
+// 2. otherwise Painting.sold_price, typed in the Paintings form when it was
+//    marked sold (the "Asl narxi" button fills the listed price; a sale made
+//    outside the website gets its real amount).
+// Paintings with neither are left out — callers fall back to the price.
+export async function getSalePriceByPainting(paintingIds: string[]): Promise<Map<string, number>> {
+  if (paintingIds.length === 0) return new Map();
+  const [own, agreed] = await Promise.all([
+    prisma.painting.findMany({
+      where: { id: { in: paintingIds }, sold_price: { not: null } },
+      select: { id: true, sold_price: true },
+    }),
+    getAgreedPriceByPainting(paintingIds),
+  ]);
+  const result = new Map<string, number>();
+  for (const p of own) if (p.sold_price != null) result.set(p.id, p.sold_price);
+  for (const [id, price] of agreed) result.set(id, price);
+  return result;
+}

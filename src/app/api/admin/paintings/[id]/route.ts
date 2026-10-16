@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { parseSoldPrice } from '@/lib/salePriceInput';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ export async function GET(request: Request, context: RouteContext) {
         artist: true,
         category: true,
       },
+      omit: { sold_price: false },
     });
 
     if (!painting) {
@@ -74,6 +76,8 @@ export async function PUT(request: Request, context: RouteContext) {
         discount_ends_at: body.discount_ends_at ? new Date(body.discount_ends_at) : null,
         is_sold: nextIsSold,
         sold_at: nextSoldAt,
+        // Only kept while sold; un-selling clears it.
+        sold_price: nextIsSold ? parseSoldPrice(body.sold_price) : null,
         is_featured: Boolean(body.is_featured),
         images: body.images || undefined,
         artist_id: body.artist_id,
@@ -119,7 +123,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const updated = await prisma.painting.update({
       where: { id },
-      data: { is_sold: body.is_sold, sold_at: nextSoldAt },
+      // Un-selling clears the recorded sale price; marking sold from an
+      // inquiry leaves it alone (that sale's price lives on the inquiry).
+      data: { is_sold: body.is_sold, sold_at: nextSoldAt, ...(!body.is_sold && { sold_price: null }) },
     });
 
     return NextResponse.json({ success: true, painting: updated });

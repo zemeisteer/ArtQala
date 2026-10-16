@@ -7,6 +7,7 @@ import { Plus, Search, Pencil, Trash2, Palette } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
 import Pagination from '@/components/Pagination';
 import { mainImage } from '@/lib/paintingImages';
+import { listUrl, type PaintingsListQuery } from './listQuery';
 
 const PAGE_SIZE = 15;
 
@@ -14,18 +15,35 @@ interface AdminPaintingsClientProps {
   initialPaintings: any[];
   categories: any[];
   artists: any[];
+  initialQuery: PaintingsListQuery;
 }
 
 export default function AdminPaintingsClient({
   initialPaintings,
   categories,
   artists,
+  initialQuery,
 }: AdminPaintingsClientProps) {
   const [paintings, setPaintings] = useState(initialPaintings);
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [artistFilter, setArtistFilter] = useState('ALL');
-  const [page, setPage] = useState(1);
+  // Page, search and filters start from the URL (see listQuery.ts), so
+  // coming back from editing a painting lands on the same page.
+  const [search, setSearchState] = useState(initialQuery.q);
+  const [categoryFilter, setCategoryState] = useState(initialQuery.category);
+  const [artistFilter, setArtistState] = useState(initialQuery.artist);
+  const [page, setPage] = useState(initialQuery.page);
+  // Changing the search or a filter starts again from page 1.
+  const setSearch = (v: string) => {
+    setSearchState(v);
+    setPage(1);
+  };
+  const setCategoryFilter = (v: string) => {
+    setCategoryState(v);
+    setPage(1);
+  };
+  const setArtistFilter = (v: string) => {
+    setArtistState(v);
+    setPage(1);
+  };
 
   // The filter dropdown only lists product types (ota kategoriya) — a
   // painting's own category can be a theme underneath one, so matching
@@ -85,12 +103,16 @@ export default function AdminPaintingsClient({
     });
   }, [paintings, search, categoryFilter, artistFilter]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [search, categoryFilter, artistFilter]);
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
+
+  // Mirror the list state into the address bar (no navigation), and hand
+  // it to the edit/new pages as ?back= so they return here.
+  const currentListUrl = listUrl({ page: safePage, q: search, category: categoryFilter, artist: artistFilter });
+  useEffect(() => {
+    window.history.replaceState(window.history.state, '', currentListUrl);
+  }, [currentListUrl]);
+  const withBack = (href: string) => `${href}?back=${encodeURIComponent(currentListUrl)}`;
   const paged = useMemo(
     () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
     [filtered, safePage]
@@ -128,7 +150,7 @@ export default function AdminPaintingsClient({
           </p>
         </div>
         <Link
-          href="/admin/paintings/new"
+          href={withBack('/admin/paintings/new')}
           className="inline-flex items-center gap-2 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-xs px-4 py-2.5 rounded-[3px] transition-all shadow-xs self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
@@ -244,10 +266,12 @@ export default function AdminPaintingsClient({
                           <span className="bg-[#E7DFD9] text-[#7A6B62] text-[10.5px] font-bold px-2.5 py-0.5 rounded-full self-start">
                             Sold
                           </span>
-                          {p.inquiries?.[0]?.final_price != null && (
+                          {p.sale_price != null ? (
                             <span className="text-[10.5px] text-[#8F7E73]">
-                              Sotilgan narx: <strong className="text-[#281C18]">${p.inquiries[0].final_price}</strong>
+                              Sotilgan narx: <strong className="text-[#281C18]">${p.sale_price}</strong>
                             </span>
+                          ) : (
+                            <span className="text-[10.5px] text-[#B45309]">Sotilgan narx yozilmagan</span>
                           )}
                         </div>
                       ) : (
@@ -259,7 +283,7 @@ export default function AdminPaintingsClient({
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link
-                          href={`/admin/paintings/${p.id}`}
+                          href={withBack(`/admin/paintings/${p.id}`)}
                           className="p-1.5 text-[#554740] hover:text-[#BA4E25] transition-colors rounded hover:bg-[#FAF4EC]"
                           title="Edit painting"
                         >

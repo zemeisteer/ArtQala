@@ -26,6 +26,11 @@ model Painting {
   discount_ends_at   DateTime?
   is_sold            Boolean   @default(false)
   sold_at            DateTime?
+  // What the painting actually sold for (USD) — entered in the Paintings
+  // form when it's marked sold (e.g. a sale made outside the website).
+  // Internal only: hidden from every query by default (see src/lib/prisma.ts
+  // omit) so it never reaches the public site, where the listed price stays.
+  sold_price         Float?
   is_featured        Boolean   @default(false)
   images             String // JSON array of image URLs/paths
   views_count        Int       @default(0)
