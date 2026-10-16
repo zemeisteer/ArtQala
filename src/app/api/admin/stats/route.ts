@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { getAgreedPriceByPainting } from '@/lib/salePrices';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,23 +91,9 @@ export async function GET(request: Request) {
       },
     });
 
-    // A curator-agreed final_price (set on the winning inquiry) overrides the
-    // painting's list/discount price for revenue purposes — it's the actual
-    // negotiated sale amount, not just whatever the listing showed.
-    const finalPriceByPainting = new Map<string, number>();
-    if (soldPaintings.length > 0) {
-      const soldPaintingIds = soldPaintings.map((p) => p.id);
-      const inquiriesWithFinalPrice = await prisma.inquiry.findMany({
-        where: { painting_id: { in: soldPaintingIds }, final_price: { not: null } },
-        select: { painting_id: true, final_price: true, updated_at: true },
-        orderBy: { updated_at: 'desc' },
-      });
-      for (const inq of inquiriesWithFinalPrice) {
-        if (!finalPriceByPainting.has(inq.painting_id) && inq.final_price != null) {
-          finalPriceByPainting.set(inq.painting_id, inq.final_price);
-        }
-      }
-    }
+    // A curator-agreed sale price (entered per painting in Admin → Inquiries)
+    // overrides the painting's list/discount price for revenue purposes.
+    const finalPriceByPainting = await getAgreedPriceByPainting(soldPaintings.map((p) => p.id));
 
     const effectivePrice = (p: { id: string; price: number; discount_price: number | null }) =>
       finalPriceByPainting.get(p.id) ?? (p.discount_price || p.price);

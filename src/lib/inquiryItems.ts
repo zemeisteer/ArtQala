@@ -56,12 +56,14 @@ interface InquiryItemLike {
   price: number;
   selected_accessories?: string | null;
   position?: number;
+  final_price?: number | null;
 }
 
 export interface InquiryLike {
   painting_id: string;
   painting?: PaintingLike | null;
   selected_accessories?: string | null;
+  final_price?: number | null;
   items?: InquiryItemLike[] | null;
 }
 
@@ -77,6 +79,8 @@ export interface InquiryLine {
   accessories: AccessorySnapshot[];
   accessoriesTotal: number;
   lineTotal: number;
+  // What this painting actually sold for (curator-entered), if agreed.
+  finalPrice: number | null;
 }
 
 export function isGroupedInquiry(inq: InquiryLike): boolean {
@@ -101,6 +105,7 @@ export function inquiryLines(inq: InquiryLike): InquiryLine[] {
           accessories,
           accessoriesTotal,
           lineTotal: it.price + accessoriesTotal,
+          finalPrice: it.final_price ?? null,
         };
       });
   }
@@ -120,6 +125,7 @@ export function inquiryLines(inq: InquiryLike): InquiryLine[] {
       accessories,
       accessoriesTotal,
       lineTotal: price + accessoriesTotal,
+      finalPrice: inq.final_price ?? null,
     },
   ];
 }
@@ -134,10 +140,25 @@ export function inquiryTotal(inq: InquiryLike): number {
   return Math.round((lines + sumAccessories(sharedAccessories(inq))) * 100) / 100;
 }
 
+// Sum of the per-painting agreed prices of a multi-painting inquiry (null
+// until at least one is entered).
+export function agreedTotal(inq: InquiryLike): number | null {
+  const prices = inquiryLines(inq)
+    .map((l) => l.finalPrice)
+    .filter((p): p is number => p != null);
+  return prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) * 100) / 100 : null;
+}
+
 // Server-side: attach the computed lines/total to inquiries before sending
 // them to a client, so every screen shows the same server-calculated total.
 export function withInquiryTotals<T extends InquiryLike>(inq: T) {
-  return { ...inq, lines: inquiryLines(inq), shared_accessories: sharedAccessories(inq), total: inquiryTotal(inq) };
+  return {
+    ...inq,
+    lines: inquiryLines(inq),
+    shared_accessories: sharedAccessories(inq),
+    total: inquiryTotal(inq),
+    agreed_total: agreedTotal(inq),
+  };
 }
 
 // "Sunset over Khiva" or "Sunset over Khiva + 3 ta kartina" — for email
