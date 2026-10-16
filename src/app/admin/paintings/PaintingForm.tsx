@@ -37,6 +37,8 @@ interface PaintingFormProps {
   // Price agreed in Admin → Inquiries for this painting (sold through the
   // website) — then that is the sale price and none is asked for here.
   agreedSalePrice?: number | null;
+  // The Paintings list URL (page + filters) to return to after save/cancel.
+  backHref?: string;
 }
 
 // Numeric fields are kept as strings while editing: a controlled
@@ -61,6 +63,7 @@ export default function PaintingForm({
   discountRules = [],
   isNew = false,
   agreedSalePrice = null,
+  backHref = '/admin/paintings',
 }: PaintingFormProps) {
   const router = useRouter();
 
@@ -579,7 +582,7 @@ export default function PaintingForm({
       if (data.success) {
         setMessage('Kartina muvaffaqiyatli saqlandi!');
         setTimeout(() => {
-          router.push('/admin/paintings');
+          router.push(backHref);
         }, 1000);
       } else {
         setMessage(data.error || 'Kartinani saqlashda xatolik yuz berdi.');
@@ -598,7 +601,7 @@ export default function PaintingForm({
     try {
       const res = await fetch(`/api/admin/paintings/${initialData.id}`, { method: 'DELETE' });
       if (res.ok) {
-        router.push('/admin/paintings');
+        router.push(backHref);
       } else {
         alert('O\'chirishda xatolik yuz berdi.');
       }
@@ -616,7 +619,7 @@ export default function PaintingForm({
         <div className="flex items-center justify-between pb-2 border-b border-[#E7E0D8]">
           <div className="flex items-center gap-3">
             <Link
-              href="/admin/paintings"
+              href={backHref}
               className="p-1.5 text-[#726861] hover:text-[#BA4E25] rounded hover:bg-[#FAF4EC]"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -639,7 +642,7 @@ export default function PaintingForm({
               </button>
             )}
             <Link
-              href="/admin/paintings"
+              href={backHref}
               className="px-4 py-2 border border-[#E7E0D8] bg-white text-xs font-semibold text-[#554740] rounded-[3px] hover:bg-[#FAF4EC] transition-colors"
             >
               Bekor qilish
