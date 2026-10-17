@@ -87,6 +87,11 @@ account's `WishlistItem` rows on sign-in and mirrors every add/remove (`/api/use
 a saved, unsold painting's visible price drops below `WishlistItem.last_seen_price`; `User.price_alerts`
 opts out (signed one-click unsubscribe link, or the toggle on the account's Saved Artworks tab).
 
+**Admin notifications** go through `src/lib/adminNotify.ts#notifyAdmin()` (plus the contact route): an email to
+`SiteSettings.email` and a Telegram message (`src/lib/telegram.ts`) to every `TelegramChat` row. The bot token is
+the `TELEGRAM_BOT_TOKEN` env var (never stored in the DB); chats are linked from Admin → Settings → Telegram via
+`getUpdates` (whoever pressed /start in the last ~24 h). `TELEGRAM_API_URL` exists only to test against a mock.
+
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
 
@@ -159,5 +164,6 @@ email links all derive from it); `www.artqala.com` 308-redirects to it at the Ve
 and `src/middleware.ts` 308-redirects the legacy `art-qala.vercel.app` host to it, which is why
 its matcher covers every route, not just `/admin`. Database is Neon Postgres —
 `DATABASE_URL` (plus `NEXTAUTH_SECRET`, `ADMIN_PASSWORD`, `RESEND_API_KEY`,
-`GEMINI_API_KEY`/`GEMINI_TEXT_MODEL`/`GEMINI_IMAGE_MODEL`, `GOOGLE_CLIENT_ID/SECRET`) live in
+`GEMINI_API_KEY`/`GEMINI_TEXT_MODEL`/`GEMINI_IMAGE_MODEL`, `GOOGLE_CLIENT_ID/SECRET`, optional
+`TELEGRAM_BOT_TOKEN`) live in
 Vercel's env vars, not `.env`. See `DEPLOYMENT.md` for the full first-time setup walkthrough.
