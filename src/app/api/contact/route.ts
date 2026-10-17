@@ -73,6 +73,7 @@ export async function POST(req: Request) {
         : Promise.resolve(null),
       sendTelegramToAdmins(
         formatAdminTelegram({
+          ref: { kind: 'contact', id: contactMessage.id },
           heading: 'Yangi xabar (Aloqa sahifasi)',
           summary: `${contactMessage.name} aloqa formasi orqali yozdi.`,
           details: [

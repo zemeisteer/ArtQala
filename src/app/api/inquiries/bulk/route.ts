@@ -229,6 +229,7 @@ export async function POST(request: Request) {
       ],
       message: trimmedMessage,
       adminPath: '/admin/inquiries',
+      ref: { kind: 'inquiry', id: inquiry.id, status: 'NEW' },
       subject: `Yangi so'rov: ${isGrouped ? `${items.length} ta kartina` : first.title_uz || first.title_en} — ${guest_name.trim()}`,
       customerEmail: normalizedEmail,
     });

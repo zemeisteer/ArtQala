@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { sendReviewRequestEmail } from '@/lib/email';
 import { SITE_URL } from '@/lib/siteUrl';
 import { runPriceAlerts } from '@/lib/priceAlerts';
+import { isTelegramConfigured, sendTelegramToAdmins } from '@/lib/telegram';
+import { buildWeeklyReport, isReportDay } from '@/lib/weeklyReport';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,5 +96,16 @@ export async function GET(request: Request) {
     priceAlerts = { error: 'failed' };
   }
 
-  return NextResponse.json({ success: true, due: due.length, sent, skipped, priceAlerts });
+  // Mondays: the weekly summary to the gallery's Telegram chats.
+  let weeklyReport: { sent: number; failed: number } | { error: string } | null = null;
+  if (isTelegramConfigured() && isReportDay()) {
+    try {
+      weeklyReport = await sendTelegramToAdmins(await buildWeeklyReport());
+    } catch (error) {
+      console.error('Weekly report failed:', error);
+      weeklyReport = { error: 'failed' };
+    }
+  }
+
+  return NextResponse.json({ success: true, due: due.length, sent, skipped, priceAlerts, weeklyReport });
 }

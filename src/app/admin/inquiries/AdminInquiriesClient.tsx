@@ -9,12 +9,16 @@ import { mainImage } from '@/lib/paintingImages';
 
 interface AdminInquiriesClientProps {
   initialInquiries: any[];
+  initialSelectedId?: string;
 }
 
-export default function AdminInquiriesClient({ initialInquiries }: AdminInquiriesClientProps) {
+export default function AdminInquiriesClient({ initialInquiries, initialSelectedId }: AdminInquiriesClientProps) {
+  // Open the inquiry a link pointed at (?open=), else the newest.
+  const initialSelected =
+    initialInquiries.find((i: any) => i.id === initialSelectedId) || initialInquiries[0];
   const { t, formatPrice } = useApp();
   const [inquiries, setInquiries] = useState(initialInquiries);
-  const [selectedId, setSelectedId] = useState(initialInquiries[0]?.id || null);
+  const [selectedId, setSelectedId] = useState(initialSelected?.id || null);
 
   // Permanently delete the selected thread (spam, test submissions) —
   // after confirming, then select the next one in the list.
@@ -42,7 +46,7 @@ export default function AdminInquiriesClient({ initialInquiries }: AdminInquirie
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [finalPrice, setFinalPrice] = useState<string>(
-    initialInquiries[0]?.final_price != null ? String(initialInquiries[0].final_price) : ''
+    initialSelected?.final_price != null ? String(initialSelected.final_price) : ''
   );
   const [savingPrice, setSavingPrice] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);

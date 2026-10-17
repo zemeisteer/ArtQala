@@ -122,6 +122,7 @@ export async function POST(request: Request) {
       ],
       message: inquiry.message ?? '',
       adminPath: '/admin/inquiries',
+      ref: { kind: 'inquiry', id: inquiry.id, status: inquiry.status },
       subject: `Yangi so'rov: ${paintingForNotice?.title_uz || paintingForNotice?.title_en || 'kartina'} — ${inquiry.guest_name}`,
       customerEmail: inquiry.guest_email,
     });

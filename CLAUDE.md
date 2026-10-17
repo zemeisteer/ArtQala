@@ -88,9 +88,14 @@ a saved, unsold painting's visible price drops below `WishlistItem.last_seen_pri
 opts out (signed one-click unsubscribe link, or the toggle on the account's Saved Artworks tab).
 
 **Admin notifications** go through `src/lib/adminNotify.ts#notifyAdmin()` (plus the contact route): an email to
-`SiteSettings.email` and a Telegram message (`src/lib/telegram.ts`) to every `TelegramChat` row. The bot token is
-the `TELEGRAM_BOT_TOKEN` env var (never stored in the DB); chats are linked from Admin → Settings → Telegram via
-`getUpdates` (whoever pressed /start in the last ~24 h). `TELEGRAM_API_URL` exists only to test against a mock.
+`SiteSettings.email` and a Telegram message (`src/lib/telegram.ts`) to every `TelegramChat` row, carrying a `ref`
+(inquiry/service/contact id) so the message gets status buttons and an `…/admin/…?open=<id>` link. The bot token
+is the `TELEGRAM_BOT_TOKEN` env var (never stored in the DB). Telegram calls back through
+`/api/telegram/webhook` (secret header = `webhookSecret()`); a chat is linked ONLY via `/start <code>` from the
+signed 15-minute link made in Admin → Settings → Telegram (never "whoever wrote to the bot"). A linked chat's
+Reply to a notification posts a curator reply via `src/lib/threads.ts` (shared with the site's own reply
+routes); buttons call `setInquiryStatus`/`setServiceRequestStatus`; Mondays the daily cron sends
+`src/lib/weeklyReport.ts` (also `/hisobot`). `TELEGRAM_API_URL` exists only to test against a mock.
 
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
