@@ -18,12 +18,15 @@ interface ContactMessageItem {
 
 export default function AdminMessagesClient({
   initialMessages,
+  initialSelectedId,
 }: {
   initialMessages: ContactMessageItem[];
+  initialSelectedId?: string;
 }) {
   const [messages, setMessages] = useState<ContactMessageItem[]>(initialMessages);
+  // Open the message a link pointed at (?open=), else the newest.
   const [selectedId, setSelectedId] = useState<string | null>(
-    initialMessages[0]?.id || null
+    (initialMessages.find((m) => m.id === initialSelectedId) || initialMessages[0])?.id || null
   );
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);

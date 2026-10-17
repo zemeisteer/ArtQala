@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
-import { sendContactReplyEmail } from '@/lib/email';
+import { replyToContactMessage } from '@/lib/threads';
 
 export async function DELETE(
   req: Request,
@@ -55,31 +55,11 @@ export async function PATCH(
     // everything else (marking read/unread, admin manually setting status)
     // is a plain field update.
     if (typeof body.admin_reply === 'string' && body.admin_reply.trim()) {
-      const existing = await prisma.contactMessage.findUnique({ where: { id } });
-      if (!existing) {
-        return NextResponse.json({ success: false, error: 'Message not found' }, { status: 404 });
+      const result = await replyToContactMessage(id, body.admin_reply);
+      if (!result.ok) {
+        return NextResponse.json({ success: false, error: result.error }, { status: result.status });
       }
-
-      const updated = await prisma.contactMessage.update({
-        where: { id },
-        data: {
-          admin_reply: body.admin_reply.trim(),
-          status: 'ANSWERED',
-          is_read: true,
-        },
-      });
-
-      const emailResult = await sendContactReplyEmail(
-        existing.email,
-        existing.name,
-        existing.subject,
-        body.admin_reply.trim()
-      );
-      if (!emailResult.success) {
-        console.warn('Contact reply saved but email delivery failed:', emailResult.error);
-      }
-
-      return NextResponse.json({ success: true, message: updated, emailSent: emailResult.success });
+      return NextResponse.json({ success: true, message: result.updated, emailSent: result.emailSent });
     }
 
     const updated = await prisma.contactMessage.update({

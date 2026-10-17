@@ -1,8 +1,12 @@
 import { prisma } from './prisma';
 import { sendAdminActivityNotification } from './email';
-import { formatAdminTelegram, sendTelegramToAdmins } from './telegram';
+import { formatAdminTelegram, sendTelegramToAdmins, statusKeyboard, type NoticeRef } from './telegram';
 
-type NotifyParams = Omit<Parameters<typeof sendAdminActivityNotification>[0], 'adminEmail'>;
+type NotifyParams = Omit<Parameters<typeof sendAdminActivityNotification>[0], 'adminEmail'> & {
+  // Which record this is about — gives the Telegram message status buttons
+  // and lets a curator reply to the customer from Telegram.
+  ref?: NoticeRef;
+};
 
 // Tells the gallery about new customer activity: an email to its inbox (the
 // Email field in Admin → Settings, skipped when empty) and a Telegram
@@ -10,7 +14,7 @@ type NotifyParams = Omit<Parameters<typeof sendAdminActivityNotification>[0], 'a
 // throws — a failed notification must not fail the customer's request,
 // which is already saved and visible in the admin panel. Callers should
 // await it: a Vercel function can be frozen as soon as the response is sent.
-export async function notifyAdmin(params: NotifyParams): Promise<void> {
+export async function notifyAdmin({ ref, ...params }: NotifyParams): Promise<void> {
   await Promise.all([
     (async () => {
       try {
@@ -27,7 +31,7 @@ export async function notifyAdmin(params: NotifyParams): Promise<void> {
         console.error('Admin notification error:', error);
       }
     })(),
-    sendTelegramToAdmins(formatAdminTelegram(params)).catch((error) => {
+    sendTelegramToAdmins(formatAdminTelegram({ ...params, ref }), ref && statusKeyboard(ref)).catch((error) => {
       console.error('Telegram notification error:', error);
     }),
   ]);

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
-import { sendCuratorReplyNotification, sendReviewRequestEmail } from '@/lib/email';
+import { sendCuratorReplyNotification } from '@/lib/email';
+import { sendReviewRequestForInquiry } from '@/lib/threads';
 import { inquiryItemsInclude, inquiryTitleEn, parseAccessories, withInquiryTotals } from '@/lib/inquiryItems';
 
 export const dynamic = 'force-dynamic';
@@ -152,17 +153,7 @@ export async function PUT(request: Request, context: RouteContext) {
     // painting was marked sold from this inquiry): thank the buyer and ask
     // for a review. Only on that transition, so re-saving never re-sends.
     if (justCompleted) {
-      const buyerEmail = existingInquiry.guest_email || existingInquiry.user?.email;
-      if (buyerEmail) {
-        const siteUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-        await sendReviewRequestEmail({
-          to: buyerEmail,
-          recipientName: existingInquiry.guest_name || existingInquiry.user?.name || '',
-          paintingTitle: inquiryTitleEn(existingInquiry),
-          paintingUrl: `${siteUrl}/gallery/${existingInquiry.painting_id}#reviews`,
-          signupUrl: `${siteUrl}/signup`,
-        }).catch((err) => console.error('Failed to send review request email:', err));
-      }
+      await sendReviewRequestForInquiry(existingInquiry);
     }
 
     return NextResponse.json({ success: true, inquiry: withInquiryTotals(updated) });

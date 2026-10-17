@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
-import { FROM_EMAIL, escapeHtml, getGalleryReplyTo } from '@/lib/email';
-import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
+import { addServiceRequestMessage } from '@/lib/threads';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -65,127 +64,23 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ success: false, error: 'Message content is required' }, { status: 400 });
     }
 
-    const existingSR = await prisma.serviceRequest.findUnique({
-      where: { id },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-      },
-    });
-
-    if (!existingSR) {
+    // Ownership is checked here; the thread logic (emails, admin
+    // notification) is shared with the Telegram bot (src/lib/threads.ts).
+    const owner = await prisma.serviceRequest.findUnique({ where: { id }, select: { user_id: true, guest_contact: true } });
+    if (!owner) {
       return NextResponse.json({ success: false, error: 'Service request not found' }, { status: 404 });
     }
-
     const isAdmin = session.role === 'ADMIN';
-    if (!isAdmin && !ownsServiceRequest(existingSR, session.id, session.email)) {
+    if (!isAdmin && !ownsServiceRequest(owner, session.id, session.email)) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     // Never trust a client-supplied sender — derive it from the verified session.
-    const effectiveSender = isAdmin ? 'ADMIN' : 'CUSTOMER';
-    const newStatus = (isAdmin && status) || existingSR.status;
-
-    const [newMessage, updatedSR] = await prisma.$transaction([
-      prisma.serviceRequestMessage.create({
-        data: {
-          service_request_id: id,
-          sender: effectiveSender,
-          message: message.trim(),
-          is_read: false,
-        },
-      }),
-      prisma.serviceRequest.update({
-        where: { id },
-        data: {
-          status: newStatus,
-          admin_notes: effectiveSender === 'ADMIN' ? message.trim() : existingSR.admin_notes,
-        },
-      }),
-    ]);
-
-    // If ADMIN sent message and recipient has email
-    if (effectiveSender === 'ADMIN') {
-      let recipientEmail = existingSR.user?.email;
-      if (!recipientEmail && existingSR.guest_contact && existingSR.guest_contact.includes('@')) {
-        const match = existingSR.guest_contact.match(/[\w.-]+@[\w.-]+\.\w+/);
-        if (match) recipientEmail = match[0];
-      }
-
-      const recipientName = existingSR.guest_name || 'Valued Customer';
-      const serviceType = existingSR.service_type;
-
-      if (recipientEmail) {
-        const emailHtml = `
-          <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 28px; border: 1px solid #E7E0D8; background-color: #FAF4EC; color: #281C18; border-radius: 4px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h2 style="color: #BA4E25; margin: 0; font-size: 26px; letter-spacing: 1px;">Art Qala Gallery</h2>
-              <p style="font-size: 11px; color: #726861; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px;">Studio & Commissions · Tashkent</p>
-            </div>
-            <hr style="border: 0; border-top: 1px solid #E7E0D8; margin: 20px 0;" />
-            <p style="font-size: 15px; margin-bottom: 12px;">Assalomu alaykum, ${escapeHtml(recipientName)},</p>
-            <p style="font-size: 14px; line-height: 1.6; color: #554740;">
-              Sizning <strong>${escapeHtml(serviceType)}</strong> xizmati bo'yicha so'rovingizga Art Qala kuratoridan yangi javob keldi:
-            </p>
-            <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 16px 20px; margin: 20px 0; font-size: 14px; line-height: 1.6; color: #281C18; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              "${escapeHtml(message.trim())}"
-            </div>
-            <div style="text-align: center; margin: 28px 0;">
-              <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/account" style="background-color: #BA4E25; color: #FFFFFF; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: bold; border-radius: 3px; display: inline-block;">
-                Suhbatni ko'rish va javob yozish
-              </a>
-            </div>
-            <hr style="border: 0; border-top: 1px solid #E7E0D8; margin: 24px 0 16px 0;" />
-            <p style="font-size: 11px; color: #8F8178; text-align: center; margin: 0;">
-              Art Qala Gallery & Studio · Barakhon Madrasah, Tashkent · artqala.com
-            </p>
-          </div>
-        `;
-
-        if (process.env.RESEND_API_KEY) {
-          try {
-            const galleryReplyTo = await getGalleryReplyTo();
-            await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              },
-              body: JSON.stringify({
-                from: FROM_EMAIL,
-                // Customer's "Reply" goes to the gallery inbox, not no-reply.
-                ...(galleryReplyTo && { reply_to: galleryReplyTo }),
-                to: [recipientEmail],
-                subject: `Art Qala — Sizning xizmat so'rovingizga javob keldi (${serviceType})`,
-                html: emailHtml,
-              }),
-            });
-            console.log(`[Resend] Service reply email sent to ${recipientEmail}`);
-          } catch (mailErr) {
-            console.error('[Resend Error]', mailErr);
-          }
-        } else {
-          console.log(`[Resend Mock - No RESEND_API_KEY configured] Service notification simulated for ${recipientEmail}: "${message.trim()}"`);
-        }
-      }
+    const result = await addServiceRequestMessage({ id, sender: isAdmin ? 'ADMIN' : 'CUSTOMER', message, status });
+    if (!result.ok) {
+      return NextResponse.json({ success: false, error: result.error }, { status: result.status });
     }
-
-    // A customer's follow-up in the thread — let the curator know by email.
-    if (effectiveSender === 'CUSTOMER') {
-      const customerName = existingSR.guest_name || existingSR.user?.name || 'Mijoz';
-      await notifyAdmin({
-        heading: "Xizmat so'roviga yangi xabar",
-        summary: `${customerName} xizmat so'rovi bo'yicha yangi xabar yozdi.`,
-        details: [
-          ['Xizmat', existingSR.service_type],
-          ['Ism', customerName],
-          ['Aloqa', existingSR.guest_contact || existingSR.user?.email],
-        ],
-        message: message.trim(),
-        adminPath: '/admin/services',
-        subject: `Yangi xabar: ${existingSR.service_type} — ${customerName}`,
-        customerEmail: emailOrNull(existingSR.guest_contact) || emailOrNull(existingSR.user?.email),
-      });
-    }
+    const { newMessage, updatedSR } = result;
 
     return NextResponse.json({
       success: true,

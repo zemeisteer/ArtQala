@@ -90,6 +90,7 @@ export async function POST(request: Request) {
       ],
       message: serviceRequest.description ?? '',
       adminPath: '/admin/services',
+      ref: { kind: 'service', id: serviceRequest.id, status: serviceRequest.status },
       subject: `Yangi xizmat so'rovi: ${serviceRequest.service_type} — ${serviceRequest.guest_name}`,
       customerEmail: emailOrNull(serviceRequest.guest_contact) || session?.email || null,
     });

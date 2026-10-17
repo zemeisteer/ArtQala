@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
-import { FROM_EMAIL, escapeHtml, getGalleryReplyTo } from '@/lib/email';
-import { notifyAdmin, emailOrNull } from '@/lib/adminNotify';
-import { inquiryItemsInclude, inquiryLines, inquiryTitleUz } from '@/lib/inquiryItems';
+import { addInquiryMessage } from '@/lib/threads';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -77,146 +75,23 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ success: false, error: 'Message content is required' }, { status: 400 });
     }
 
-    const existingInquiry = await prisma.inquiry.findUnique({
-      where: { id },
-      include: {
-        painting: true,
-        user: { select: { id: true, name: true, email: true } },
-        items: inquiryItemsInclude,
-      },
-    });
-
-    if (!existingInquiry) {
+    // Ownership is checked here; the thread logic itself (status, emails,
+    // admin notification) is shared with the Telegram bot (src/lib/threads.ts).
+    const owner = await prisma.inquiry.findUnique({ where: { id }, select: { user_id: true, guest_email: true } });
+    if (!owner) {
       return NextResponse.json({ success: false, error: 'Inquiry not found' }, { status: 404 });
     }
-
     const isAdmin = session.role === 'ADMIN';
-    if (!isAdmin && !ownsInquiry(existingInquiry, session.id, session.email)) {
+    if (!isAdmin && !ownsInquiry(owner, session.id, session.email)) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     // Never trust a client-supplied sender — derive it from the verified session.
-    const effectiveSender = isAdmin ? 'ADMIN' : 'CUSTOMER';
-
-    // Determine new status — only an admin may set an explicit status override.
-    const statusOverride = isAdmin ? status : undefined;
-    let newStatus = statusOverride || existingInquiry.status;
-    if (!statusOverride) {
-      if (effectiveSender === 'ADMIN') {
-        newStatus = 'ANSWERED';
-      } else if (existingInquiry.status === 'ANSWERED' || existingInquiry.status === 'COMPLETED') {
-        newStatus = 'IN_PROGRESS';
-      }
+    const result = await addInquiryMessage({ id, sender: isAdmin ? 'ADMIN' : 'CUSTOMER', message, status });
+    if (!result.ok) {
+      return NextResponse.json({ success: false, error: result.error }, { status: result.status });
     }
-
-    // Create the message and update inquiry in transaction
-    const [newMessage, updatedInquiry] = await prisma.$transaction([
-      prisma.inquiryMessage.create({
-        data: {
-          inquiry_id: id,
-          sender: effectiveSender,
-          message: message.trim(),
-          is_read: false,
-        },
-      }),
-      prisma.inquiry.update({
-        where: { id },
-        data: {
-          status: newStatus,
-          admin_reply: effectiveSender === 'ADMIN' ? message.trim() : existingInquiry.admin_reply,
-        },
-      }),
-    ]);
-
-    // If ADMIN sent the message, dispatch Resend email notification to the customer
-    if (effectiveSender === 'ADMIN') {
-      const recipientEmail = existingInquiry.guest_email || existingInquiry.user?.email;
-      const recipientName = existingInquiry.guest_name || existingInquiry.user?.name || 'Valued Art Lover';
-      const lines = inquiryLines(existingInquiry);
-      const paintingTitle = inquiryTitleUz(existingInquiry);
-      // "X" kartinasi — or, for a multi-painting inquiry, 3 ta kartina ("X", "Y", "Z").
-      const aboutHtml =
-        lines.length > 1
-          ? `<strong>${lines.length} ta kartina</strong> (${lines.map((l) => `"${escapeHtml(l.title_uz || l.title_en)}"`).join(', ')})`
-          : `<strong>"${escapeHtml(lines[0]?.title_uz || lines[0]?.title_en || 'Artwork')}"</strong> kartinasi`;
-
-      if (recipientEmail) {
-        const emailHtml = `
-          <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 28px; border: 1px solid #E7E0D8; background-color: #FAF4EC; color: #281C18; border-radius: 4px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h2 style="color: #BA4E25; margin: 0; font-size: 26px; letter-spacing: 1px;">Art Qala Gallery</h2>
-              <p style="font-size: 11px; color: #726861; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px;">Tashkent · Uzbekistan</p>
-            </div>
-            <hr style="border: 0; border-top: 1px solid #E7E0D8; margin: 20px 0;" />
-            <p style="font-size: 15px; margin-bottom: 12px;">Assalomu alaykum, ${escapeHtml(recipientName)},</p>
-            <p style="font-size: 14px; line-height: 1.6; color: #554740;">
-              Art Qala galereyasi kuratori sizning ${aboutHtml} bo'yicha so'rovingizga javob qoldirdi:
-            </p>
-            <div style="background-color: #FFFFFF; border-left: 4px solid #BA4E25; padding: 16px 20px; margin: 20px 0; font-size: 14px; line-height: 1.6; color: #281C18; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              "${escapeHtml(message.trim())}"
-            </div>
-            <div style="text-align: center; margin: 28px 0;">
-              <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/account" style="background-color: #BA4E25; color: #FFFFFF; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: bold; border-radius: 3px; display: inline-block;">
-                Suhbatni ko'rish va javob yozish
-              </a>
-            </div>
-            <p style="font-size: 12px; color: #726861; line-height: 1.5;">
-              Siz o'z shaxsiy kabinetingiz orqali kurator bilan chat tarzida to'g'ridan-to'g'ri yozishishda davom etishingiz mumkin.
-            </p>
-            <hr style="border: 0; border-top: 1px solid #E7E0D8; margin: 24px 0 16px 0;" />
-            <p style="font-size: 11px; color: #8F8178; text-align: center; margin: 0;">
-              Art Qala Gallery · Barakhon Madrasah, Tashkent · artqala.com
-            </p>
-          </div>
-        `;
-
-        if (process.env.RESEND_API_KEY) {
-          try {
-            const galleryReplyTo = await getGalleryReplyTo();
-            await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              },
-              body: JSON.stringify({
-                from: FROM_EMAIL,
-                // Customer's "Reply" goes to the gallery inbox, not no-reply.
-                ...(galleryReplyTo && { reply_to: galleryReplyTo }),
-                to: [recipientEmail],
-                subject: `Art Qala — Sizning so'rovingizga javob keldi ("${paintingTitle}")`,
-                html: emailHtml,
-              }),
-            });
-            console.log(`[Resend] Reply email successfully sent to ${recipientEmail}`);
-          } catch (mailErr) {
-            console.error('[Resend Error]', mailErr);
-          }
-        } else {
-          console.log(`[Resend Mock - No RESEND_API_KEY configured] Notification sent to ${recipientEmail}: "${message.trim()}"`);
-        }
-      }
-    }
-
-    // A customer's follow-up in the thread — let the curator know by email
-    // instead of relying on someone checking the admin panel.
-    if (effectiveSender === 'CUSTOMER') {
-      const customerName = existingInquiry.guest_name || existingInquiry.user?.name || 'Mijoz';
-      const paintingTitle = inquiryTitleUz(existingInquiry);
-      await notifyAdmin({
-        heading: "So'rovga yangi xabar",
-        summary: `${customerName} so'rov bo'yicha yangi xabar yozdi.`,
-        details: [
-          ['Kartina', paintingTitle],
-          ['Ism', customerName],
-          ['Email', existingInquiry.guest_email || existingInquiry.user?.email],
-        ],
-        message: message.trim(),
-        adminPath: '/admin/inquiries',
-        subject: `Yangi xabar: ${paintingTitle || "so'rov"} — ${customerName}`,
-        customerEmail: emailOrNull(existingInquiry.guest_email || existingInquiry.user?.email),
-      });
-    }
+    const { newMessage, updatedInquiry } = result;
 
     return NextResponse.json({
       success: true,
