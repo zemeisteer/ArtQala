@@ -179,8 +179,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Signed in: keep the account's wishlist (server) in step with this
+  // browser's, so it follows the user to other devices and the daily
+  // price-drop check (src/lib/priceAlerts.ts) knows what they saved. On
+  // sign-in the two lists are merged.
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/user/wishlist?ids=1');
+        const data = await res.json();
+        if (cancelled || !Array.isArray(data.ids)) return;
+        const serverIds: string[] = data.ids;
+        let local: string[] = [];
+        try {
+          const parsed = JSON.parse(localStorage.getItem('artqala_wishlist') || '[]');
+          if (Array.isArray(parsed)) local = parsed.filter((x): x is string => typeof x === 'string');
+        } catch {
+          // ignore
+        }
+        const merged = Array.from(new Set([...local, ...serverIds]));
+        setWishlist(merged);
+        localStorage.setItem('artqala_wishlist', JSON.stringify(merged));
+        const missing = local.filter((id) => !serverIds.includes(id));
+        if (missing.length > 0) {
+          await fetch('/api/user/wishlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paintingIds: missing }),
+          });
+        }
+      } catch {
+        // offline etc. — the local wishlist still works
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   const toggleWishlist = (id: string) => {
-    trackEvent(wishlist.includes(id) ? 'remove_from_wishlist' : 'add_to_wishlist', { item_id: id });
+    const removing = wishlist.includes(id);
+    trackEvent(removing ? 'remove_from_wishlist' : 'add_to_wishlist', { item_id: id });
+    if (userId) {
+      fetch('/api/user/wishlist', {
+        method: removing ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(removing ? { paintingId: id } : { paintingIds: [id] }),
+      }).catch(() => {});
+    }
     setWishlist((prev) => {
       const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
       if (typeof window !== 'undefined') {

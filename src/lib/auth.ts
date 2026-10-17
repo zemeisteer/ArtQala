@@ -28,6 +28,12 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
 const SECRET = process.env.NEXTAUTH_SECRET || 'artqala-fallback-secret-2026-tashkent';
 
 // Create a cryptographically signed session token: base64(payload) + "." + hmac_sha256(payload, secret)
+// A short HMAC of a value with the session secret — for links that must
+// prove they came from us without a login (e.g. email unsubscribe links).
+export function signValue(value: string): string {
+  return crypto.createHmac('sha256', SECRET).update(`v1:${value}`).digest('hex').slice(0, 32);
+}
+
 export function createSessionToken(user: UserSession): string {
   const payloadStr = JSON.stringify({
     ...user,

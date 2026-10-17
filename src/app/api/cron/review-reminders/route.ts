@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendReviewRequestEmail } from '@/lib/email';
 import { SITE_URL } from '@/lib/siteUrl';
+import { runPriceAlerts } from '@/lib/priceAlerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,5 +83,16 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.json({ success: true, due: due.length, sent, skipped });
+  // The same daily cron also sends wishlist price-drop emails (one cron
+  // job for both keeps within the Vercel plan's cron limit). A failure
+  // there must not hide the review-reminder result above.
+  let priceAlerts: Awaited<ReturnType<typeof runPriceAlerts>> | { error: string };
+  try {
+    priceAlerts = await runPriceAlerts();
+  } catch (error) {
+    console.error('Price alerts failed:', error);
+    priceAlerts = { error: 'failed' };
+  }
+
+  return NextResponse.json({ success: true, due: due.length, sent, skipped, priceAlerts });
 }

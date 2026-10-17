@@ -40,9 +40,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
 
   try {
-    const paintings = await prisma.painting.findMany({
-      select: { id: true, updated_at: true },
-    });
+    const [paintings, artists] = await Promise.all([
+      prisma.painting.findMany({ select: { id: true, updated_at: true } }),
+      prisma.artist.findMany({ select: { id: true, updated_at: true } }),
+    ]);
     // "Last modified" of the listing pages = the newest change in the
     // catalogue, so the date only moves when something really changed
     // (a date that is always "now" teaches crawlers to ignore it).
@@ -55,7 +56,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.9,
       })
     );
-    return [...routes, ...paintingRoutes];
+    const artistRoutes = artists.flatMap((a) =>
+      entriesFor(`/artists/${a.id}`, {
+        lastModified: a.updated_at || new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.7,
+      })
+    );
+    return [...routes, ...paintingRoutes, ...artistRoutes];
   } catch (error) {
     console.error('Error generating dynamic sitemap:', error);
     return staticRoutes(new Date());

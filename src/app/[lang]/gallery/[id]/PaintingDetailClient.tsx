@@ -8,7 +8,8 @@ import PaintingCard, { PaintingItem } from '@/components/PaintingCard';
 import PhoneInput from '@/components/PhoneInput';
 import ShippingEstimator from '@/components/ShippingEstimator';
 import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCheckboxes';
-import { getSizeBucket } from '@/lib/paintingSize';
+import { getSizeBucket, parseSizeCm } from '@/lib/paintingSize';
+import WallPreviewModal from '@/components/WallPreviewModal';
 import { paintingAccessoryTargets } from '@/lib/productType';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import {
@@ -24,6 +25,7 @@ import {
   Lock,
   Info,
   ZoomIn,
+  Sofa,
 } from 'lucide-react';
 import ImageLightbox from '@/components/ImageLightbox';
 import { trackLead } from '@/lib/analytics';
@@ -39,6 +41,9 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
 
   const [activeImage, setActiveImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [wallOpen, setWallOpen] = useState(false);
+  // Real size in cm (from the size string) — the wall preview needs it.
+  const sizeCm = parseSizeCm(painting.size);
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
@@ -286,6 +291,18 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                 <ZoomIn className="w-4 h-4" />
               </span>
 
+              {/* See it at real size on a wall (only when the size is known) */}
+              {sizeCm && (
+                <button
+                  type="button"
+                  onClick={() => setWallOpen(true)}
+                  className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-white/90 hover:bg-white text-[#281C18] text-xs font-semibold px-3 py-2 rounded-full shadow-md transition-colors"
+                >
+                  <Sofa className="w-4 h-4 text-[#BA4E25]" />
+                  <span>{t.painting.viewOnWall}</span>
+                </button>
+              )}
+
               {/* Wishlist toggle button */}
               <button
                 onClick={() => toggleWishlist(painting.id)}
@@ -330,6 +347,16 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                   </button>
                 ))}
               </div>
+            )}
+
+            {wallOpen && sizeCm && (
+              <WallPreviewModal
+                imageSrc={imageList[0]}
+                title={title}
+                widthCm={sizeCm.width}
+                heightCm={sizeCm.height}
+                onClose={() => setWallOpen(false)}
+              />
             )}
 
             {lightboxOpen && (
@@ -502,7 +529,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
               <p className="text-sm text-[#726861] mt-1.5">
                 {t.gallery.byArtist}{' '}
                 <Link
-                  href="/artists"
+                  href={`/artists/${painting.artist_id}`}
                   className="font-medium text-[#281C18] hover:text-[#BA4E25] underline decoration-[#E7E0D8] underline-offset-4"
                 >
                   {painting.artist.name}

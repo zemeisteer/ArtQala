@@ -55,3 +55,58 @@ export async function getSalePriceByPainting(paintingIds: string[]): Promise<Map
   for (const [id, price] of agreed) result.set(id, price);
   return result;
 }
+
+export interface SaleDetail {
+  price: number;
+  // 'inquiry' = agreed in Admin → Inquiries; 'manual' = typed in the
+  // Paintings form when it was marked sold.
+  source: 'inquiry' | 'manual';
+  customer: string | null;
+}
+
+// Same priority as getSalePriceByPainting, plus where the price came from
+// and the buyer's name when the sale went through an inquiry — for the
+// sales report.
+export async function getSaleDetailsByPainting(paintingIds: string[]): Promise<Map<string, SaleDetail>> {
+  const result = new Map<string, SaleDetail>();
+  if (paintingIds.length === 0) return result;
+
+  const [own, items, singles] = await Promise.all([
+    prisma.painting.findMany({
+      where: { id: { in: paintingIds }, sold_price: { not: null } },
+      select: { id: true, sold_price: true },
+    }),
+    prisma.inquiryItem.findMany({
+      where: { painting_id: { in: paintingIds }, final_price: { not: null } },
+      select: {
+        painting_id: true,
+        final_price: true,
+        inquiry: { select: { updated_at: true, guest_name: true, user: { select: { name: true } } } },
+      },
+    }),
+    prisma.inquiry.findMany({
+      where: { painting_id: { in: paintingIds }, final_price: { not: null }, items: { none: {} } },
+      select: { painting_id: true, final_price: true, updated_at: true, guest_name: true, user: { select: { name: true } } },
+    }),
+  ]);
+
+  for (const p of own) {
+    if (p.sold_price != null) result.set(p.id, { price: p.sold_price, source: 'manual', customer: null });
+  }
+  const agreed = [
+    ...items.map((it) => ({
+      paintingId: it.painting_id as string,
+      price: it.final_price as number,
+      at: it.inquiry.updated_at,
+      customer: it.inquiry.guest_name || it.inquiry.user?.name || null,
+    })),
+    ...singles.map((inq) => ({
+      paintingId: inq.painting_id,
+      price: inq.final_price as number,
+      at: inq.updated_at,
+      customer: inq.guest_name || inq.user?.name || null,
+    })),
+  ].sort((a, b) => a.at.getTime() - b.at.getTime()); // oldest first → newest wins
+  for (const a of agreed) result.set(a.paintingId, { price: a.price, source: 'inquiry', customer: a.customer });
+  return result;
+}
