@@ -502,7 +502,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
               <p className="text-sm text-[#726861] mt-1.5">
                 {t.gallery.byArtist}{' '}
                 <Link
-                  href="/artists"
+                  href={`/artists/${painting.artist_id}`}
                   className="font-medium text-[#281C18] hover:text-[#BA4E25] underline decoration-[#E7E0D8] underline-offset-4"
                 >
                   {painting.artist.name}

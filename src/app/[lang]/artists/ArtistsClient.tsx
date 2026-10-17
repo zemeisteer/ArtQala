@@ -102,7 +102,9 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                     )}
                     <div>
                       <h3 className="font-serif text-xl font-semibold text-[#281C18] leading-tight">
-                        {artist.name}
+                        <Link href={`/artists/${artist.id}`} className="hover:text-[#BA4E25] transition-colors">
+                          {artist.name}
+                        </Link>
                       </h3>
                       <div className="text-[11px] font-bold tracking-wider text-[#429599] uppercase mt-0.5">
                         {specialty}
@@ -182,16 +184,13 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                   </div>
                 </div>
 
-                {/* View works link — filters the gallery by this artist's id
-                    (the gallery reads ?artist= from the URL). */}
-                {artist.paintings && artist.paintings.length > 0 && (
-                  <Link
-                    href={`/gallery?artist=${encodeURIComponent(artist.id)}`}
-                    className="text-xs font-bold text-[#BA4E25] hover:text-[#9C3E1B] flex items-center gap-1.5 pt-2 border-t border-[#F2ECE4]"
-                  >
-                    <span>{t.artists.viewWorks}</span>
-                  </Link>
-                )}
+                {/* The artist's own page: full bio and every work of theirs. */}
+                <Link
+                  href={`/artists/${artist.id}`}
+                  className="text-xs font-bold text-[#BA4E25] hover:text-[#9C3E1B] flex items-center gap-1.5 pt-2 border-t border-[#F2ECE4]"
+                >
+                  <span>{t.artists.viewProfile}</span>
+                </Link>
               </div>
             );
           })}

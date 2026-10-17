@@ -223,6 +223,36 @@ export async function getArtists() {
   }
 }
 
+// One artist's own page: the artist plus every painting of theirs (available
+// first, then sold), priced like any listing. cache(): generateMetadata()
+// and the page share one query.
+export const getArtistWithPaintings = cache(async (id: string) => {
+  try {
+    const [artist, bestsellerIds, rules] = await Promise.all([
+      prisma.artist.findUnique({
+        where: { id },
+        include: {
+          paintings: {
+            include: { artist: true, category: { include: { parent: true } } },
+            orderBy: [{ is_sold: 'asc' }, { created_at: 'desc' }],
+          },
+        },
+      }),
+      getBestsellerPaintingIds(),
+      getActiveDiscountRules(),
+    ]);
+    if (!artist) return null;
+    const { paintings, ...rest } = artist;
+    return {
+      ...rest,
+      paintings: withBestsellerFlag(applyDiscountRules(paintings, rules), bestsellerIds).map(slimPainting),
+    };
+  } catch (error) {
+    console.error('Error fetching artist:', error);
+    return null;
+  }
+});
+
 export async function getCategories() {
   try {
     return await prisma.category.findMany({
