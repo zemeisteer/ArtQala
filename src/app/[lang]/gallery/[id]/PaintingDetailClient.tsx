@@ -10,6 +10,7 @@ import ShippingEstimator from '@/components/ShippingEstimator';
 import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCheckboxes';
 import { getSizeBucket, parseSizeCm } from '@/lib/paintingSize';
 import WallPreviewModal from '@/components/WallPreviewModal';
+import { useGalleryHref } from '@/lib/galleryReturn';
 import { paintingAccessoryTargets } from '@/lib/productType';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import {
@@ -42,6 +43,8 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
   const [activeImage, setActiveImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [wallOpen, setWallOpen] = useState(false);
+  // Back to the gallery WITH the filters the visitor had (artist, page…).
+  const galleryHref = useGalleryHref();
   // Real size in cm (from the size string) — the wall preview needs it.
   const sizeCm = parseSizeCm(painting.size);
   const [guestName, setGuestName] = useState('');
@@ -254,10 +257,10 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
 
   return (
     <div className="py-10 sm:py-14">
-      <Breadcrumbs items={[{ label: t.nav.gallery, href: '/gallery' }, { label: title }]} />
+      <Breadcrumbs items={[{ label: t.nav.gallery, href: galleryHref }, { label: title }]} />
       <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14">
         <Link
-          href="/gallery"
+          href={galleryHref}
           className="inline-flex items-center gap-2 text-xs font-semibold text-[#BA4E25] hover:underline mb-8 mt-6"
         >
           <ArrowLeft className="w-3.5 h-3.5" />

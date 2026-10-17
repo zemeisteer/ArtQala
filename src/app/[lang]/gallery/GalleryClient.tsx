@@ -9,6 +9,7 @@ import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import DandanaScrollTrack from '@/components/patterns/DandanaScrollTrack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import FilterSelect from '@/components/FilterSelect';
+import { rememberGalleryQuery } from '@/lib/galleryReturn';
 import PublicPagination from '@/components/PublicPagination';
 import { getSizeBucket } from '@/lib/paintingSize';
 import { effectiveProductType } from '@/lib/productType';
@@ -207,6 +208,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     if (sortBy !== 'newest') next.set('sort', sortBy);
     if (page > 1) next.set('page', String(page));
     const qs = next.toString();
+    rememberGalleryQuery(qs ? `?${qs}` : '');
     const url = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
     if (url !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(window.history.state, '', url);
