@@ -3,6 +3,19 @@ export type SizeBucket = 'small' | 'medium' | 'large';
 // Buckets a painting's largest dimension (normalized to cm) into small/medium/large.
 // Shared by the Gallery advanced filter and accessory size-tiered pricing, so
 // both agree on what counts as "small" vs "large".
+// Width × height in centimetres from a size string like "60 × 80 cm",
+// "24x36 in" or "50 × 70 sm" (null when it can't be read).
+export function parseSizeCm(sizeStr?: string | null): { width: number; height: number } | null {
+  if (!sizeStr) return null;
+  const match = sizeStr.match(/(\d+(?:[.,]\d+)?)\s*[×x*X]\s*(\d+(?:[.,]\d+)?)\s*(sm|cm|dyum|in|mm)?/i);
+  if (!match) return null;
+  const unit = (match[3] || 'sm').toLowerCase();
+  const factor = unit === 'dyum' || unit === 'in' ? 2.54 : unit === 'mm' ? 0.1 : 1;
+  const width = parseFloat(match[1].replace(',', '.')) * factor;
+  const height = parseFloat(match[2].replace(',', '.')) * factor;
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
 export function getSizeBucket(sizeStr?: string): SizeBucket | null {
   if (!sizeStr) return null;
   const match = sizeStr.match(/(\d+(?:\.\d+)?)\s*[×x*X]\s*(\d+(?:\.\d+)?)\s*(sm|cm|dyum|in)?/i);

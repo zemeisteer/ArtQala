@@ -95,6 +95,9 @@ export const translations = {
     painting: {
       backToGallery: '← Back to Gallery',
       enlarge: 'View full size',
+      viewOnWall: 'View on a wall',
+      wallScaleNote: 'Shown at real size ({w} × {h} cm) next to a 200 cm sofa and a 170 cm person.',
+      wallColor: 'Wall',
       size: 'Size',
       technique: 'Technique',
       year: 'Year',
@@ -652,6 +655,9 @@ export const translations = {
     painting: {
       backToGallery: '← Назад в галерею',
       enlarge: 'Открыть в полном размере',
+      viewOnWall: 'Посмотреть на стене',
+      wallScaleNote: 'Реальный размер ({w} × {h} см) рядом с диваном 200 см и человеком ростом 170 см.',
+      wallColor: 'Стена',
       size: 'Размер',
       technique: 'Техника',
       year: 'Год',
@@ -1209,6 +1215,9 @@ export const translations = {
     painting: {
       backToGallery: '← Galereyaga qaytish',
       enlarge: "To'liq o'lchamda ko'rish",
+      viewOnWall: "Devorda ko'rish",
+      wallScaleNote: "Haqiqiy o'lchamda ({w} × {h} sm): 200 sm divan va bo'yi 170 sm odam yonida.",
+      wallColor: 'Devor',
       size: 'O\'lchami',
       technique: 'Texnikasi',
       year: 'Yaratilgan yili',
