@@ -4,6 +4,7 @@ import { getServerSession } from '@/lib/auth';
 import { validateEmail } from '@/lib/validation';
 import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
 import { sendContactAcknowledgmentEmail, sendContactAdminNotification } from '@/lib/email';
+import { formatAdminTelegram, sendTelegramToAdmins } from '@/lib/telegram';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,10 +71,26 @@ export async function POST(req: Request) {
             contactMessage.message
           )
         : Promise.resolve(null),
+      sendTelegramToAdmins(
+        formatAdminTelegram({
+          heading: 'Yangi xabar (Aloqa sahifasi)',
+          summary: `${contactMessage.name} aloqa formasi orqali yozdi.`,
+          details: [
+            ['Ism', contactMessage.name],
+            ['Email', contactMessage.email],
+            ['Mavzu', contactMessage.subject],
+          ],
+          message: contactMessage.message,
+          adminPath: '/admin/messages',
+        })
+      ),
     ]);
     results.forEach((r, i) => {
       if (r.status === 'rejected') {
-        console.error(`Contact email ${i === 0 ? 'acknowledgment' : 'admin notification'} failed:`, r.reason);
+        console.error(
+          `Contact ${i === 0 ? 'acknowledgment email' : i === 1 ? 'admin email' : 'Telegram notification'} failed:`,
+          r.reason
+        );
       }
     });
 

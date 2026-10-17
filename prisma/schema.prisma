@@ -449,3 +449,14 @@ model AiMessage {
 
   @@index([conversation_id])
 }
+
+// Telegram chats that receive admin notifications (new inquiries, service
+// requests, customer messages, contact form) from the bot whose token is
+// TELEGRAM_BOT_TOKEN. Linked from Admin → Settings → Telegram: whoever
+// wrote to the bot is picked up via getUpdates. Kept out of SiteSettings,
+// which is served publicly by /api/settings.
+model TelegramChat {
+  chat_id    String   @id
+  title      String
+  created_at DateTime @default(now())
+}
