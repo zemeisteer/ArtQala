@@ -144,6 +144,9 @@ model User {
   email_verified       Boolean @default(false)
   auth_provider        String  @default("EMAIL") // EMAIL, GOOGLE, APPLE
   must_change_password Boolean @default(false)
+  // Email me when a painting in my wishlist gets cheaper (daily check in
+  // src/lib/priceAlerts.ts). Turned off by the unsubscribe link in the email.
+  price_alerts         Boolean @default(true)
 
   inquiries        Inquiry[]
   service_requests ServiceRequest[]
@@ -304,6 +307,10 @@ model WishlistItem {
 
   painting_id String
   painting    Painting @relation(fields: [painting_id], references: [id], onDelete: Cascade)
+
+  // The price the user was last told about (or saw when the daily check
+  // first ran) — a price-drop email goes out when it falls below this.
+  last_seen_price Float?
 
   created_at DateTime @default(now())
 

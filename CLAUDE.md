@@ -81,6 +81,15 @@ when marking sold unless an inquiry already holds an agreed price; "Asl narxi" f
 client omits it globally (`src/lib/prisma.ts`), so admin queries must ask for it with
 `omit: { sold_price: false }` or an explicit select — the public site keeps showing the listed price.
 
+**Wishlist** lives in localStorage for guests; for a signed-in user `AppContext` merges it with the
+account's `WishlistItem` rows on sign-in and mirrors every add/remove (`/api/user/wishlist`). The daily cron
+(`/api/cron/review-reminders`, which also runs `src/lib/priceAlerts.ts#runPriceAlerts()`) emails a user when
+a saved, unsold painting's visible price drops below `WishlistItem.last_seen_price`; `User.price_alerts`
+opts out (signed one-click unsubscribe link, or the toggle on the account's Saved Artworks tab).
+
+**Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
+`src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
+
 **`Painting.images[0]` is the main photo** (reordered in the Paintings form). Listings show only it — use
 `src/lib/paintingImages.ts` (`mainImage()`, `withMainImageOnly()`); only the detail page shows every photo.
 

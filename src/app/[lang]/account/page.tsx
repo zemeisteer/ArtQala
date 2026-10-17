@@ -8,6 +8,7 @@ import { useApp } from '@/context/AppContext';
 import PaintingCard, { PaintingItem } from '@/components/PaintingCard';
 import ChatModal, { ThreadMessage } from '@/components/chat/ChatModal';
 import WishlistInquiryModal from '@/components/WishlistInquiryModal';
+import PriceAlertsToggle from '@/components/PriceAlertsToggle';
 import {
   User,
   Heart,
@@ -695,7 +696,8 @@ export default function AccountPage() {
         {activeTab === 'wishlist' && (
           <div>
             {wishlistPaintings.length > 0 && (
-              <div className="flex justify-end mb-5">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <PriceAlertsToggle />
                 <button
                   onClick={() => setShowWishlistInquiry(true)}
                   className="bg-[#281C18] hover:bg-[#BA4E25] text-white text-xs font-semibold px-4 py-2.5 rounded-[3px] transition flex items-center gap-1.5 shadow-xs"

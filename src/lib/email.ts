@@ -483,6 +483,95 @@ export async function sendReviewRequestEmail(params: {
   });
 }
 
+// 6b. "A painting you saved is now cheaper" — one email per user per daily
+// check, listing every wishlist painting whose price dropped
+// (src/lib/priceAlerts.ts). Always carries a one-click unsubscribe.
+export async function sendPriceDropEmail(params: {
+  to: string;
+  recipientName: string;
+  items: { title: string; oldPrice: number; newPrice: number; url: string; imageUrl: string }[];
+  unsubscribeUrl: string;
+}): Promise<EmailSendResult> {
+  const name = escapeHtml(params.recipientName || 'there');
+  const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
+  const rows = params.items
+    .map(
+      (it) => `
+      <tr>
+        <td style="padding: 10px 0; border-bottom: 1px solid #EFE8DE; width: 72px; vertical-align: top;">
+          <a href="${it.url}"><img src="${it.imageUrl}" width="64" height="64" alt="" style="display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 3px; border: 1px solid #E7E0D8;" /></a>
+        </td>
+        <td style="padding: 10px 0 10px 12px; border-bottom: 1px solid #EFE8DE; vertical-align: top;">
+          <a href="${it.url}" style="font-family: 'Georgia', serif; font-size: 16px; color: #281C18; text-decoration: none;">${escapeHtml(it.title)}</a>
+          <div style="margin-top: 4px; font-size: 14px;">
+            <span style="color: #9E9086; text-decoration: line-through;">${money(it.oldPrice)}</span>
+            &nbsp;<strong style="color: #BA4E25;">${money(it.newPrice)}</strong>
+          </div>
+        </td>
+      </tr>`
+    )
+    .join('');
+  const single = params.items.length === 1;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><title>A piece you saved is now on sale</title></head>
+      <body style="margin: 0; padding: 0; background-color: #FAF4EC; font-family: 'Georgia', serif; color: #281C18;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FAF4EC; padding: 40px 15px;">
+          <tr>
+            <td align="center">
+              <table width="100%" max-width="580" style="max-width: 580px; background-color: #FDFBF9; border: 1px solid #E7E0D8; border-radius: 4px; padding: 36px 32px;">
+                <tr>
+                  <td style="border-bottom: 1px solid #EFE8DE; padding-bottom: 20px;">
+                    <h1 style="color: #BA4E25; margin: 0; font-size: 26px; letter-spacing: 1px;">Art Qala</h1>
+                    <p style="margin: 4px 0 0 0; color: #726861; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;">Gallery &amp; Studio · Tashkent, Uzbekistan</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top: 26px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <h2 style="font-family: 'Georgia', serif; font-size: 20px; color: #281C18; margin: 0 0 12px 0;">Good news, ${name}</h2>
+                    <p style="font-size: 14px; line-height: 1.6; color: #554740; margin: 0 0 8px 0;">
+                      ${single ? 'A piece you saved to your wishlist is now offered at a lower price:' : 'Pieces you saved to your wishlist are now offered at a lower price:'}
+                    </p>
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">${rows}</table>
+                    <p style="font-size: 13px; line-height: 1.6; color: #8F8178; margin: 18px 0 0 0;">
+                      Every piece is an original, so it may not stay available for long. Reply to this email or send an inquiry from the painting's page to reserve it.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border-top: 1px solid #EFE8DE; padding-top: 22px; text-align: center;">
+                    <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0 0 6px 0;">
+                      You get this because these paintings are in your Art Qala wishlist.
+                      <a href="${params.unsubscribeUrl}" style="color: #9E9086;">Stop price alerts</a>
+                    </p>
+                    <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086; margin: 0;">
+                      Art Qala Gallery · Barakhon Madrasah, Tashkent · artqala.com
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  return sendResendEmail({
+    to: params.to,
+    subject: single
+      ? `Art Qala — "${params.items[0].title}" is now ${money(params.items[0].newPrice)}`
+      : `Art Qala — ${params.items.length} pieces from your wishlist are now cheaper`,
+    html,
+    headers: {
+      'List-Unsubscribe': `<${params.unsubscribeUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  });
+}
+
 // 7. Notify the gallery's inbox about a new inquiry, service request or a
 // customer's follow-up message — until now these only showed up in the
 // admin panel. When the customer left an email address, it becomes the
@@ -575,6 +664,8 @@ async function sendResendEmail(params: {
   // Where the recipient's "Reply" goes — on admin notifications this is the
   // customer, so the curator can answer straight from their inbox.
   replyTo?: string;
+  // Extra headers, e.g. List-Unsubscribe on alert emails.
+  headers?: Record<string, string>;
 }): Promise<EmailSendResult> {
   if (!RESEND_API_KEY) {
     console.warn(
@@ -600,6 +691,7 @@ async function sendResendEmail(params: {
         subject: params.subject,
         html: params.html,
         ...(replyTo && { reply_to: replyTo }),
+        ...(params.headers && { headers: params.headers }),
       }),
     });
 
