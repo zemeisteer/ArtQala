@@ -8,6 +8,7 @@ import FilterSelect from '@/components/FilterSelect';
 import Pagination from '@/components/Pagination';
 import { mainImage } from '@/lib/paintingImages';
 import { listUrl, type PaintingsListQuery } from './listQuery';
+import SalesReportButton from './SalesReportButton';
 
 const PAGE_SIZE = 15;
 
@@ -149,6 +150,8 @@ export default function AdminPaintingsClient({
             Manage your gallery collection, prices, and availability
           </p>
         </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <SalesReportButton />
         <Link
           href={withBack('/admin/paintings/new')}
           className="inline-flex items-center gap-2 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-xs px-4 py-2.5 rounded-[3px] transition-all shadow-xs self-start sm:self-auto"
@@ -156,6 +159,7 @@ export default function AdminPaintingsClient({
           <Plus className="w-4 h-4" />
           <span>+ Add Painting</span>
         </Link>
+        </div>
       </div>
 
       {/* Filter and Search Bar matching AdminPaintings.png */}
