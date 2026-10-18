@@ -310,6 +310,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
               <button
                 onClick={() => toggleWishlist(painting.id)}
                 aria-label={isFavorited ? 'Remove from wishlist' : 'Add to wishlist'}
+                data-wishlist-id={painting.id}
                 className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-transform duration-300 hover:scale-110 shadow-md ${
                   isFavorited
                     ? 'bg-[#BA4E25] text-white'
