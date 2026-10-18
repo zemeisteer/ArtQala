@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://art-qala.vercel.app"><strong>🔗 Live Demo</strong></a>
+  <a href="https://artqala.com"><strong>🔗 Live Demo</strong></a>
   &nbsp;·&nbsp;
   <a href="./README.en.md">🇬🇧 English</a>
 </p>
