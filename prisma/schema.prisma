@@ -36,6 +36,9 @@ model Painting {
   // Accessory ids that physically come WITH this painting (e.g. it already
   // has its own frame) — never offered/charged for it, shown as included.
   included_accessories String[]  @default([])
+  // "View on a wall": where the artwork sits in the main photo and its real
+  // outer size (frame included) — JSON, see src/lib/wallView.ts.
+  wall_view            String?
   views_count          Int       @default(0)
 
   artist_id String
