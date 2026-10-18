@@ -3,7 +3,7 @@
 // real outer size in metres, the photo on its front face (+Z, so the back
 // goes against the wall), plain dark edges and back. No dependencies.
 
-export function paintingGlb(jpeg: Buffer, widthCm: number, heightCm: number, depthCm = 2.5): Buffer {
+export function paintingGlb(jpeg: Buffer, widthCm: number, heightCm: number, depthCm = 2): Buffer {
   const w = widthCm / 100 / 2;
   const h = heightCm / 100 / 2;
   const d = depthCm / 100;
@@ -96,6 +96,10 @@ export function paintingGlb(jpeg: Buffer, widthCm: number, heightCm: number, dep
       {
         name: 'Artwork',
         pbrMetallicRoughness: { baseColorTexture: { index: 0 }, metallicFactor: 0, roughnessFactor: 0.85 },
+        // Self-lit a little, so the colours stay true in a dim room instead
+        // of the dark, muddy look AR lighting gives a matte surface.
+        emissiveTexture: { index: 0 },
+        emissiveFactor: [0.6, 0.6, 0.6],
       },
       {
         name: 'Edge',
