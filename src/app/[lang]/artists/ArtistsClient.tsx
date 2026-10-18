@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import Link from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
-import { ArrowRight, FileText } from 'lucide-react';
+import { ArrowRight, Award, FileText } from 'lucide-react';
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import AnimatedShamchiroq from '@/components/patterns/AnimatedShamchiroq';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import PublicPagination from '@/components/PublicPagination';
 import { mainImage } from '@/lib/paintingImages';
+import { parseAchievements } from '@/lib/artistAchievements';
 
 // Artists per page (5 rows of the 3-column grid).
 const PAGE_SIZE = 15;
@@ -148,6 +149,15 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                           <FileText className="w-3.5 h-3.5" />
                           {t.artists.portfolioPdf}
                         </a>
+                      )}
+                      {parseAchievements(artist.achievements).length > 0 && (
+                        <Link
+                          href={`/artists/${artist.id}`}
+                          className="mt-2 flex w-fit items-center gap-1.5 text-xs font-semibold text-[#429599] hover:underline"
+                        >
+                          <Award className="w-3.5 h-3.5" />
+                          {t.artists.achievementsHeading} ({parseAchievements(artist.achievements).length})
+                        </Link>
                       )}
                     </div>
                   </div>

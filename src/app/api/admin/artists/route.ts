@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { serializeAchievements } from '@/lib/artistAchievements';
 import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, bio_uz, bio_en, bio_ru, specialty_uz, specialty_en, specialty_ru, photo, pdf, initials, category_id } = body;
+    const { name, bio_uz, bio_en, bio_ru, specialty_uz, specialty_en, specialty_ru, photo, pdf, initials, category_id, achievements } = body;
 
     if (!name) {
       return NextResponse.json({ success: false, error: 'Name is required' }, { status: 400 });
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
         pdf: pdf || null,
         initials: initials || name.slice(0, 2).toUpperCase(),
         category_id: category_id || null,
+        achievements: serializeAchievements(achievements),
       },
     });
 

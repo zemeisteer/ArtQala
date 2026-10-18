@@ -3,12 +3,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Trash2, Pencil, X, Loader2, Upload, Crop, FileText } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, Loader2, Upload, Crop, FileText, Award } from 'lucide-react';
 import ImageCropModal from '../paintings/ImageCropModal';
 import FilterSelect from '@/components/FilterSelect';
 import Pagination from '@/components/Pagination';
 import TranslateStatus from '@/components/TranslateStatus';
-import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
+import { fillMissingTranslations, requestTranslation, useAutoTranslate } from '@/lib/useAutoTranslate';
+import { Achievement, isPdfFile, parseAchievements } from '@/lib/artistAchievements';
 
 const PAGE_SIZE = 15;
 
@@ -18,6 +19,7 @@ interface ArtistItem {
   initials?: string | null;
   photo?: string | null;
   pdf?: string | null;
+  achievements?: string | null;
   specialty_en: string;
   specialty_ru?: string;
   specialty_uz?: string;
@@ -75,6 +77,9 @@ export default function AdminArtistsClient({
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [pdf, setPdf] = useState('');
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  // Awards & certificates (shown on the artist's page).
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [uploadingAchievement, setUploadingAchievement] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   // Edit any language — the other two are translated from it (see
   // src/lib/useAutoTranslate.ts).
@@ -105,6 +110,7 @@ export default function AdminArtistsClient({
     setBioRu('');
     setPhoto('');
     setPdf('');
+    setAchievements([]);
     setCategoryId('');
     setIsModalOpen(true);
   };
@@ -127,6 +133,7 @@ export default function AdminArtistsClient({
     setBioRu(artist.bio_ru && artist.bio_ru !== uzBio ? artist.bio_ru : '');
     setPhoto(artist.photo || '');
     setPdf(artist.pdf || '');
+    setAchievements(parseAchievements(artist.achievements));
     setCategoryId(artist.category_id || '');
     setIsModalOpen(true);
   };
@@ -194,6 +201,44 @@ export default function AdminArtistsClient({
     }
   };
 
+  const updateAchievement = (index: number, patch: Partial<Achievement>) =>
+    setAchievements((prev) => prev.map((a, i) => (i === index ? { ...a, ...patch } : a)));
+
+  // Same pattern as the other trilingual fields: the UZ title fills EN/RU
+  // on blur, never overwriting what the admin typed there.
+  const translateAchievement = async (index: number) => {
+    const a = achievements[index];
+    if (!a?.title_uz.trim() || (a.title_en.trim() && a.title_ru.trim())) return;
+    const t = await requestTranslation(a.title_uz, 'uz', 'award or certificate title');
+    if (!t) return;
+    setAchievements((prev) =>
+      prev.map((x, i) =>
+        i === index && x.title_uz === a.title_uz
+          ? { ...x, title_en: x.title_en.trim() ? x.title_en : t.en || '', title_ru: x.title_ru.trim() ? x.title_ru : t.ru || '' }
+          : x
+      )
+    );
+  };
+
+  const handleAchievementFile = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Fayl hajmi 4 MB dan oshmasligi kerak');
+      return;
+    }
+    setUploadingAchievement(index);
+    try {
+      const url = await uploadFile(file);
+      if (url) updateAchievement(index, { file: url });
+    } catch {
+      alert('Faylni yuklashda xatolik');
+    } finally {
+      setUploadingAchievement(null);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -207,6 +252,18 @@ export default function AdminArtistsClient({
         fillMissingTranslations({ uz: bioUz, en: bioEn, ru: bioRu }, undefined, 'bio'),
       ]);
       const firstFilled = (v: Record<string, string>) => v.uz || v.en || v.ru || '';
+      const awards = await Promise.all(
+        achievements
+          .filter((a) => a.title_uz.trim() || a.title_en.trim() || a.title_ru.trim())
+          .map(async (a) => {
+            const t = await fillMissingTranslations(
+              { uz: a.title_uz, en: a.title_en, ru: a.title_ru },
+              'uz',
+              'award or certificate title'
+            );
+            return { ...a, title_uz: t.uz, title_en: t.en, title_ru: t.ru };
+          })
+      );
 
       const payload = {
         name,
@@ -218,6 +275,7 @@ export default function AdminArtistsClient({
         bio_ru: bio.ru || firstFilled(bio),
         photo: photo || null,
         pdf: pdf || null,
+        achievements: awards,
         category_id: categoryId || null,
       };
 
@@ -386,7 +444,7 @@ export default function AdminArtistsClient({
       {/* Modal: Create or Edit Artist */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-2xl space-y-4 border border-[#E7E0D8]">
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-6 shadow-2xl space-y-4 border border-[#E7E0D8]">
             <div className="flex items-center justify-between border-b pb-3 border-[#E7E0D8]">
               <h3 className="font-serif text-lg font-bold text-[#281C18]">
                 {editingArtist ? 'Rassomni Tahrirlash' : 'Yangi Rassom Qo\'shish'}
@@ -573,6 +631,110 @@ export default function AdminArtistsClient({
                       </>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* Awards & certificates */}
+              <div>
+                <label className="block text-xs font-bold text-[#6B5E55] mb-1">
+                  <Award className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />
+                  Mukofotlar va sertifikatlar{' '}
+                  <span className="font-normal text-[#A8988E]">(ixtiyoriy — saytda rassom sahifasida ko&apos;rinadi)</span>
+                </label>
+                <div className="space-y-2">
+                  {achievements.map((a, i) => (
+                    <div key={i} className="border border-[#E7E0D8] rounded p-2.5 space-y-1.5 bg-[#FDFBF9]">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={a.title_uz}
+                          onChange={(e) => updateAchievement(i, { title_uz: e.target.value })}
+                          onBlur={() => translateAchievement(i)}
+                          placeholder="Nomi (UZ), masalan: Toshkent biennalesi g'olibi"
+                          className="flex-1 min-w-0 text-xs px-2.5 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
+                        />
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={a.year || ''}
+                          onChange={(e) => updateAchievement(i, { year: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                          placeholder="Yil"
+                          className="w-16 text-xs px-2 py-1.5 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAchievements((prev) => prev.filter((_, j) => j !== i))}
+                          title="O'chirish"
+                          className="text-red-600 hover:text-red-800 px-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          value={a.title_en}
+                          onChange={(e) => updateAchievement(i, { title_en: e.target.value })}
+                          placeholder="EN (avtomatik)"
+                          className="text-[11px] px-2 py-1 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
+                        />
+                        <input
+                          type="text"
+                          value={a.title_ru}
+                          onChange={(e) => updateAchievement(i, { title_ru: e.target.value })}
+                          placeholder="RU (avtomatik)"
+                          className="text-[11px] px-2 py-1 border border-[#E7E0D8] rounded focus:outline-none focus:border-[#BA4E25]"
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {a.file && (
+                          <a
+                            href={a.file}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-[11px] font-semibold text-[#BA4E25] hover:underline"
+                          >
+                            <FileText className="w-3 h-3" />
+                            {isPdfFile(a.file) ? 'PDFni ochish' : "Rasmni ko'rish"}
+                          </a>
+                        )}
+                        <label className="border border-dashed border-[#D2C5BA] rounded px-2.5 py-1 text-[11px] text-[#554740] hover:bg-[#FAF4EC] cursor-pointer flex items-center gap-1">
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={(e) => handleAchievementFile(i, e)}
+                            className="hidden"
+                            disabled={uploadingAchievement !== null}
+                          />
+                          {uploadingAchievement === i ? (
+                            <span className="text-[#BA4E25]">Yuklanmoqda...</span>
+                          ) : (
+                            <>
+                              <Upload className="w-3 h-3" />
+                              <span>{a.file ? 'Boshqa fayl' : 'Sertifikat rasmi / PDF (ixtiyoriy)'}</span>
+                            </>
+                          )}
+                        </label>
+                        {a.file && (
+                          <button
+                            type="button"
+                            onClick={() => updateAchievement(i, { file: undefined })}
+                            className="text-[11px] text-red-700 hover:underline"
+                          >
+                            Faylni olib tashlash
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setAchievements((prev) => [...prev, { title_uz: '', title_en: '', title_ru: '' }])}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#BA4E25] border border-dashed border-[#BA4E25]/40 rounded hover:bg-[#BA4E25]/5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Mukofot / sertifikat qo&apos;shish
+                  </button>
                 </div>
               </div>
 
