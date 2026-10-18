@@ -73,8 +73,9 @@ frame — "Kartina bilan birga keladi" in the Paintings form). They are never of
 page lists them as included.
 
 **"View on a wall"** (`WallPreviewModal`): `src/lib/wallView.ts` has Gemini find the artwork in the main photo once
-(outer box = frame edge if framed, else canvas edge; snapped to real pixel edges) and derives the real outer size from
-the typed canvas size; stored as JSON in `Painting.wall_view`, re-detected when the main photo or size changes.
+(frame edge if framed, else canvas edge; snapped to real pixel edges); stored as JSON in `Painting.wall_view`,
+re-detected when the main photo changes. The size shown (room view and AR) is ALWAYS the size typed in the admin —
+never re-computed. Computers get a QR code that opens the view on a phone (`?wall=1` on the painting page).
 `/api/paintings/[id]/wall` (data; admin POST = re-detect), `/wall-image` (cropped JPEG) and `/wall-model` (real-size
 `.glb`, `src/lib/paintingGlb.ts`) serve it. Phones open it in their own AR viewer — Android Scene Viewer via an
 `intent://` URL, iOS Quick Look via a USDZ built in the browser with three.js (vertical anchoring, scaling locked).

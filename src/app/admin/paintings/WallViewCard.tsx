@@ -65,7 +65,7 @@ export default function WallViewCard({ paintingId }: { paintingId: string }) {
           {info && (
             <>
               <p>
-                Devordagi o&apos;lchami:{' '}
+                O&apos;lchami (siz yozgan):{' '}
                 <b>
                   {info.widthCm && info.heightCm ? `${Math.round(info.widthCm)} × ${Math.round(info.heightCm)} sm` : "o'lcham yozilmagan"}
                 </b>
@@ -80,7 +80,7 @@ export default function WallViewCard({ paintingId }: { paintingId: string }) {
           )}
           <p className="text-[10px] text-[#8F8178]">
             Saqlangan asosiy rasmdan kartina avtomatik kesib olinadi: ramkasi bo&apos;lsa ramka chetidan, bo&apos;lmasa kartina
-            chetidan. Mijoz telefonida kamera orqali o&apos;z devorida shu o&apos;lchamda ko&apos;radi. Kesish noto&apos;g&apos;ri
+            chetidan. Mijoz telefonida kamera orqali o&apos;z devorida siz yozgan o&apos;lchamda ko&apos;radi. Kesish noto&apos;g&apos;ri
             bo&apos;lsa — &quot;Qayta aniqlash&quot;.
           </p>
         </div>
