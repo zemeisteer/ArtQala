@@ -17,8 +17,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!painting) return new Response('Not found', { status: 404 });
   const view = parseWallView(painting.wall_view);
   const size = parseSizeCm(painting.size);
-  const widthCm = view?.widthCm ?? size?.width;
-  const heightCm = view?.heightCm ?? size?.height;
+  const widthCm = size?.width;
+  const heightCm = size?.height;
   if (!widthCm || !heightCm) return new Response('Size unknown', { status: 404 });
   try {
     const cropped = await wallImageJpeg(view, mainImage(painting.images), 2048);

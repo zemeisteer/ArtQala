@@ -5,7 +5,7 @@ import { mainImage } from './paintingImages';
 import { parseSizeCm } from './paintingSize';
 
 // "View on a wall" needs the artwork alone (no wall, easel or floor around it
-// in the photo) and its real outer size. Gemini finds the artwork in the
+// in the photo), shown at the size typed in the admin. Gemini finds the artwork in the
 // main photo once — the frame's outer edge when it has a frame, otherwise the
 // canvas edge — the box is snapped to the real edge in the pixels, and the
 // result is stored in Painting.wall_view. A new main photo (src changes)
@@ -14,10 +14,7 @@ import { parseSizeCm } from './paintingSize';
 
 export interface WallView {
   src: string; // the main photo this was detected on
-  size?: string | null; // and the size field it was measured with
   box?: [number, number, number, number]; // x0, y0, x1, y1 as 0..1 of the photo
-  widthCm?: number; // outer size, frame included
-  heightCm?: number;
   framed?: boolean;
   failedAt?: number; // detection failed (quota…) — retried after a while
 }
@@ -36,7 +33,7 @@ export function parseWallView(raw: string | null | undefined): WallView | null {
 
 // Short stable version for cache-busting URLs.
 export function wallViewVersion(v: WallView): string {
-  const s = JSON.stringify([v.src, v.size, v.box, v.widthCm, v.heightCm]);
+  const s = JSON.stringify([v.src, v.box]);
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
@@ -201,46 +198,17 @@ async function snapToEdges(img: Buffer, box: Box): Promise<Box> {
 
 const round4 = (n: number) => Math.round(n * 10000) / 10000;
 
-async function detect(src: string, sizeStr: string | null | undefined): Promise<WallView> {
+async function detect(src: string): Promise<WallView> {
   const original = await loadImageBuffer(src);
   // EXIF-rotated, like every upload — all box maths is on this upright image.
   const upright = await sharp(original).rotate().jpeg({ quality: 90 }).toBuffer();
-  const meta = await sharp(upright).metadata();
-  const pw = meta.width || 1;
-  const ph = meta.height || 1;
   const forAi = await sharp(upright).resize({ width: 1280, height: 1280, fit: 'inside' }).jpeg({ quality: 85 }).toBuffer();
 
   const found = await askGemini(forAi);
   const outer = await snapToEdges(upright, found.outer);
-  const painting = found.framed ? await snapToEdges(upright, found.painting) : outer;
-
-  // Real size: the size field is the painted surface. A frame's real size is
-  // scaled from how much bigger it is than the painting in the photo.
-  const size = parseSizeCm(sizeStr);
-  let widthCm: number | undefined;
-  let heightCm: number | undefined;
-  if (size) {
-    let { width, height } = size;
-    const pW = (painting[2] - painting[0]) * pw;
-    const pH = (painting[3] - painting[1]) * ph;
-    // "80 × 60" typed for a portrait canvas: trust the photo's orientation.
-    if ((pW > pH * 1.08 && height > width * 1.08) || (pH > pW * 1.08 && width > height * 1.08)) {
-      [width, height] = [height, width];
-    }
-    const oW = (outer[2] - outer[0]) * pw;
-    const oH = (outer[3] - outer[1]) * ph;
-    const scale = (width / pW + height / pH) / 2; // cm per photo pixel
-    widthCm = found.framed ? Math.max(width, oW * scale) : width;
-    heightCm = found.framed ? Math.max(height, oH * scale) : height;
-    widthCm = Math.round(widthCm * 10) / 10;
-    heightCm = Math.round(heightCm * 10) / 10;
-  }
   return {
     src,
-    size: sizeStr ?? null,
     box: outer.map(round4) as Box,
-    widthCm,
-    heightCm,
     framed: found.framed,
   };
 }
@@ -250,22 +218,22 @@ async function detect(src: string, sizeStr: string | null | undefined): Promise<
 export async function getWallView(paintingId: string, force = false): Promise<WallView | null> {
   const painting = await prisma.painting.findUnique({
     where: { id: paintingId },
-    select: { images: true, size: true, wall_view: true },
+    select: { images: true, wall_view: true },
   });
   if (!painting) return null;
   const src = mainImage(painting.images);
   const stored = parseWallView(painting.wall_view);
-  const fresh = stored && stored.src === src && (stored.size ?? null) === (painting.size ?? null);
+  const fresh = stored && stored.src === src;
   if (!force && fresh && (stored.box || (stored.failedAt && Date.now() - stored.failedAt < RETRY_AFTER_FAIL_MS))) {
     return stored;
   }
 
   let view: WallView;
   try {
-    view = await detect(src, painting.size);
+    view = await detect(src);
   } catch (error) {
     console.error('Wall view detection failed:', error);
-    view = { src, size: painting.size ?? null, failedAt: Date.now() };
+    view = { src, failedAt: Date.now() };
   }
   await prisma.painting
     .update({ where: { id: paintingId }, data: { wall_view: JSON.stringify(view) } })
@@ -273,11 +241,12 @@ export async function getWallView(paintingId: string, force = false): Promise<Wa
   return view;
 }
 
-// What the client gets: outer size (falls back to the typed size) and URLs.
+// What the client gets: the size exactly as typed in the admin (never
+// re-computed — the owner measures it) and URLs.
 export function wallViewPayload(paintingId: string, sizeStr: string | null | undefined, view: WallView | null) {
   const size = parseSizeCm(sizeStr);
-  const widthCm = view?.widthCm ?? size?.width ?? null;
-  const heightCm = view?.heightCm ?? size?.height ?? null;
+  const widthCm = size?.width ?? null;
+  const heightCm = size?.height ?? null;
   const v = view ? wallViewVersion(view) : '0';
   return {
     widthCm,

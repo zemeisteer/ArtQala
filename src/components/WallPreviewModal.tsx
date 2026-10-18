@@ -33,13 +33,17 @@ interface WallData {
   model: string;
 }
 
-type ArMode = 'ios' | 'android' | null;
+// 'ios-inapp': an iPhone browser without Quick Look (Telegram, Instagram…
+// in-app browsers) — the visitor is told to open the page in Safari.
+// null: a computer — a QR code opens this view on the phone.
+type ArMode = 'ios' | 'ios-inapp' | 'android' | null;
 
 function detectArMode(): ArMode {
   if (typeof window === 'undefined') return null;
-  const a = document.createElement('a');
-  if (a.relList?.supports?.('ar')) return 'ios';
-  if (/android/i.test(navigator.userAgent)) return 'android';
+  const ua = navigator.userAgent;
+  const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ios) return document.createElement('a').relList?.supports?.('ar') ? 'ios' : 'ios-inapp';
+  if (/android/i.test(ua)) return 'android';
   return null;
 }
 
@@ -81,6 +85,35 @@ export default function WallPreviewModal({
   // Only ever rendered after a click, so the browser is there to ask.
   const [arMode] = useState<ArMode>(detectArMode);
   const [usdzUrl, setUsdzUrl] = useState<string | null>(null);
+  const [showInAppHelp, setShowInAppHelp] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [qrSvg, setQrSvg] = useState<string | null>(null);
+
+  // This view, straight from a phone (the painting page opens it on ?wall=1).
+  const phoneUrl = () => {
+    const u = new URL(window.location.href);
+    u.hash = '';
+    u.searchParams.set('wall', '1');
+    return u.toString();
+  };
+
+  useEffect(() => {
+    if (arMode) return;
+    let cancelled = false;
+    import('qrcode')
+      .then((QR) => QR.toString(phoneUrl(), { type: 'svg', margin: 1, color: { dark: '#281C18', light: '#FFFFFF' } }))
+      .then((svg) => {
+        if (!cancelled) setQrSvg(svg);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [arMode]);
+
+  const copyLink = () => {
+    navigator.clipboard?.writeText(phoneUrl()).then(() => setCopied(true)).catch(() => {});
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -121,7 +154,9 @@ export default function WallPreviewModal({
 
   const openAr = () => {
     if (!data) return;
-    if (arMode === 'ios' && usdzUrl) {
+    if (arMode === 'ios-inapp') {
+      setShowInAppHelp(true);
+    } else if (arMode === 'ios' && usdzUrl) {
       const a = document.createElement('a');
       a.rel = 'ar';
       a.href = `${usdzUrl}#allowsContentScaling=0`;
@@ -146,6 +181,7 @@ export default function WallPreviewModal({
     }
   };
 
+  // Always the size typed in the admin.
   const widthCm = data?.widthCm || fallbackWidthCm;
   const heightCm = data?.heightCm || fallbackHeightCm;
   const imageSrc = data?.image || fallbackImage;
@@ -198,17 +234,43 @@ export default function WallPreviewModal({
             <button
               type="button"
               onClick={openAr}
-              disabled={loading || !data || (arMode === 'ios' && !usdzUrl)}
+              disabled={arMode !== 'ios-inapp' && (loading || !data || (arMode === 'ios' && !usdzUrl))}
               className="w-full flex items-center justify-center gap-2 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-sm py-3 rounded-[3px] disabled:opacity-60"
             >
-              {loading || (arMode === 'ios' && !usdzUrl) ? (
+              {arMode !== 'ios-inapp' && (loading || (arMode === 'ios' && !usdzUrl)) ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Camera className="w-4 h-4" />
               )}
               {t.painting.wallArButton}
             </button>
-            <p className="text-[11px] text-[#6E6057] text-center">{t.painting.wallArHint}</p>
+            {showInAppHelp ? (
+              <div className="text-xs text-[#7C2D12] bg-[#FFF7ED] border border-[#FED7AA] rounded-[3px] p-3 space-y-2">
+                <p>{t.painting.wallInApp}</p>
+                <button type="button" onClick={copyLink} className="font-semibold text-[#BA4E25] underline">
+                  {copied ? t.painting.wallLinkCopied : t.painting.wallCopyLink}
+                </button>
+              </div>
+            ) : (
+              <p className="text-[11px] text-[#6E6057] text-center">{t.painting.wallArHint}</p>
+            )}
+          </div>
+        )}
+
+        {/* Computer: scan to open this view on the phone */}
+        {!arMode && qrSvg && (
+          <div className="px-5 pt-4 flex items-center gap-4">
+            <div
+              className="w-24 h-24 shrink-0 border border-[#E7E0D8] rounded-[3px] bg-white p-1 [&>svg]:w-full [&>svg]:h-full"
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+            />
+            <div>
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-[#281C18]">
+                <Camera className="w-4 h-4 text-[#BA4E25]" />
+                {t.painting.wallQrTitle}
+              </p>
+              <p className="text-xs text-[#6E6057] mt-1">{t.painting.wallPhoneHint}</p>
+            </div>
           </div>
         )}
         {arFailed && <p className="px-5 pt-3 text-xs text-[#B45309]">{t.painting.wallArFailed}</p>}
@@ -335,7 +397,6 @@ export default function WallPreviewModal({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <p className="text-xs text-[#6E6057]">
               {t.painting.wallScaleNote.replace('{w}', String(Math.round(widthCm))).replace('{h}', String(Math.round(heightCm)))}
-              {data?.framed && ` — ${t.painting.wallFramed}`}
             </p>
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase">{t.painting.wallColor}</span>
@@ -351,12 +412,6 @@ export default function WallPreviewModal({
               ))}
             </div>
           </div>
-          {!arMode && (
-            <p className="text-[11px] text-[#8F8178] flex items-start gap-1.5">
-              <Camera className="w-3.5 h-3.5 shrink-0 mt-px" />
-              {t.painting.wallPhoneHint}
-            </p>
-          )}
         </div>
       </div>
     </div>

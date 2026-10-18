@@ -46,10 +46,16 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
   // Android sends the visitor back here (#ar-failed) when the phone has no AR.
   const [wallArFailed, setWallArFailed] = useState(false);
   useEffect(() => {
-    if (window.location.hash !== '#ar-failed') return;
-    history.replaceState(null, '', window.location.pathname + window.location.search);
+    // #ar-failed: back from Android without AR. ?wall=1: the QR code shown
+    // on a computer — open the wall view right away on the phone.
+    const url = new URL(window.location.href);
+    const failed = url.hash === '#ar-failed';
+    if (!failed && url.searchParams.get('wall') !== '1') return;
     const timer = setTimeout(() => {
-      setWallArFailed(true);
+      url.hash = '';
+      url.searchParams.delete('wall');
+      history.replaceState(null, '', url.pathname + url.search);
+      setWallArFailed(failed);
       setWallOpen(true);
     });
     return () => clearTimeout(timer);
