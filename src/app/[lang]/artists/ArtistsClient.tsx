@@ -159,9 +159,11 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                         const src = mainImage(p.images);
 
                         return (
-                          <div
+                          <Link
                             key={pIdx}
-                            className="aspect-square rounded-[2px] overflow-hidden border border-[#E7E0D8] relative bg-[#F4ECE1]"
+                            href={`/gallery/${p.id}`}
+                            aria-label={p.title_en || 'Artwork'}
+                            className="block aspect-square rounded-[2px] overflow-hidden border border-[#E7E0D8] relative bg-[#F4ECE1]"
                           >
                             <Image
                               src={src}
@@ -171,7 +173,7 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                               sizes="(max-width: 768px) 30vw, 130px"
                               className="object-cover transition-transform duration-500 hover:scale-115"
                             />
-                          </div>
+                          </Link>
                         );
                       })
                     ) : (
