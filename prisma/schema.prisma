@@ -8,32 +8,35 @@ datasource db {
 }
 
 model Painting {
-  id                 String    @id @default(cuid())
-  title_en           String
-  title_ru           String
-  title_uz           String
-  description_en     String?
-  description_ru     String?
-  description_uz     String?
-  size               String
-  technique_en       String
-  technique_ru       String?
-  technique_uz       String?
-  year               Int
-  price              Float // Original base price in USD
-  discount_price     Float? // Computed or manual discount price
-  discount_starts_at DateTime?
-  discount_ends_at   DateTime?
-  is_sold            Boolean   @default(false)
-  sold_at            DateTime?
+  id                   String    @id @default(cuid())
+  title_en             String
+  title_ru             String
+  title_uz             String
+  description_en       String?
+  description_ru       String?
+  description_uz       String?
+  size                 String
+  technique_en         String
+  technique_ru         String?
+  technique_uz         String?
+  year                 Int
+  price                Float // Original base price in USD
+  discount_price       Float? // Computed or manual discount price
+  discount_starts_at   DateTime?
+  discount_ends_at     DateTime?
+  is_sold              Boolean   @default(false)
+  sold_at              DateTime?
   // What the painting actually sold for (USD) — entered in the Paintings
   // form when it's marked sold (e.g. a sale made outside the website).
   // Internal only: hidden from every query by default (see src/lib/prisma.ts
   // omit) so it never reaches the public site, where the listed price stays.
-  sold_price         Float?
-  is_featured        Boolean   @default(false)
-  images             String // JSON array of image URLs/paths
-  views_count        Int       @default(0)
+  sold_price           Float?
+  is_featured          Boolean   @default(false)
+  images               String // JSON array of image URLs/paths
+  // Accessory ids that physically come WITH this painting (e.g. it already
+  // has its own frame) — never offered/charged for it, shown as included.
+  included_accessories String[]  @default([])
+  views_count          Int       @default(0)
 
   artist_id String
   artist    Artist @relation(fields: [artist_id], references: [id], onDelete: Cascade)
@@ -64,6 +67,9 @@ model Artist {
   specialty_en String
   specialty_ru String
   specialty_uz String
+  // Awards & certificates: JSON array of
+  // {title_uz, title_en, title_ru, year?, file?} (file = image/PDF URL).
+  achievements String?
 
   // The artist's product type (a top-level Category, e.g. "Somon ishlari")
   // — lets the Paintings form auto-pick ota-kategoriya once the artist is

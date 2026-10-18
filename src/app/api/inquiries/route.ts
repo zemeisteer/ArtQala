@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     const painting = await prisma.painting.findUnique({
       where: { id: painting_id },
-      select: { size: true, category: { select: { slug: true, parent: { select: { slug: true } } } } },
+      select: { size: true, included_accessories: true, category: { select: { slug: true, parent: { select: { slug: true } } } } },
     });
     if (!painting) {
       return NextResponse.json({ success: false, error: 'Painting not found' }, { status: 404 });
@@ -79,7 +79,8 @@ export async function POST(request: Request) {
     const accessories = await resolveAccessories(
       accessoryIdsFrom(selected_accessories),
       getSizeBucket(painting.size),
-      paintingAccessoryTargets(painting.category)
+      paintingAccessoryTargets(painting.category),
+      painting.included_accessories
     );
     const accessoriesSnapshot = accessories.length > 0 ? JSON.stringify(accessories) : null;
 

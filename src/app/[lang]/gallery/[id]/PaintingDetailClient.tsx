@@ -600,6 +600,20 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                   {technique}
                 </span>
               </div>
+              {painting.included_accessory_names?.length > 0 && (
+                <div className="col-span-2 border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
+                  <span className="text-[#8F8178] block uppercase text-[10px] tracking-wider">
+                    {t.accessories.included}
+                  </span>
+                  <span className="font-semibold text-[#281C18] mt-0.5 block">
+                    {painting.included_accessory_names
+                      .map((a: { name_en: string; name_ru: string; name_uz: string }) =>
+                        `✓ ${lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en}`
+                      )
+                      .join('  ·  ')}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Artwork Description */}
@@ -686,6 +700,8 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                   <AccessoryCheckboxes
                     productTypes={paintingAccessoryTargets(painting.category)}
                     sizeBucket={getSizeBucket(painting.size)}
+                    included={painting.included_accessories}
+                    showIncluded={false}
                     onChange={setSelectedAccessories}
                   />
 

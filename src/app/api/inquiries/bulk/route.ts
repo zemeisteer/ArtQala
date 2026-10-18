@@ -116,6 +116,7 @@ export async function POST(request: Request) {
           discount_ends_at: true,
           artist_id: true,
           category_id: true,
+          included_accessories: true,
           category: { select: { slug: true, parent_id: true, parent: { select: { slug: true } } } },
         },
       }),
@@ -141,7 +142,8 @@ export async function POST(request: Request) {
         const accessories = await resolveAccessories(
           line.accessory_ids,
           getSizeBucket(p.size),
-          paintingAccessoryTargets(p.category)
+          paintingAccessoryTargets(p.category),
+          p.included_accessories
         );
         return {
           painting_id: p.id,
@@ -155,11 +157,14 @@ export async function POST(request: Request) {
         };
       })
     );
-    // Shared add-ons must fit at least one painting in the batch.
+    // Shared add-ons must fit at least one painting in the batch (and not be
+    // something every painting in it already comes with).
+    const batch = items.map((it) => byId.get(it.painting_id)!);
     const shared = await resolveAccessories(
       sharedAccessoryIds,
-      largestSizeBucket(items.map((it) => byId.get(it.painting_id)!.size)),
-      Array.from(new Set(items.flatMap((it) => paintingAccessoryTargets(byId.get(it.painting_id)!.category))))
+      largestSizeBucket(batch.map((p) => p.size)),
+      Array.from(new Set(batch.flatMap((p) => paintingAccessoryTargets(p.category)))),
+      batch[0].included_accessories.filter((id) => batch.every((p) => p.included_accessories.includes(id)))
     );
 
     const trimmedMessage = message.trim();

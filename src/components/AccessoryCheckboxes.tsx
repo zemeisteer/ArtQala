@@ -42,6 +42,11 @@ interface AccessoryCheckboxesProps {
   // wishlist inquiry modal.
   compact?: boolean;
   heading?: string;
+  // Accessory ids the painting already comes with (Painting.included_accessories,
+  // e.g. its own frame): never offered, shown as "included" instead.
+  included?: string[];
+  // Off where the page already lists them (the painting detail specs).
+  showIncluded?: boolean;
 }
 
 // One request per page load, however many checkbox lists are on screen
@@ -68,6 +73,8 @@ export default function AccessoryCheckboxes({
   dark = false,
   compact = false,
   heading,
+  included = [],
+  showIncluded = true,
 }: AccessoryCheckboxesProps) {
   const { lang, t } = useApp();
   const [accessories, setAccessories] = useState<AccessoryOption[]>([]);
@@ -91,7 +98,10 @@ export default function AccessoryCheckboxes({
 
   // Same rule the server enforces (accessoryAppliesTo): only accessories
   // configured for this product type / service, or for everything.
-  const relevant = accessories.filter((a) => accessoryAppliesTo(a.product_types, productTypes));
+  const relevant = accessories.filter(
+    (a) => accessoryAppliesTo(a.product_types, productTypes) && !included.includes(a.id)
+  );
+  const comesWith = showIncluded ? accessories.filter((a) => included.includes(a.id)) : [];
   const relevantKey = relevant.map((a) => a.id).join(',');
 
   const title = (a: AccessoryOption) =>
@@ -129,10 +139,25 @@ export default function AccessoryCheckboxes({
     emit(next);
   };
 
-  if (loading || relevant.length === 0) return null;
+  if (loading || (relevant.length === 0 && comesWith.length === 0)) return null;
 
   return (
-    <div>
+    <div className={compact ? 'space-y-1' : 'space-y-2'}>
+      {comesWith.length > 0 && (
+        <p className={`flex flex-wrap items-center gap-1.5 ${compact ? 'text-[11px]' : 'text-xs'} ${dark ? 'text-[#C5B7AD]' : 'text-[#554740]'}`}>
+          <span className="font-semibold">{t.accessories.included}:</span>
+          {comesWith.map((a) => (
+            <span
+              key={a.id}
+              className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] px-2 py-0.5 text-[10.5px] font-semibold"
+            >
+              ✓ {title(a)}
+            </span>
+          ))}
+        </p>
+      )}
+      {relevant.length > 0 && (
+      <div>
       <label
         className={`block font-bold tracking-wider uppercase ${compact ? 'text-[9.5px] mb-1' : 'text-[10.5px] mb-1.5'} ${
           dark ? 'text-[#A8988E]' : 'text-[#6B5E55]'
@@ -165,6 +190,8 @@ export default function AccessoryCheckboxes({
           </label>
         ))}
       </div>
+      </div>
+      )}
     </div>
   );
 }

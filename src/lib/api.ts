@@ -148,7 +148,14 @@ export const getPaintingById = cache(async (id: string) => {
     ]);
     if (!painting) return null;
     const [discounted] = applyDiscountRules([painting], rules);
-    return { ...discounted, is_bestseller: bestsellerIds.has(painting.id) };
+    // What physically comes with it (e.g. its own frame), for the specs.
+    const included_accessory_names = painting.included_accessories.length
+      ? await prisma.accessory.findMany({
+          where: { id: { in: painting.included_accessories } },
+          select: { id: true, name_en: true, name_ru: true, name_uz: true },
+        })
+      : [];
+    return { ...discounted, is_bestseller: bestsellerIds.has(painting.id), included_accessory_names };
   } catch (error) {
     console.error('Error fetching painting by id:', error);
     return null;

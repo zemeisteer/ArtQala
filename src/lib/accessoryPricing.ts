@@ -8,14 +8,17 @@ export { accessoryAppliesTo, paintingAccessoryTargets } from './productType';
 // Server-side source of truth for accessory prices: only the ids the
 // customer checked are honored, and name/price always come from the DB
 // (never from the client), priced for the given size tier. Accessories not
-// configured for `targets` are dropped, even if a client sends them.
+// configured for `targets` are dropped, even if a client sends them, and so
+// are the ones in `exclude` (Painting.included_accessories — e.g. a painting
+// that already comes with its own frame is never charged for one).
 export async function resolveAccessories(
   ids: unknown,
   sizeBucket: SizeBucket | null,
-  targets: string[]
+  targets: string[],
+  exclude: string[] = []
 ): Promise<AccessorySnapshot[]> {
   if (!Array.isArray(ids)) return [];
-  const wanted = ids.filter((id): id is string => typeof id === 'string' && id.length > 0);
+  const wanted = ids.filter((id): id is string => typeof id === 'string' && id.length > 0 && !exclude.includes(id));
   if (wanted.length === 0) return [];
   const found = await prisma.accessory.findMany({
     where: { id: { in: wanted }, is_active: true },
@@ -45,4 +48,11 @@ export function accessoryIdsFrom(value: unknown): string[] {
   return value
     .map((v) => (typeof v === 'string' ? v : (v as { id?: unknown })?.id))
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
+}
+
+// Painting.included_accessories as submitted by the admin form.
+export function accessoryIdList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? Array.from(new Set(value.filter((id): id is string => typeof id === 'string' && id.length > 0)))
+    : [];
 }

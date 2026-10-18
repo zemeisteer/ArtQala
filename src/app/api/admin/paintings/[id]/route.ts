@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
 import { parseSoldPrice } from '@/lib/salePriceInput';
 
@@ -79,6 +80,10 @@ export async function PUT(request: Request, context: RouteContext) {
         // Only kept while sold; un-selling clears it.
         sold_price: nextIsSold ? parseSoldPrice(body.sold_price) : null,
         is_featured: Boolean(body.is_featured),
+        // Older cached forms don't send it — leave it as is then.
+        included_accessories: Array.isArray(body.included_accessories)
+          ? accessoryIdList(body.included_accessories)
+          : undefined,
         images: body.images || undefined,
         artist_id: body.artist_id,
         category_id: body.category_id,

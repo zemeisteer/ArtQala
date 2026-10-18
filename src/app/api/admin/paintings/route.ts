@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
 import { parseSoldPrice } from '@/lib/salePriceInput';
 
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
       is_sold,
       sold_price,
       is_featured,
+      included_accessories,
       images,
       artist_id,
       category_id,
@@ -74,6 +76,7 @@ export async function POST(request: Request) {
         sold_at: is_sold ? new Date() : null,
         sold_price: is_sold ? parseSoldPrice(sold_price) : null,
         is_featured: Boolean(is_featured),
+        included_accessories: accessoryIdList(included_accessories),
         images: images || JSON.stringify(['/assets/p-arch.svg']),
         artist_id,
         category_id,
