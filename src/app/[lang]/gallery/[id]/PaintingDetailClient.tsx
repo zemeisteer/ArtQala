@@ -43,6 +43,17 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
   const [activeImage, setActiveImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [wallOpen, setWallOpen] = useState(false);
+  // Android sends the visitor back here (#ar-failed) when the phone has no AR.
+  const [wallArFailed, setWallArFailed] = useState(false);
+  useEffect(() => {
+    if (window.location.hash !== '#ar-failed') return;
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    const timer = setTimeout(() => {
+      setWallArFailed(true);
+      setWallOpen(true);
+    });
+    return () => clearTimeout(timer);
+  }, []);
   // Back to the gallery WITH the filters the visitor had (artist, page…).
   const galleryHref = useGalleryHref();
   // Real size in cm (from the size string) — the wall preview needs it.
@@ -355,10 +366,12 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
 
             {wallOpen && sizeCm && (
               <WallPreviewModal
-                imageSrc={imageList[0]}
+                paintingId={painting.id}
                 title={title}
-                widthCm={sizeCm.width}
-                heightCm={sizeCm.height}
+                fallbackImage={imageList[0]}
+                fallbackWidthCm={sizeCm.width}
+                fallbackHeightCm={sizeCm.height}
+                arFailed={wallArFailed}
                 onClose={() => setWallOpen(false)}
               />
             )}

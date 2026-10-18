@@ -72,6 +72,13 @@ frame — "Kartina bilan birga keladi" in the Paintings form). They are never of
 `AccessoryCheckboxes` takes them as `included`, and `resolveAccessories()` takes them as `exclude`; the painting
 page lists them as included.
 
+**"View on a wall"** (`WallPreviewModal`): `src/lib/wallView.ts` has Gemini find the artwork in the main photo once
+(outer box = frame edge if framed, else canvas edge; snapped to real pixel edges) and derives the real outer size from
+the typed canvas size; stored as JSON in `Painting.wall_view`, re-detected when the main photo or size changes.
+`/api/paintings/[id]/wall` (data; admin POST = re-detect), `/wall-image` (cropped JPEG) and `/wall-model` (real-size
+`.glb`, `src/lib/paintingGlb.ts`) serve it. Phones open it in their own AR viewer — Android Scene Viewer via an
+`intent://` URL, iOS Quick Look via a USDZ built in the browser with three.js (vertical anchoring, scaling locked).
+
 **Artist awards & certificates** live in `Artist.achievements` (JSON text, read/written only through
 `src/lib/artistAchievements.ts`), edited in Admin → Artists and shown on the artist's page.
 

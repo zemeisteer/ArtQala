@@ -26,6 +26,7 @@ import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslat
 import TranslateStatus from '@/components/TranslateStatus';
 import { PLACEHOLDER_IMAGE } from '@/lib/paintingImages';
 import { accessoryAppliesTo } from '@/lib/productType';
+import WallViewCard from './WallViewCard';
 
 interface PaintingFormProps {
   initialData?: any;
@@ -588,6 +589,10 @@ export default function PaintingForm({
 
       const data = await res.json();
       if (data.success) {
+        // Prepare "Devorda ko'rish" now (finds the artwork in a new main
+        // photo) so the first visitor doesn't wait for it.
+        const savedId = data.painting?.id || initialData?.id;
+        if (savedId) fetch(`/api/paintings/${savedId}/wall`, { keepalive: true }).catch(() => {});
         setMessage('Kartina muvaffaqiyatli saqlandi!');
         setTimeout(() => {
           router.push(backHref);
@@ -1138,6 +1143,8 @@ export default function PaintingForm({
                 )}
               </label>
             </div>
+
+            {!isNew && initialData?.id && <WallViewCard paintingId={initialData.id} />}
           </div>
 
           {/* Right Column (Pricing & Toggles) */}
