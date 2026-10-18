@@ -50,12 +50,20 @@ function detectArMode(): ArMode {
 // iOS Quick Look needs USDZ, anchored to a vertical plane — converted here
 // from the same .glb Android uses (three.js only loads on iPhone/iPad).
 async function buildUsdz(modelUrl: string): Promise<string> {
-  const [{ GLTFLoader }, { USDZExporter }] = await Promise.all([
+  const [{ Group }, { GLTFLoader }, { USDZExporter }] = await Promise.all([
+    import('three'),
     import('three/examples/jsm/loaders/GLTFLoader.js'),
     import('three/examples/jsm/exporters/USDZExporter.js'),
   ]);
   const gltf = await new GLTFLoader().loadAsync(modelUrl);
-  const usdz = await new USDZExporter().parseAsync(gltf.scene, {
+  // Quick Look's wall anchor uses Y as the wall's normal (out of the wall)
+  // and -Z as up. The .glb faces +Z with +Y up (Android's convention), so
+  // tip it back 90° — otherwise it sticks out of the wall like a shelf.
+  gltf.scene.rotation.x = -Math.PI / 2;
+  const root = new Group();
+  root.add(gltf.scene);
+  root.updateMatrixWorld(true);
+  const usdz = await new USDZExporter().parseAsync(root, {
     ar: { anchoring: { type: 'plane' }, planeAnchoring: { alignment: 'vertical' } },
     quickLookCompatible: true,
     maxTextureSize: 2048,
