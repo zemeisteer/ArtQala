@@ -139,6 +139,8 @@ export const translations = {
       joinTitle: 'Join the gallery',
       joinText: 'Are you a painter or ceramicist based in Uzbekistan? We are always looking for new voices to represent.',
       submitPortfolio: 'Submit your portfolio →',
+      achievementsHeading: 'Awards & certificates',
+      viewDocument: 'View',
     },
     // Services
     services: {
@@ -532,6 +534,8 @@ export const translations = {
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
       heading: 'Would you like to add any of these?',
+      included: 'Comes with this painting',
+      includedTag: 'Included',
     },
     // International shipping cost estimator (UzPost-based)
     shippingEstimator: {
@@ -700,6 +704,8 @@ export const translations = {
       joinTitle: 'Присоединяйтесь к галерее',
       joinText: 'Вы художник или керамист из Узбекистана? Мы всегда открыты для новых имен и талантов.',
       submitPortfolio: 'Отправить портфолио →',
+      achievementsHeading: 'Награды и сертификаты',
+      viewDocument: 'Открыть',
     },
     // Services
     services: {
@@ -1093,6 +1099,8 @@ export const translations = {
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
       heading: 'Хотите добавить что-то из этого?',
+      included: 'Уже входит в комплект картины',
+      includedTag: 'Включено',
     },
     // International shipping cost estimator (UzPost-based)
     shippingEstimator: {
@@ -1261,6 +1269,8 @@ export const translations = {
       joinTitle: 'Galereyaga qo\'shiling',
       joinText: 'O\'zbekistonda ijod qiluvchi rassom yoki kulolmisiz? Biz doimo yangi iste\'dodlarni kashf etishdan mamnunmiz.',
       submitPortfolio: 'Portfolio yuborish →',
+      achievementsHeading: 'Mukofotlar va sertifikatlar',
+      viewDocument: "Ko'rish",
     },
     // Services
     services: {
@@ -1654,6 +1664,8 @@ export const translations = {
     // Optional add-ons a customer can check when sending an inquiry
     accessories: {
       heading: "Shulardan birortasini qo'shmoqchimisiz?",
+      included: 'Kartina bilan birga keladi',
+      includedTag: 'Kiritilgan',
     },
     // International shipping cost estimator (UzPost-based)
     shippingEstimator: {

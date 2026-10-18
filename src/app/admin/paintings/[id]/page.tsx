@@ -25,11 +25,16 @@ export default async function EditPaintingPage({ params, searchParams }: PagePro
     notFound();
   }
 
-  const [artists, categories, discountRules, agreed] = await Promise.all([
+  const [artists, categories, discountRules, agreed, accessories] = await Promise.all([
     prisma.artist.findMany(),
     prisma.category.findMany(),
     getActiveDiscountRules(),
     getAgreedPriceByPainting([id]),
+    prisma.accessory.findMany({
+      where: { is_active: true },
+      select: { id: true, name_uz: true, product_types: true },
+      orderBy: { name_uz: 'asc' },
+    }),
   ]);
 
   return (
@@ -38,6 +43,7 @@ export default async function EditPaintingPage({ params, searchParams }: PagePro
       artists={artists}
       categories={categories}
       discountRules={discountRules}
+      accessories={accessories}
       backHref={safeBackHref(back)}
       isNew={false}
       agreedSalePrice={agreed.get(id) ?? null}

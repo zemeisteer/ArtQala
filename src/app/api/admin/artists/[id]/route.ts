@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { serializeAchievements } from '@/lib/artistAchievements';
 import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,8 @@ export async function PUT(
         photo: body.photo,
         pdf: body.pdf,
         category_id: body.category_id || null,
+        // Older cached forms don't send it — leave it as is then.
+        achievements: Array.isArray(body.achievements) ? serializeAchievements(body.achievements) : undefined,
       },
     });
 

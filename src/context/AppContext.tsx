@@ -75,7 +75,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [rates, setRates] = useState<Record<Currency, number>>(DEFAULT_RATES);
   const [settings, setSettings] = useState<SiteSettingsData | null>(null);
-  const [, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const refreshSettings = async () => {
     try {
@@ -160,7 +160,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
+    // From here on React handles the hearts — the early inline script
+    // (src/lib/earlyWishlist.ts), which caught taps made before this, steps
+    // aside. Its saved taps are in what we just read.
+    (window as unknown as { __aqWishReady?: boolean }).__aqWishReady = true;
   }, []);
+
+  // Once React has drawn the hearts from state, drop the early script's
+  // temporary colouring so it can't contradict later taps.
+  useEffect(() => {
+    if (!mounted) return;
+    document.querySelectorAll('[data-wish-state]').forEach((el) => el.removeAttribute('data-wish-state'));
+  }, [mounted]);
 
   const setLang = (l: Language) => {
     setLangState(l);
@@ -200,15 +211,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // ignore
         }
-        const merged = Array.from(new Set([...local, ...serverIds]));
-        setWishlist(merged);
-        localStorage.setItem('artqala_wishlist', JSON.stringify(merged));
-        const missing = local.filter((id) => !serverIds.includes(id));
+        // First sign-in on this device: merge both lists. After that this
+        // device's list is the truth — otherwise a heart removed here (or
+        // tapped before the page finished loading) came back from the
+        // server on the next visit.
+        const syncedKey = 'artqala_wishlist_synced';
+        const firstSync = localStorage.getItem(syncedKey) !== userId;
+        const result = firstSync ? Array.from(new Set([...local, ...serverIds])) : local;
+        if (firstSync) {
+          setWishlist(result);
+          localStorage.setItem('artqala_wishlist', JSON.stringify(result));
+          localStorage.setItem(syncedKey, userId);
+        }
+        const missing = result.filter((id) => !serverIds.includes(id));
+        const extra = firstSync ? [] : serverIds.filter((id) => !result.includes(id));
         if (missing.length > 0) {
           await fetch('/api/user/wishlist', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paintingIds: missing }),
+          });
+        }
+        for (const paintingId of extra) {
+          await fetch('/api/user/wishlist', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paintingId }),
           });
         }
       } catch {

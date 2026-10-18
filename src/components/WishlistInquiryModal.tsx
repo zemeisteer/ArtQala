@@ -21,6 +21,7 @@ interface WishlistPaintingLite {
   price?: number;
   discount_price?: number | null;
   category?: { slug: string; parent?: { slug: string } | null };
+  included_accessories?: string[];
 }
 
 interface WishlistInquiryModalProps {
@@ -160,6 +161,7 @@ export default function WishlistInquiryModal({ paintings, onClose }: WishlistInq
                         heading={t.wishlistInquiry.addOnsFor}
                         productTypes={productTypesOf(p)}
                         sizeBucket={getSizeBucket(p.size)}
+                        included={p.included_accessories}
                         onChange={(list) => setAccessoriesByPainting((prev) => ({ ...prev, [p.id]: list }))}
                       />
                     </div>

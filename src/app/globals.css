@@ -146,3 +146,13 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Wishlist heart tapped before the app's JavaScript loaded (see
+   src/lib/earlyWishlist.ts) — same look as a favourited heart. */
+button[data-wish-state='on'] {
+  background-color: #ba4e25 !important;
+  color: #ffffff !important;
+}
+button[data-wish-state='on'] svg {
+  fill: currentColor;
+}

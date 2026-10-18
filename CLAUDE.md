@@ -67,6 +67,18 @@ API routes — never trust a client-submitted accessory price.
 which every inquiry/service route uses) — an accessory not configured for the painting's product type or the
 service type is dropped even if a client sends it.
 
+**`Painting.included_accessories`** lists Accessory ids that physically come with the painting (e.g. its own
+frame — "Kartina bilan birga keladi" in the Paintings form). They are never offered or charged for it:
+`AccessoryCheckboxes` takes them as `included`, and `resolveAccessories()` takes them as `exclude`; the painting
+page lists them as included.
+
+**Artist awards & certificates** live in `Artist.achievements` (JSON text, read/written only through
+`src/lib/artistAchievements.ts`), edited in Admin → Artists and shown on the artist's page.
+
+**Wishlist hearts carry `data-wishlist-id`**: `src/lib/earlyWishlist.ts` (inlined first in `<body>`) records taps
+made before hydration into localStorage, so a tap on a slow phone is never lost; `AppContext` sets
+`window.__aqWishReady` once React owns the list.
+
 **A multi-painting inquiry is ONE `Inquiry` with an `InquiryItem` per painting** (each with its own price
 snapshot and accessory snapshot); `Inquiry.painting_id` points at the first painting. Single-painting (and
 older) inquiries have no items and keep accessories in `Inquiry.selected_accessories`. Read inquiries through

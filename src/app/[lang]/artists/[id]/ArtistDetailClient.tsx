@@ -2,11 +2,12 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { FileText } from 'lucide-react';
+import { Award, FileText } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import PaintingCard, { PaintingItem } from '@/components/PaintingCard';
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
+import { achievementTitle, isPdfFile, parseAchievements } from '@/lib/artistAchievements';
 
 interface ArtistDetailClientProps {
   artist: {
@@ -14,6 +15,7 @@ interface ArtistDetailClientProps {
     name: string;
     photo?: string | null;
     pdf?: string | null;
+    achievements?: string | null;
     initials?: string | null;
     bio_en: string;
     bio_ru: string;
@@ -32,6 +34,7 @@ export default function ArtistDetailClient({ artist }: ArtistDetailClientProps) 
     (lang === 'ru' ? artist.specialty_ru : lang === 'uz' ? artist.specialty_uz : artist.specialty_en) ||
     artist.specialty_en;
   const paintings = artist.paintings as PaintingItem[];
+  const achievements = parseAchievements(artist.achievements);
 
   return (
     <div className="py-14 sm:py-16">
@@ -73,6 +76,53 @@ export default function ArtistDetailClient({ artist }: ArtistDetailClientProps) 
             )}
           </div>
         </div>
+
+        {/* Awards & certificates (Admin → Artists) */}
+        {achievements.length > 0 && (
+          <div className="mb-14 border-t border-[#E7E0D8] pt-10">
+            <h2 className="font-serif text-3xl font-semibold text-[#281C18] mb-6">{t.artists.achievementsHeading}</h2>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {achievements.map((a, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-3 bg-[#FDFBF9] border border-[#E7E0D8] rounded-[3px] p-4"
+                >
+                  {a.file && !isPdfFile(a.file) ? (
+                    <a
+                      href={a.file}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative w-16 h-16 shrink-0 rounded-[2px] overflow-hidden border border-[#E7E0D8] bg-white"
+                    >
+                      <Image src={a.file} alt={achievementTitle(a, lang)} fill sizes="64px" className="object-cover" />
+                    </a>
+                  ) : (
+                    <span className="w-10 h-10 shrink-0 rounded-full bg-[#BA4E25]/10 text-[#BA4E25] flex items-center justify-center">
+                      <Award className="w-5 h-5" />
+                    </span>
+                  )}
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-semibold text-[#281C18] leading-snug">{achievementTitle(a, lang)}</p>
+                    <div className="flex items-center gap-3 text-xs text-[#8F8178]">
+                      {a.year && <span>{a.year}</span>}
+                      {a.file && (
+                        <a
+                          href={a.file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-semibold text-[#BA4E25] hover:underline"
+                        >
+                          <FileText className="w-3 h-3" />
+                          {t.artists.viewDocument}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Every work of theirs in the gallery */}
         <div className="flex items-baseline justify-between mb-6 border-t border-[#E7E0D8] pt-10">

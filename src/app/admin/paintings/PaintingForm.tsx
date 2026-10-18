@@ -25,6 +25,7 @@ import type { DiscountRule } from '@/lib/discounts';
 import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
 import TranslateStatus from '@/components/TranslateStatus';
 import { PLACEHOLDER_IMAGE } from '@/lib/paintingImages';
+import { accessoryAppliesTo } from '@/lib/productType';
 
 interface PaintingFormProps {
   initialData?: any;
@@ -34,6 +35,8 @@ interface PaintingFormProps {
   // show which rule a painting already falls under instead of a blank field.
   discountRules?: DiscountRule[];
   isNew?: boolean;
+  // Active accessories — for "comes with the painting" (e.g. its own frame).
+  accessories?: { id: string; name_uz: string; product_types: string[] }[];
   // Price agreed in Admin → Inquiries for this painting (sold through the
   // website) — then that is the sale price and none is asked for here.
   agreedSalePrice?: number | null;
@@ -62,6 +65,7 @@ export default function PaintingForm({
   categories: initialCategories,
   discountRules = [],
   isNew = false,
+  accessories = [],
   agreedSalePrice = null,
   backHref = '/admin/paintings',
 }: PaintingFormProps) {
@@ -194,6 +198,9 @@ export default function PaintingForm({
     initialData?.sold_price != null ? String(initialData.sold_price) : ''
   );
   const needsSoldPrice = isSold && agreedSalePrice == null;
+  // Accessories this painting already comes with (e.g. its own frame) —
+  // the site then never offers or charges them for this painting.
+  const [includedAccessories, setIncludedAccessories] = useState<string[]>(initialData?.included_accessories || []);
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured !== undefined ? initialData.is_featured : true);
 
   // AI writer: drafts title + description (UZ/EN/RU) from the first photo
@@ -557,6 +564,7 @@ export default function PaintingForm({
       is_sold: isSold,
       sold_price: needsSoldPrice ? soldPrice : null,
       is_featured: isFeatured,
+      included_accessories: includedAccessories,
       images: JSON.stringify(images.length > 0 ? images : [PLACEHOLDER_IMAGE]),
     };
 
@@ -1325,6 +1333,40 @@ export default function PaintingForm({
                   className="w-4 h-4 accent-[#BA4E25]"
                 />
               </label>
+
+              {(() => {
+                const targets = [topCategoryId, categoryId]
+                  .map((cid) => categoriesList.find((c: any) => c.id === cid)?.slug)
+                  .filter(Boolean) as string[];
+                const shown = accessories.filter(
+                  (a) => includedAccessories.includes(a.id) || accessoryAppliesTo(a.product_types, targets)
+                );
+                if (shown.length === 0) return null;
+                return (
+                  <div className="pt-3 border-t border-[#E7E0D8] space-y-1.5">
+                    <div className="text-xs font-semibold text-[#281C18]">Kartina bilan birga keladi</div>
+                    <div className="text-[10px] text-[#8F8178]">
+                      Masalan, kartinaning o&apos;z ramkasi bo&apos;lsa — belgilang. Saytda bu kartinaga u qo&apos;shimcha sifatida
+                      taklif qilinmaydi, &quot;Kartina bilan birga keladi&quot; deb ko&apos;rsatiladi.
+                    </div>
+                    {shown.map((a) => (
+                      <label key={a.id} className="flex items-center gap-2 text-xs text-[#281C18] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includedAccessories.includes(a.id)}
+                          onChange={(e) =>
+                            setIncludedAccessories((prev) =>
+                              e.target.checked ? [...prev, a.id] : prev.filter((id) => id !== a.id)
+                            )
+                          }
+                          className="w-4 h-4 accent-[#BA4E25]"
+                        />
+                        {a.name_uz}
+                      </label>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

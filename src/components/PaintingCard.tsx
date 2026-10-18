@@ -104,6 +104,7 @@ export default function PaintingCard({ painting, sizes = GRID_SIZES, priority = 
             toggleWishlist(painting.id);
           }}
           aria-label={isFavorited ? 'Remove from wishlist' : 'Add to wishlist'}
+          data-wishlist-id={painting.id}
           className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 hover:scale-110 shadow-xs ${
             isFavorited
               ? 'bg-[#BA4E25] text-white'

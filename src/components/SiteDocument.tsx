@@ -1,6 +1,7 @@
 import React from 'react';
 import { Cormorant_Garamond, Work_Sans } from 'next/font/google';
 import Script from 'next/script';
+import { EARLY_WISHLIST_SCRIPT } from '@/lib/earlyWishlist';
 import '@/app/globals.css';
 import { AppProvider } from '@/context/AppContext';
 import { safeJsonLdString } from '@/lib/jsonLd';
@@ -46,6 +47,9 @@ export default function SiteDocument({
       className={`${cormorant.variable} ${workSans.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col bg-[#FAF4EC] text-[#281C18] selection:bg-[#BA4E25] selection:text-white">
+        {/* First thing in <body>: makes wishlist hearts work before the app's
+            JavaScript has loaded (see src/lib/earlyWishlist.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: EARLY_WISHLIST_SCRIPT }} />
         {jsonLd && (
           <script
             type="application/ld+json"
