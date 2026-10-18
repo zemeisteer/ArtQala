@@ -31,10 +31,13 @@ interface WallData {
   cropped: boolean;
   image: string;
   model: string;
+  usdz: string;
 }
 
 // 'ios-inapp': an iPhone browser without Quick Look (Telegram, Instagram…
-// in-app browsers) — the visitor is told to open the page in Safari.
+// in-app browsers, the Google app) — the visitor is told to open the page
+// in Safari. Safari and Chrome/Edge/Firefox on iOS do have Quick Look (the
+// latter only from a real .usdz link, which is what we give them).
 // null: a computer — a QR code opens this view on the phone.
 type ArMode = 'ios' | 'ios-inapp' | 'android' | null;
 
@@ -42,33 +45,13 @@ function detectArMode(): ArMode {
   if (typeof window === 'undefined') return null;
   const ua = navigator.userAgent;
   const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (ios) return document.createElement('a').relList?.supports?.('ar') ? 'ios' : 'ios-inapp';
+  if (ios) {
+    if (/GSA\//.test(ua)) return 'ios-inapp';
+    if (/CriOS\/|EdgiOS\/|FxiOS\/|DuckDuckGo\//.test(ua)) return 'ios';
+    return document.createElement('a').relList?.supports?.('ar') ? 'ios' : 'ios-inapp';
+  }
   if (/android/i.test(ua)) return 'android';
   return null;
-}
-
-// iOS Quick Look needs USDZ, anchored to a vertical plane — converted here
-// from the same .glb Android uses (three.js only loads on iPhone/iPad).
-async function buildUsdz(modelUrl: string): Promise<string> {
-  const [{ Group }, { GLTFLoader }, { USDZExporter }] = await Promise.all([
-    import('three'),
-    import('three/examples/jsm/loaders/GLTFLoader.js'),
-    import('three/examples/jsm/exporters/USDZExporter.js'),
-  ]);
-  const gltf = await new GLTFLoader().loadAsync(modelUrl);
-  // Quick Look's wall anchor uses Y as the wall's normal (out of the wall)
-  // and -Z as up. The .glb faces +Z with +Y up (Android's convention), so
-  // tip it back 90° — otherwise it sticks out of the wall like a shelf.
-  gltf.scene.rotation.x = -Math.PI / 2;
-  const root = new Group();
-  root.add(gltf.scene);
-  root.updateMatrixWorld(true);
-  const usdz = await new USDZExporter().parseAsync(root, {
-    ar: { anchoring: { type: 'plane' }, planeAnchoring: { alignment: 'vertical' } },
-    quickLookCompatible: true,
-    maxTextureSize: 2048,
-  });
-  return URL.createObjectURL(new Blob([usdz], { type: 'model/vnd.usdz+zip' }));
 }
 
 const WALL_COLORS = ['#EDE6DC', '#D8D3CB', '#C7D5D1', '#E9D8C4', '#3B3734'];
@@ -92,7 +75,6 @@ export default function WallPreviewModal({
   const [loading, setLoading] = useState(true);
   // Only ever rendered after a click, so the browser is there to ask.
   const [arMode] = useState<ArMode>(detectArMode);
-  const [usdzUrl, setUsdzUrl] = useState<string | null>(null);
   const [showInAppHelp, setShowInAppHelp] = useState(false);
   const [copied, setCopied] = useState(false);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
@@ -145,29 +127,16 @@ export default function WallPreviewModal({
     };
   }, [paintingId]);
 
-  // Prepare the iPhone model in the background so the tap opens at once.
-  useEffect(() => {
-    if (arMode !== 'ios' || !data?.widthCm) return;
-    let url: string | null = null;
-    buildUsdz(data.model)
-      .then((u) => {
-        url = u;
-        setUsdzUrl(u);
-      })
-      .catch((err) => console.error('USDZ build failed:', err));
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [arMode, data]);
-
   const openAr = () => {
-    if (!data) return;
     if (arMode === 'ios-inapp') {
       setShowInAppHelp(true);
-    } else if (arMode === 'ios' && usdzUrl) {
+      return;
+    }
+    if (!data) return;
+    if (arMode === 'ios') {
       const a = document.createElement('a');
       a.rel = 'ar';
-      a.href = `${usdzUrl}#allowsContentScaling=0`;
+      a.href = `${new URL(data.usdz, window.location.href).href}#allowsContentScaling=0`;
       a.appendChild(document.createElement('img'));
       document.body.appendChild(a);
       a.click();
@@ -242,10 +211,10 @@ export default function WallPreviewModal({
             <button
               type="button"
               onClick={openAr}
-              disabled={arMode !== 'ios-inapp' && (loading || !data || (arMode === 'ios' && !usdzUrl))}
+              disabled={arMode !== 'ios-inapp' && (loading || !data)}
               className="w-full flex items-center justify-center gap-2 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-sm py-3 rounded-[3px] disabled:opacity-60"
             >
-              {arMode !== 'ios-inapp' && (loading || (arMode === 'ios' && !usdzUrl)) ? (
+              {arMode !== 'ios-inapp' && loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Camera className="w-4 h-4" />

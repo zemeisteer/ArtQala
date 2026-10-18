@@ -76,9 +76,11 @@ page lists them as included.
 (frame edge if framed, else canvas edge; snapped to real pixel edges); stored as JSON in `Painting.wall_view`,
 re-detected when the main photo changes. The size shown (room view and AR) is ALWAYS the size typed in the admin —
 never re-computed. Computers get a QR code that opens the view on a phone (`?wall=1` on the painting page).
-`/api/paintings/[id]/wall` (data; admin POST = re-detect), `/wall-image` (cropped JPEG) and `/wall-model` (real-size
-`.glb`, `src/lib/paintingGlb.ts`) serve it. Phones open it in their own AR viewer — Android Scene Viewer via an
-`intent://` URL, iOS Quick Look via a USDZ built in the browser with three.js (vertical anchoring, scaling locked).
+`/api/paintings/[id]/wall` (data; admin POST = re-detect), `/wall-image` (cropped JPEG) and `/ar/painting.glb` /
+`/ar/painting.usdz` (real-size models, `src/lib/paintingGlb.ts` / `paintingUsdz.ts`, both dependency-free) serve it.
+Phones open it in their own AR viewer — Android Scene Viewer via an `intent://` URL, iOS Quick Look via the server
+USDZ's real URL (a blob URL only works in Safari; Chrome/Edge/Firefox on iOS need a real link). The USDZ is tipped
+back 90° because Quick Look's wall anchor uses Y as the wall normal. The Google app on iOS (GSA) has no Quick Look.
 
 **Artist awards & certificates** live in `Artist.achievements` (JSON text, read/written only through
 `src/lib/artistAchievements.ts`), edited in Admin → Artists and shown on the artist's page.
