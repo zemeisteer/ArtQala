@@ -254,7 +254,8 @@ export function wallViewPayload(paintingId: string, sizeStr: string | null | und
     framed: Boolean(view?.framed),
     cropped: Boolean(view?.box),
     image: `/api/paintings/${paintingId}/wall-image?v=${v}`,
-    model: `/api/paintings/${paintingId}/wall-model?v=${v}`,
+    model: `/api/paintings/${paintingId}/ar/painting.glb?v=${v}`,
+    usdz: `/api/paintings/${paintingId}/ar/painting.usdz?v=${v}`,
   };
 }
 
