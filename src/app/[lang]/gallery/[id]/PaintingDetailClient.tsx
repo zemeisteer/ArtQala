@@ -8,7 +8,7 @@ import PaintingCard, { PaintingItem } from '@/components/PaintingCard';
 import PhoneInput from '@/components/PhoneInput';
 import ShippingEstimator from '@/components/ShippingEstimator';
 import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCheckboxes';
-import { getSizeBucket, parseSizeCm } from '@/lib/paintingSize';
+import { getSizeBucket, isWallPiece, parseSizeCm } from '@/lib/paintingSize';
 import WallPreviewModal from '@/components/WallPreviewModal';
 import { useGalleryHref } from '@/lib/galleryReturn';
 import { paintingAccessoryTargets } from '@/lib/productType';
@@ -311,8 +311,9 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                 <ZoomIn className="w-4 h-4" />
               </span>
 
-              {/* See it at real size on a wall (only when the size is known) */}
-              {sizeCm && (
+              {/* See it at real size on a wall (only when the size is known,
+                  and only for wall pieces — not a chess board, a box or a vase) */}
+              {sizeCm && isWallPiece(sizeCm) && (
                 <button
                   type="button"
                   onClick={() => setWallOpen(true)}

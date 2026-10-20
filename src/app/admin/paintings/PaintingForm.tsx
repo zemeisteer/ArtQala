@@ -85,25 +85,33 @@ export default function PaintingForm({
   const [descriptionEn, setDescriptionEn] = useState(initialData?.description_en || '');
   const [descriptionRu, setDescriptionRu] = useState(initialData?.description_ru || '');
 
-  // Structured size parsing (e.g. "60 × 80 sm" or "60x80")
+  // Structured size parsing (e.g. "60 × 80 sm", "60x80", or "40 × 40 × 5 sm"
+  // for an object with depth — a chess board, a box)
   const parseSize = (sizeStr?: string) => {
-    if (!sizeStr) return { width: 60, height: 80, unit: 'sm' };
-    const parts = sizeStr.match(/(\d+)\s*[×x*X]\s*(\d+)(?:\s*(sm|cm|in|dyum))?/i);
+    if (!sizeStr) return { width: 60, height: 80, depth: '', unit: 'sm' };
+    const parts = sizeStr.match(/(\d+)\s*[×x*X]\s*(\d+)(?:\s*[×x*X]\s*(\d+))?(?:\s*(sm|cm|in|dyum))?/i);
     if (parts) {
-      const u = (parts[3] || 'sm').toLowerCase();
+      const u = (parts[4] || 'sm').toLowerCase();
       return {
         width: parseInt(parts[1]) || 60,
         height: parseInt(parts[2]) || 80,
+        depth: parts[3] || '',
         unit: u === 'in' || u === 'dyum' ? 'dyum' : 'sm',
       };
     }
-    return { width: 60, height: 80, unit: 'sm' };
+    return { width: 60, height: 80, depth: '', unit: 'sm' };
   };
 
   const initialParsedSize = parseSize(initialData?.size);
   const [sizeWidth, setSizeWidth] = useState<string>(String(initialParsedSize.width));
   const [sizeHeight, setSizeHeight] = useState<string>(String(initialParsedSize.height));
+  // Optional third dimension (height/thickness of a 3D object); empty for paintings.
+  const [sizeDepth, setSizeDepth] = useState<string>(initialParsedSize.depth);
   const [sizeUnit, setSizeUnit] = useState<string>(initialParsedSize.unit);
+  const sizeText = () =>
+    sizeWidth && sizeHeight
+      ? `${sizeWidth} × ${sizeHeight}${sizeDepth && sizeDepth !== '0' ? ` × ${sizeDepth}` : ''} ${sizeUnit}`
+      : '';
 
   // Empty by default (not pre-filled with the "Oil on canvas" example) so a
   // placeholder is never mistaken for real text by the auto-translation.
@@ -227,7 +235,7 @@ export default function PaintingForm({
           notes: aiNotes,
           artist: artistsList.find((a: any) => a.id === artistId)?.name,
           technique: techniqueEn || techniqueUz || techniqueRu,
-          size: sizeWidth && sizeHeight ? `${sizeWidth} × ${sizeHeight} ${sizeUnit}` : '',
+          size: sizeText(),
           year,
           category: category?.name_en || category?.name_uz,
         }),
@@ -532,7 +540,7 @@ export default function PaintingForm({
     setLoading(true);
     setMessage('');
 
-    const formattedSize = `${sizeWidth} × ${sizeHeight} ${sizeUnit}`;
+    const formattedSize = sizeText();
     const ownDiscount = discountScope === 'PAINTING';
 
     const [title, description, technique] = await Promise.all([
@@ -863,7 +871,7 @@ export default function PaintingForm({
                 {/* Structured Size Input (TZ Section 8.2) */}
                 <div>
                   <label className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
-                    O'LCHAMI (ENI × BO'YI) *
+                    O'LCHAMI (ENI × BO'YI × BALANDLIGI) *
                   </label>
                   <div className="flex items-center gap-1.5 bg-white border border-[#E7E0D8] rounded-[3px] px-2 py-1">
                     <input
@@ -885,6 +893,16 @@ export default function PaintingForm({
                       placeholder="80"
                       className="w-14 text-xs font-semibold text-center focus:outline-none"
                     />
+                    <span className="text-[#8F7E73] text-xs font-bold">×</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={sizeDepth}
+                      onChange={(e) => setSizeDepth(digitsOnly(e.target.value))}
+                      placeholder="—"
+                      title="Ixtiyoriy: hajmli buyumlar uchun (shaxmat, quti, sandiq…)"
+                      className="w-12 text-xs font-semibold text-center focus:outline-none placeholder:text-[#C9BBAE]"
+                    />
                     <FilterSelect
                       value={sizeUnit}
                       onChange={setSizeUnit}
@@ -897,7 +915,10 @@ export default function PaintingForm({
                     />
                   </div>
                   <span className="text-[10px] text-[#8F7E73] mt-0.5 block">
-                    Natija: {sizeWidth} × {sizeHeight} {sizeUnit}
+                    Natija: {sizeText() || '—'}
+                    <br />
+                    3-maydon (balandligi) ixtiyoriy — faqat hajmli buyumlar uchun: shaxmat, quti, sandiq, vaza. Kartina va devorga
+                    osiladigan panno uchun bo&apos;sh qoldiring (shunda saytda &quot;Devorda ko&apos;rish&quot; chiqadi).
                   </span>
                 </div>
 

@@ -104,6 +104,7 @@ function buildProductJsonLd(painting: any, siteUrl: string, lang: Language) {
       : {}),
     ...(painting.year ? { dateCreated: String(painting.year) } : {}),
     ...(size ? { width: cm(size.width), height: cm(size.height) } : {}),
+    ...(size?.depth ? { depth: cm(size.depth) } : {}),
     offers: {
       '@type': 'Offer',
       url: `${siteUrl}${localizePath(`/gallery/${painting.id}`, lang)}`,

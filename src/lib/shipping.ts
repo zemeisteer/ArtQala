@@ -269,9 +269,11 @@ function emsCostUzs(countryCode: string, weightKg: number): number | null {
  * padding as roughly constant per m^2 of surface area, plus a fixed base for
  * the crate itself. Deliberately rounds up (never undercharges shipping).
  */
-export function estimatePaintingWeightKg(widthCm: number, heightCm: number): number {
+export function estimatePaintingWeightKg(widthCm: number, heightCm: number, depthCm?: number): number {
   const areaM2 = (widthCm / 100) * (heightCm / 100);
-  const estimated = areaM2 * 6 + 1.5;
+  // A 3D object (box, chess board, vase) weighs by its volume, not its face.
+  const volumeKg = depthCm && depthCm > 4 ? (widthCm * heightCm * depthCm) / 1e6 * 250 : 0;
+  const estimated = Math.max(areaM2 * 6, volumeKg) + 1.5;
   return Math.max(1, Math.ceil(estimated * 2) / 2); // round up to nearest 0.5kg
 }
 

@@ -129,6 +129,11 @@ routes); buttons call `setInquiryStatus`/`setServiceRequestStatus`; Mondays the 
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
 
+**Sizes** are a string "W × H unit", or "W × H × D unit" for 3D objects (chess board, box, vase — the optional
+third field in the Paintings form). Always read them with `src/lib/paintingSize.ts#parseSizeCm()` (returns cm,
+`depth` only for objects); `isWallPiece()` (no depth) decides whether "View on a wall" is offered, and shipping
+weight uses the volume when there is a depth.
+
 **`Painting.images[0]` is the main photo** (reordered in the Paintings form). Listings show only it — use
 `src/lib/paintingImages.ts` (`mainImage()`, `withMainImageOnly()`); only the detail page shows every photo.
 

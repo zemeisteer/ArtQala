@@ -13,22 +13,15 @@ import {
 import { Truck, Info } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
 import { getVisitorCountry } from '@/lib/visitorCountry';
+import { parseSizeCm } from '@/lib/paintingSize';
 
 interface ShippingEstimatorProps {
   sizeString: string;
 }
 
-function parseSizeToCm(sizeString: string): { widthCm: number; heightCm: number } | null {
-  const match = sizeString.match(/(\d+(?:\.\d+)?)\s*[×x*X]\s*(\d+(?:\.\d+)?)(?:\s*(sm|cm|in|dyum))?/i);
-  if (!match) return null;
-  const w = parseFloat(match[1]);
-  const h = parseFloat(match[2]);
-  const unit = (match[3] || 'sm').toLowerCase();
-  const isInches = unit === 'in' || unit === 'dyum';
-  return {
-    widthCm: isInches ? w * 2.54 : w,
-    heightCm: isInches ? h * 2.54 : h,
-  };
+function parseSizeToCm(sizeString: string): { widthCm: number; heightCm: number; depthCm?: number } | null {
+  const size = parseSizeCm(sizeString);
+  return size ? { widthCm: size.width, heightCm: size.height, depthCm: size.depth } : null;
 }
 
 const isSupported = (c: string) =>
@@ -80,7 +73,7 @@ export default function ShippingEstimator({ sizeString }: ShippingEstimatorProps
 
   if (!parsedSize || !somPerUsd) return null;
 
-  const weightKg = estimatePaintingWeightKg(parsedSize.widthCm, parsedSize.heightCm);
+  const weightKg = estimatePaintingWeightKg(parsedSize.widthCm, parsedSize.heightCm, parsedSize.depthCm);
   const estimate = estimateShipping(country, weightKg, somPerUsd);
 
   return (
