@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Camera, Loader2, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import CameraWallView from '@/components/CameraWallView';
 
 // "View on a wall".
 // - On a phone: the phone's own AR viewer (iOS Quick Look / Android Scene
@@ -76,6 +77,8 @@ export default function WallPreviewModal({
   // Only ever rendered after a click, so the browser is there to ask.
   const [arMode] = useState<ArMode>(detectArMode);
   const [showInAppHelp, setShowInAppHelp] = useState(false);
+  // The in-page camera view — works in every phone browser (see CameraWallView).
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
 
@@ -128,11 +131,14 @@ export default function WallPreviewModal({
   }, [paintingId]);
 
   const openAr = () => {
+    if (!data) return;
+    // No AR viewer in this browser (Google app, Telegram/Instagram…): the
+    // in-page camera view instead, plus a tip on where the exact one works.
     if (arMode === 'ios-inapp') {
       setShowInAppHelp(true);
+      setCameraOpen(true);
       return;
     }
-    if (!data) return;
     if (arMode === 'ios') {
       const a = document.createElement('a');
       a.rel = 'ar';
@@ -211,10 +217,10 @@ export default function WallPreviewModal({
             <button
               type="button"
               onClick={openAr}
-              disabled={arMode !== 'ios-inapp' && (loading || !data)}
+              disabled={loading || !data}
               className="w-full flex items-center justify-center gap-2 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-sm py-3 rounded-[3px] disabled:opacity-60"
             >
-              {arMode !== 'ios-inapp' && loading ? (
+              {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Camera className="w-4 h-4" />
@@ -230,6 +236,20 @@ export default function WallPreviewModal({
               </div>
             ) : (
               <p className="text-[11px] text-[#6E6057] text-center">{t.painting.wallArHint}</p>
+            )}
+            {/* The phone's own AR viewer didn't open (or isn't there): the
+                in-page camera works in every browser. */}
+            {arMode !== 'ios-inapp' && (
+              <button
+                type="button"
+                onClick={() => setCameraOpen(true)}
+                disabled={loading || !data}
+                className={`w-full text-xs font-semibold underline disabled:opacity-50 ${
+                  arFailed ? 'text-[#BA4E25]' : 'text-[#6E6057]'
+                }`}
+              >
+                {t.painting.camSimple}
+              </button>
             )}
           </div>
         )}
@@ -391,6 +411,15 @@ export default function WallPreviewModal({
           </div>
         </div>
       </div>
+      {cameraOpen && data && (
+        <CameraWallView
+          image={data.image}
+          title={title}
+          widthCm={widthCm}
+          heightCm={heightCm}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
     </div>
   );
 }

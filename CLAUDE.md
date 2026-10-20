@@ -81,6 +81,10 @@ never re-computed. Computers get a QR code that opens the view on a phone (`?wal
 Phones open it in their own AR viewer — Android Scene Viewer via an `intent://` URL, iOS Quick Look via the server
 USDZ's real URL (a blob URL only works in Safari; Chrome/Edge/Firefox on iOS need a real link). The USDZ is tipped
 back 90° because Quick Look's wall anchor uses Y as the wall normal. The Google app on iOS (GSA) has no Quick Look.
+Every phone browser also gets `CameraWallView` (in-page camera + draggable/pinchable artwork, start size from the chosen
+distance to the wall and a typical camera field of view, photo save/share) — the primary path where there is no AR
+viewer (Google app, Telegram/Instagram in-app browsers) and a "didn't work?" fallback elsewhere. It needs
+`Permissions-Policy: camera=(self)` in `next.config.ts`.
 
 **AI assistants / search** (ChatGPT, Claude, Gemini, Perplexity answering "a gallery selling paintings in
 Khiva/Tashkent?"): `/llms.txt` and `/llms-full.txt` (`src/lib/llmsTxt.ts`, Markdown built from Settings + catalogue —
