@@ -4,6 +4,7 @@ import { localizePath } from '@/lib/i18n/routing';
 import type { Language } from '@/lib/i18n/translations';
 import { formatWorkingHours, getAboutText, parseLocations, parsePhones, parseSocialLinks } from '@/lib/settingsUtils';
 import { estimatePaintingWeightKg, estimateShipping } from '@/lib/shipping';
+import { parseSizeCm } from '@/lib/paintingSize';
 
 // The website assistant only knows what's written here — built fresh from
 // the live database for every question, so prices (after discounts), sold
@@ -99,13 +100,9 @@ export async function shippingQuote(paintingId: string, countryCode: string) {
   ]);
   if (!painting) return { error: 'Unknown painting id' };
 
-  const m = painting.size.match(/(\d+(?:\.\d+)?)\s*[×x*X]\s*(\d+(?:\.\d+)?)(?:\s*(sm|cm|in|dyum))?/i);
-  if (!m) return { error: 'Painting size unknown' };
-  const inches = /^(in|dyum)$/i.test(m[3] || '');
-  const w = parseFloat(m[1]) * (inches ? 2.54 : 1);
-  const h = parseFloat(m[2]) * (inches ? 2.54 : 1);
-
-  const weightKg = estimatePaintingWeightKg(w, h);
+  const size = parseSizeCm(painting.size);
+  if (!size) return { error: 'Painting size unknown' };
+  const weightKg = estimatePaintingWeightKg(size.width, size.height, size.depth);
   const quote = estimateShipping(countryCode.toUpperCase(), weightKg, settings?.rate_usd || 12850);
   if (!quote.posilka && !quote.ems) return { error: `No UzPost tariff for country ${countryCode}` };
   return {
