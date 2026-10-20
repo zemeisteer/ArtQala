@@ -30,7 +30,8 @@ const nextConfig: NextConfig = {
           // Don't leak full referrer URLs (which can contain ids/tokens) to third-party origins.
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           // Disable browser features this site never uses.
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          // camera=(self): the in-page "view on my wall" camera (CameraWallView).
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
         ],
       },
     ];
