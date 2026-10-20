@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { notifyIndexNow } from '@/lib/indexNow';
 import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
 import { parseSoldPrice } from '@/lib/salePriceInput';
@@ -83,6 +84,7 @@ export async function POST(request: Request) {
       },
     });
 
+    notifyIndexNow([`/gallery/${newPainting.id}`, `/artists/${newPainting.artist_id}`]);
     return NextResponse.json({ success: true, painting: newPainting });
   } catch (error) {
     console.error('Create painting error:', error);

@@ -9,6 +9,7 @@ import type { Language } from '@/lib/i18n/translations';
 import { OG_LOCALE, isLang, languageAlternates, localizePath } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
 import { mainImage } from '@/lib/paintingImages';
+import { parseSizeCm } from '@/lib/paintingSize';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // rendering fresh on every request.
@@ -84,16 +85,25 @@ function buildProductJsonLd(painting: any, siteUrl: string, lang: Language) {
   }
 
   const price = painting.discount_price || painting.price;
+  const size = parseSizeCm(painting.size);
+  const cm = (n: number) => ({ '@type': 'QuantitativeValue', value: Math.round(n * 10) / 10, unitCode: 'CMT' });
 
   return {
     '@context': 'https://schema.org',
-    '@type': 'Product',
+    // A product for sale AND an original artwork (size, medium, year).
+    '@type': ['Product', 'VisualArtwork'],
     name: loc.title,
     description: loc.description || `${loc.title} — ${loc.technique}, ${painting.artist?.name}.`,
     image: imageUrl.startsWith('data:') ? undefined : imageUrl,
     sku: painting.id,
     brand: { '@type': 'Brand', name: 'Art Qala' },
     category: painting.category?.name_en,
+    ...(loc.technique ? { artMedium: loc.technique } : {}),
+    ...(painting.category?.parent?.name_en || painting.category?.name_en
+      ? { artform: painting.category?.parent?.name_en || painting.category?.name_en }
+      : {}),
+    ...(painting.year ? { dateCreated: String(painting.year) } : {}),
+    ...(size ? { width: cm(size.width), height: cm(size.height) } : {}),
     offers: {
       '@type': 'Offer',
       url: `${siteUrl}${localizePath(`/gallery/${painting.id}`, lang)}`,
@@ -103,9 +113,16 @@ function buildProductJsonLd(painting: any, siteUrl: string, lang: Language) {
         ? 'https://schema.org/SoldOut'
         : 'https://schema.org/InStock',
       itemCondition: 'https://schema.org/NewCondition',
+      seller: { '@type': 'ArtGallery', name: 'Art Qala', url: siteUrl },
     },
     ...(painting.artist?.name
-      ? { creator: { '@type': 'Person', name: painting.artist.name } }
+      ? {
+          creator: {
+            '@type': 'Person',
+            name: painting.artist.name,
+            url: `${siteUrl}${localizePath(`/artists/${painting.artist.id}`, lang)}`,
+          },
+        }
       : {}),
   };
 }
