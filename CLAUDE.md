@@ -82,6 +82,13 @@ Phones open it in their own AR viewer — Android Scene Viewer via an `intent://
 USDZ's real URL (a blob URL only works in Safari; Chrome/Edge/Firefox on iOS need a real link). The USDZ is tipped
 back 90° because Quick Look's wall anchor uses Y as the wall normal. The Google app on iOS (GSA) has no Quick Look.
 
+**AI assistants / search** (ChatGPT, Claude, Gemini, Perplexity answering "a gallery selling paintings in
+Khiva/Tashkent?"): `/llms.txt` and `/llms-full.txt` (`src/lib/llmsTxt.ts`, Markdown built from Settings + catalogue —
+never a static file in `public/`, which would go stale), `robots.ts` names the AI crawlers, the ArtGallery JSON-LD lists
+every Settings address with its city (`src/lib/galleryFacts.ts#cityOf()` reads the city from the address text) and the
+home title/description name those cities (`homeMetadata()`); painting pages are `Product` + `VisualArtwork`. Admin
+painting/artist saves ping IndexNow (`src/lib/indexNow.ts`, Bing → ChatGPT search; key served at `/indexnow.txt`).
+
 **Artist awards & certificates** live in `Artist.achievements` (JSON text, read/written only through
 `src/lib/artistAchievements.ts`), edited in Admin → Artists and shown on the artist's page.
 

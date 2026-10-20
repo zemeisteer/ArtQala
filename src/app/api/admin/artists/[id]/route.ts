@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { notifyIndexNow } from '@/lib/indexNow';
 import { serializeAchievements } from '@/lib/artistAchievements';
 import { requireAdmin } from '@/lib/auth';
 
@@ -34,6 +35,7 @@ export async function PUT(
       },
     });
 
+    notifyIndexNow([`/artists/${updated.id}`, '/artists']);
     return NextResponse.json({ success: true, artist: updated });
   } catch (error) {
     console.error('Update artist error:', error);

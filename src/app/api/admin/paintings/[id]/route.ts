@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { notifyIndexNow } from '@/lib/indexNow';
 import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
 import { parseSoldPrice } from '@/lib/salePriceInput';
@@ -90,6 +91,7 @@ export async function PUT(request: Request, context: RouteContext) {
       },
     });
 
+    notifyIndexNow([`/gallery/${id}`, `/artists/${updated.artist_id}`]);
     return NextResponse.json({ success: true, painting: updated });
   } catch (error) {
     console.error('Update error:', error);
@@ -133,6 +135,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       data: { is_sold: body.is_sold, sold_at: nextSoldAt, ...(!body.is_sold && { sold_price: null }) },
     });
 
+    notifyIndexNow([`/gallery/${id}`]);
     return NextResponse.json({ success: true, painting: updated });
   } catch (error) {
     console.error('Mark sold error:', error);
@@ -159,6 +162,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       if (next) await prisma.inquiry.update({ where: { id: inq.id }, data: { painting_id: next } });
     }
     await prisma.painting.delete({ where: { id } });
+    notifyIndexNow([`/gallery/${id}`]);
     return NextResponse.json({ success: true, message: 'Deleted' });
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Delete failed' }, { status: 500 });

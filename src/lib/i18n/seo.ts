@@ -163,3 +163,44 @@ export function pageMetadata(key: PageKey, lang: Language): Metadata {
     },
   };
 }
+
+// The home page names the gallery's city in its title/description. When
+// Settings lists addresses in more (or other) cities — e.g. Tashkent and
+// Khiva — they are all named, so "gallery in Khiva" searches match too.
+const CITY_NAMES: Record<string, { en: string; ru: string; ruIn: string; uz: string }> = {
+  Tashkent: { en: 'Tashkent', ru: 'Ташкент', ruIn: 'Ташкенте', uz: 'Toshkent' },
+  Khiva: { en: 'Khiva', ru: 'Хива', ruIn: 'Хиве', uz: 'Xiva' },
+  Samarkand: { en: 'Samarkand', ru: 'Самарканд', ruIn: 'Самарканде', uz: 'Samarqand' },
+  Bukhara: { en: 'Bukhara', ru: 'Бухара', ruIn: 'Бухаре', uz: 'Buxoro' },
+  Urgench: { en: 'Urgench', ru: 'Ургенч', ruIn: 'Ургенче', uz: 'Urganch' },
+};
+
+export function homeMetadata(lang: Language, cities: string[]): Metadata {
+  const meta = pageMetadata('home', lang);
+  const known = cities.filter((c) => CITY_NAMES[c]);
+  if (known.length === 0 || (known.length === 1 && known[0] === 'Tashkent')) return meta;
+  const names = known.map((c) => CITY_NAMES[c]);
+  const { title, description } = PAGES.home[lang];
+  const list = (xs: string[], and: string) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ${and} ${xs[xs.length - 1]}` : xs[0]);
+  const next =
+    lang === 'ru'
+      ? {
+          title: title.replace('Ташкент', list(names.map((n) => n.ru), 'и')),
+          description: description.replace('в Ташкенте', `в ${list(names.map((n) => n.ruIn), 'и')}`),
+        }
+      : lang === 'uz'
+        ? {
+            title: title.replace('Toshkent', list(names.map((n) => n.uz), 'va')),
+            description: description.replace('Toshkentdagi', `${list(names.map((n) => n.uz), 'va')}dagi`),
+          }
+        : {
+            title: title.replace('Tashkent', list(names.map((n) => n.en), '&')),
+            description: description.replace('in Tashkent', `in ${list(names.map((n) => n.en), 'and')}`),
+          };
+  return {
+    ...meta,
+    title: { absolute: next.title },
+    description: next.description,
+    openGraph: { ...meta.openGraph, title: next.title, description: next.description },
+  };
+}

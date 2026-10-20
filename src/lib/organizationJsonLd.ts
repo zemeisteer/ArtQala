@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { SITE_URL } from '@/lib/siteUrl';
 import type { Language } from '@/lib/i18n/translations';
-import { pageMetadata } from '@/lib/i18n/seo';
+import { homeMetadata } from '@/lib/i18n/seo';
 import {
   parseSocialLinks,
   normalizeSocialUrl,
@@ -11,6 +11,7 @@ import {
   PLACEHOLDER_PHONE,
   type DaySchedule,
 } from '@/lib/settingsUtils';
+import { cityOf } from '@/lib/galleryFacts';
 
 const SCHEMA_DAY: Record<string, string> = {
   mon: 'Monday',
@@ -75,9 +76,34 @@ export async function getOrganizationJsonLd(lang: Language) {
     ]);
     if (!settings) return null;
 
-    const locations = parseLocations(settings.locations, settings.address, settings.location_map);
+    const locations = parseLocations(settings.locations, settings.address, settings.location_map).filter((l) =>
+      l.address?.trim()
+    );
     const primaryLocation = locations[0];
     const geo = parseCoords(primaryLocation?.coords) || parseCoords(primaryLocation?.auto_coords);
+    const name = settings.gallery_name || 'Art Qala';
+    // Every address with its own city (recognised from the address text) —
+    // so "gallery in Khiva" finds the Khiva branch, not just Tashkent.
+    const postal = (address: string) => {
+      const city = cityOf(address);
+      return {
+        '@type': 'PostalAddress',
+        streetAddress: address,
+        ...(city ? { addressLocality: city } : {}),
+        addressCountry: 'UZ',
+      };
+    };
+    const branches = locations.map((l) => {
+      const g = parseCoords(l.coords) || parseCoords(l.auto_coords);
+      const city = cityOf(l.address);
+      return {
+        '@type': 'ArtGallery',
+        name: city ? `${name} — ${city}` : name,
+        address: postal(l.address),
+        ...(g ? { geo: { '@type': 'GeoCoordinates', latitude: g.lat, longitude: g.lng } } : {}),
+        ...(l.url ? { hasMap: l.url } : {}),
+      };
+    });
     const phone = parsePhones(settings.phone).find((p) => p !== PLACEHOLDER_PHONE);
     const hours = openingHours(settings.working_hours);
     const sameAs = parseSocialLinks(settings.social_links, settings.telegram, settings.instagram).map((l) =>
@@ -87,28 +113,25 @@ export async function getOrganizationJsonLd(lang: Language) {
     return {
       '@context': 'https://schema.org',
       '@type': 'ArtGallery',
-      name: settings.gallery_name || 'Art Qala',
+      name,
       // Same text as the home page's meta description, in the page's language.
-      description: pageMetadata('home', lang).description,
+      description: homeMetadata(
+        lang,
+        Array.from(new Set(locations.map((l) => cityOf(l.address)).filter((c): c is string => Boolean(c))))
+      ).description as string,
       url: SITE_URL,
       image: `${SITE_URL}/logo.png`,
       ...(phone ? { telephone: phone } : {}),
       ...(settings.email ? { email: settings.email } : {}),
-      ...(primaryLocation
-        ? {
-            address: {
-              '@type': 'PostalAddress',
-              streetAddress: primaryLocation.address,
-              addressLocality: 'Tashkent',
-              addressCountry: 'UZ',
-            },
-          }
-        : {}),
+      ...(locations.length === 1 ? { address: postal(locations[0].address) } : {}),
+      ...(locations.length > 1 ? { address: locations.map((l) => postal(l.address)), department: branches } : {}),
       ...(geo ? { geo: { '@type': 'GeoCoordinates', latitude: geo.lat, longitude: geo.lng } } : {}),
       ...(primaryLocation?.url ? { hasMap: primaryLocation.url } : {}),
       ...(hours.length > 0 ? { openingHoursSpecification: hours } : {}),
       ...(range ? { priceRange: range } : {}),
       ...(sameAs.length > 0 ? { sameAs } : {}),
+      knowsLanguage: ['uz', 'ru', 'en'],
+      areaServed: 'Worldwide',
     };
   } catch {
     return null;

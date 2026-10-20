@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { notifyIndexNow } from '@/lib/indexNow';
 import { serializeAchievements } from '@/lib/artistAchievements';
 import { requireAdmin } from '@/lib/auth';
 
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
       },
     });
 
+    notifyIndexNow([`/artists/${artist.id}`, '/artists']);
     return NextResponse.json({ success: true, artist });
   } catch (error) {
     console.error('Create artist error:', error);
