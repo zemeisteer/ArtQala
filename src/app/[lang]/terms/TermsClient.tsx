@@ -20,7 +20,7 @@ const CONTENT = {
       },
       {
         heading: '2. Inquiries, Pricing and Reservation',
-        body: "Submitting an inquiry through this platform does not constitute a binding financial charge or an online purchase — Art Qala does not process payments on this website. Our curators will confirm availability, calculate international insured freight or arrange personal collection at our Tashkent location, and issue a formal invoice for payment through agreed offline channels (bank transfer or in person). Displayed prices are indicative and may be adjusted by the curator to reflect final packaging, insurance, and shipping costs before an invoice is issued.",
+        body: "Submitting an inquiry through this platform does not constitute a binding financial charge or an online purchase — Art Qala does not process payments on this website. Our curators will confirm availability, calculate international insured freight or arrange personal collection at our Tashkent location, and issue a formal invoice for payment through agreed offline channels (cards, Payme, Click, bank transfer or cash — 100% in advance; see Payment & Delivery). Displayed prices are indicative and may be adjusted by the curator to reflect final packaging, insurance, and shipping costs before an invoice is issued.",
       },
       {
         heading: '3. Bespoke Services & Murals',
@@ -79,7 +79,7 @@ const CONTENT = {
       },
       {
         heading: '2. Запросы, цены и бронирование',
-        body: 'Отправка запроса на платформе не является обязательным финансовым списанием или онлайн-покупкой — Art Qala не обрабатывает платежи на этом сайте. Наши кураторы подтвердят наличие, рассчитают стоимость международной застрахованной доставки или организуют личное получение в Ташкенте, а также выставят официальный счёт для оплаты через согласованные офлайн-каналы (банковский перевод или наличными на месте). Указанные цены являются ориентировочными и могут быть скорректированы куратором с учётом окончательной упаковки, страховки и доставки перед выставлением счёта.',
+        body: 'Отправка запроса на платформе не является обязательным финансовым списанием или онлайн-покупкой — Art Qala не обрабатывает платежи на этом сайте. Наши кураторы подтвердят наличие, рассчитают стоимость международной застрахованной доставки или организуют личное получение в Ташкенте, а также выставят официальный счёт для оплаты через согласованные офлайн-каналы (карта, Payme, Click, банковский перевод или наличные — 100% предоплата; см. «Оплата и доставка»). Указанные цены являются ориентировочными и могут быть скорректированы куратором с учётом окончательной упаковки, страховки и доставки перед выставлением счёта.',
       },
       {
         heading: '3. Индивидуальные заказы и мурали',
@@ -138,7 +138,7 @@ const CONTENT = {
       },
       {
         heading: "2. So'rovlar, narxlar va band qilish",
-        body: "Ushbu platformada so'rov yuborish majburiy moliyaviy to'lovni yoki onlayn xaridni anglatmaydi — Art Qala ushbu saytda to'lovlarni qabul qilmaydi. Kuratorlarimiz mavjudlikni tasdiqlaydi, xalqaro sug'urtalangan yetkazib berish narxini hisoblaydi yoki Toshkentdagi galereyamizdan shaxsan olib ketishni tashkil qiladi, so'ngra kelishilgan oflayn kanallar (bank o'tkazmasi yoki joyida naqd/karta) orqali to'lov uchun rasmiy hisob-faktura chiqaradi. Saytda ko'rsatilgan narxlar taxminiy bo'lib, hisob-faktura chiqarilishidan oldin yakuniy qadoqlash, sug'urta va yetkazib berish xarajatlarini hisobga olgan holda kurator tomonidan aniqlashtirilishi mumkin.",
+        body: "Ushbu platformada so'rov yuborish majburiy moliyaviy to'lovni yoki onlayn xaridni anglatmaydi — Art Qala ushbu saytda to'lovlarni qabul qilmaydi. Kuratorlarimiz mavjudlikni tasdiqlaydi, xalqaro sug'urtalangan yetkazib berish narxini hisoblaydi yoki Toshkentdagi galereyamizdan shaxsan olib ketishni tashkil qiladi, so'ngra kelishilgan oflayn kanallar (karta, Payme, Click, bank o'tkazmasi yoki naqd — 100% oldindan; batafsil: «To'lov va yetkazib berish») orqali to'lov uchun rasmiy hisob-faktura chiqaradi. Saytda ko'rsatilgan narxlar taxminiy bo'lib, hisob-faktura chiqarilishidan oldin yakuniy qadoqlash, sug'urta va yetkazib berish xarajatlarini hisobga olgan holda kurator tomonidan aniqlashtirilishi mumkin.",
       },
       {
         heading: '3. Maxsus buyurtmalar va murallar',

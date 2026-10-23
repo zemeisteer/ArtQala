@@ -3,6 +3,7 @@ import { SITE_URL } from './siteUrl';
 import { getAllPaintings } from './api';
 import { effectiveProductType } from './productType';
 import { getGalleryFacts, joinCities } from './galleryFacts';
+import { DELIVERY } from './deliveryInfo';
 
 // /llms.txt and /llms-full.txt: a plain Markdown summary of the gallery for
 // AI assistants (ChatGPT, Claude, Gemini, Perplexity…) answering questions
@@ -71,6 +72,10 @@ export async function buildLlmsTxt(full: boolean): Promise<string> {
   out.push('- Several works can be requested at once from the wishlist (heart icon).');
   out.push('- Each work page shows its real size, a "view on a wall" preview (on phones: on your own wall through the camera) and an international shipping estimate.');
   out.push('- Or visit the gallery in person.', '');
+
+  out.push('## Payment & delivery', '');
+  for (const s of DELIVERY.en.sections) out.push(`- **${s.heading}:** ${s.points.join(' ')}`);
+  out.push(`- Details: ${SITE_URL}/delivery`, '');
 
   out.push('## Services', '');
   out.push(`- Mural painting for cafés, hotels and homes; ceramics; custom painting commissions (portraits, homes, monuments): ${SITE_URL}/services`, '');

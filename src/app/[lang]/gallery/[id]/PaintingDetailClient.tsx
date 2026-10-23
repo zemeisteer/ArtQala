@@ -27,7 +27,12 @@ import {
   Info,
   ZoomIn,
   Sofa,
+  CreditCard,
+  Truck,
+  FileCheck,
+  ChevronRight,
 } from 'lucide-react';
+import { DELIVERY } from '@/lib/deliveryInfo';
 import ImageLightbox from '@/components/ImageLightbox';
 import { trackLead } from '@/lib/analytics';
 import { parseImages, PLACEHOLDER_IMAGE } from '@/lib/paintingImages';
@@ -641,6 +646,29 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
 
             {/* Shipping Cost Estimator */}
             <ShippingEstimator sizeString={painting.size} />
+
+            {/* Payment & delivery at a glance (src/lib/deliveryInfo.ts) */}
+            <div className="border border-[#E7E0D8] rounded-[3px] bg-[#FDFBF9] p-4 space-y-2 text-xs text-[#4D3F38] leading-relaxed">
+              <p className="flex gap-2">
+                <CreditCard className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
+                <span>{DELIVERY[lang].short.payment}</span>
+              </p>
+              <p className="flex gap-2">
+                <Truck className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
+                <span>{DELIVERY[lang].short.delivery}</span>
+              </p>
+              <p className="flex gap-2">
+                <FileCheck className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
+                <span>{DELIVERY[lang].short.documents}</span>
+              </p>
+              <Link
+                href="/delivery"
+                className="inline-flex items-center gap-0.5 font-semibold text-[#BA4E25] hover:underline pl-6"
+              >
+                {DELIVERY[lang].short.more}
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
 
             {/* Direct Inquiry Form */}
             <div id="inquiry-form" className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[3px] p-6 space-y-4 shadow-sm scroll-mt-24">
