@@ -6,7 +6,7 @@ import { OG_LOCALE, languageAlternates } from './routing';
 // each /ru/... and /uz/... page is indexed in its own language, so its title
 // and description must be too. `title` goes through the root layout's
 // "%s | Art Qala Gallery" template (except the home page, which is absolute).
-type PageKey = 'home' | 'gallery' | 'artists' | 'services' | 'contact' | 'reviews' | 'privacy' | 'terms';
+type PageKey = 'home' | 'gallery' | 'artists' | 'services' | 'contact' | 'reviews' | 'privacy' | 'terms' | 'delivery';
 
 const PAGES: Record<PageKey, { path: string } & Record<Language, { title: string; description: string }>> = {
   home: {
@@ -128,6 +128,24 @@ const PAGES: Record<PageKey, { path: string } & Record<Language, { title: string
     uz: {
       title: 'Maxfiylik siyosati',
       description: 'Toshkentdagi Art Qala galereyasi shaxsiy ma’lumotlaringiz, so‘rovlaringiz va buyurtmalaringizni qanday qayta ishlaydi.',
+    },
+  },
+  delivery: {
+    path: '/delivery',
+    en: {
+      title: 'Payment & Delivery',
+      description:
+        'How to pay for an artwork at Art Qala (card, Visa/Mastercard, Payme, Click, bank transfer, cash) and how it reaches you: free delivery in Tashkent from $500, across Uzbekistan and worldwide by insured UzPost, with export documents.',
+    },
+    ru: {
+      title: 'Оплата и доставка',
+      description:
+        'Как оплатить работу в Art Qala (карта, Visa/Mastercard, Payme, Click, перевод, наличные) и как её получить: бесплатно по Ташкенту от $500, по Узбекистану и по всему миру через UzPost со страховкой и документами на вывоз.',
+    },
+    uz: {
+      title: 'To‘lov va yetkazib berish',
+      description:
+        'Art Qala’da asar uchun qanday to‘lash (karta, Visa/Mastercard, Payme, Click, bank o‘tkazmasi, naqd) va uni olish: Toshkentda $500 dan bepul, O‘zbekiston bo‘ylab va butun dunyoga sug‘urtalangan UzPost orqali, olib chiqish hujjatlari bilan.',
     },
   },
   terms: {

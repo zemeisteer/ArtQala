@@ -133,6 +133,11 @@ routes); buttons call `setInquiryStatus`/`setServiceRequestStatus`; Mondays the 
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
 
+**Payment & delivery terms** (100% prepayment, methods, currencies, free Tashkent delivery from $500, UzPost,
+packaging, insurance, artwork passport + export permit, 7-day damage claim) live in ONE place,
+`src/lib/deliveryInfo.ts` (EN/RU/UZ, as given by the owner) — used by the `/delivery` page (+ FAQPage JSON-LD), the
+short block on every work's page, `/llms.txt` and the site AI assistant. Keep the Terms page consistent with it.
+
 **Sizes** are a string "W × H unit", or "W × H × D unit" for 3D objects (chess board, box, vase — the optional
 third field in the Paintings form). Always read them with `src/lib/paintingSize.ts#parseSizeCm()` (returns cm,
 `depth` only for objects); `isWallPiece()` (no depth) decides whether "View on a wall" is offered, and shipping

@@ -29,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   };
 
-  const staticPaths = ['/', '/gallery', '/artists', '/services', '/contact', '/reviews', '/privacy', '/terms'];
+  const staticPaths = ['/', '/gallery', '/artists', '/services', '/delivery', '/contact', '/reviews', '/privacy', '/terms'];
   const staticRoutes = (lastModified: Date) =>
     staticPaths.flatMap((path) =>
       entriesFor(path, {

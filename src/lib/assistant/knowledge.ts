@@ -4,6 +4,7 @@ import { localizePath } from '@/lib/i18n/routing';
 import type { Language } from '@/lib/i18n/translations';
 import { formatWorkingHours, getAboutText, parseLocations, parsePhones, parseSocialLinks } from '@/lib/settingsUtils';
 import { estimatePaintingWeightKg, estimateShipping } from '@/lib/shipping';
+import { DELIVERY } from '@/lib/deliveryInfo';
 import { parseSizeCm } from '@/lib/paintingSize';
 
 // The website assistant only knows what's written here — built fresh from
@@ -70,6 +71,7 @@ export async function buildKnowledge(lang: Language): Promise<string> {
     `There is no online checkout. A visitor sends an inquiry from the painting's page (the "Inquire" form) or writes on WhatsApp; the gallery replies, agrees the details and arranges payment and delivery.`,
     `Prices are in US dollars; the site can display other currencies. Every original comes with a signed Certificate of Authenticity.`,
     `Optional add-ons on the inquiry form: a frame and a protective shipping case (price depends on the painting's size).`,
+    `Payment & delivery terms (also on the page /delivery): ${DELIVERY.en.sections.map((s) => `${s.heading}: ${s.points.join(' ')}`).join(' | ')}`,
     `Shipping: worldwide via Uzbekistan Post — "standard parcel" (about 15-30 days abroad, 10-20 days to CIS, 3-7 days within Uzbekistan) or "EMS express" (about 7-15 days abroad). Use the estimate_shipping tool for a price. If a shipment takes longer than 1 month, the shipping fee is refunded. Paintings can also be collected at the gallery.`,
     ``,
     `# Services (commissions)`,

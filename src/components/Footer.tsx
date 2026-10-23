@@ -5,6 +5,7 @@ import Link from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { DELIVERY } from '@/lib/deliveryInfo';
 import { getVisitorCountry } from '@/lib/visitorCountry';
 import { needsConsent, openCookieSettings } from '@/lib/consent';
 import { parsePhones, formatWorkingHours, getAboutText, parseSocialLinks, normalizeSocialUrl, parseLocations } from '@/lib/settingsUtils';
@@ -130,6 +131,9 @@ export default function Footer() {
               </Link>
               <Link href="/reviews" className="hover:text-[#429599] transition-colors">
                 {t.footer.reviews}
+              </Link>
+              <Link href="/delivery" className="hover:text-[#429599] transition-colors">
+                {DELIVERY[lang].title}
               </Link>
             </div>
           </div>
