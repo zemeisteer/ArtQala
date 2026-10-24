@@ -43,6 +43,7 @@ export default function Header() {
     { href: '/gallery', label: t.nav.gallery },
     { href: '/artists', label: t.nav.artists },
     { href: '/services', label: t.nav.services },
+    { href: '/delivery', label: t.nav.delivery },
     { href: '/contact', label: t.nav.contact },
   ];
 
@@ -73,7 +74,7 @@ export default function Header() {
         {/* The full nav needs ~1150px (more with the longer Uzbek labels) —
             below xl it used to wrap "Sign In" and the tagline onto several
             lines on tablets/small laptops, so those get the menu button. */}
-        <nav className="hidden xl:flex items-center gap-8">
+        <nav className="hidden xl:flex items-center gap-6 2xl:gap-8">
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -81,7 +82,7 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 prefetch={true}
-                className={`nav-link ${active ? 'active text-[#BA4E25]' : 'text-[#3E332E]'}`}
+                className={`nav-link whitespace-nowrap ${active ? 'active text-[#BA4E25]' : 'text-[#3E332E]'}`}
               >
                 {item.label}
               </Link>
