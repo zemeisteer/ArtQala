@@ -120,7 +120,9 @@ export function llmsResponse(text: string) {
   return new Response(text, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
-      'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
+      // A day at the CDN: AI crawlers fetch this often, and each miss wakes
+      // the (free-plan) database.
+      'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=86400',
     },
   });
 }

@@ -2,13 +2,14 @@
 
 import { useEffect } from 'react';
 import { trackEvent } from '@/lib/analytics';
+import { recordContactClick, type ContactMethod } from '@/lib/contactClicks';
 
 // Reports clicks on direct-contact links (WhatsApp, Telegram, phone, email,
 // Instagram, map) wherever they appear — footer, contact page, anywhere —
 // as a GA "contact_click" event, since a lot of customers reach the gallery
-// that way instead of through a form. One document-level listener instead
-// of wiring every link by hand.
-const METHODS: [RegExp, string][] = [
+// that way instead of through a form — and records it for the admin
+// dashboard. One document-level listener instead of wiring every link by hand.
+const METHODS: [RegExp, ContactMethod][] = [
   [/^https?:\/\/(wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\//i, 'whatsapp'],
   [/^https?:\/\/(t\.me|telegram\.me)\//i, 'telegram'],
   [/^tel:/i, 'phone'],
@@ -24,7 +25,10 @@ export default function ContactClickTracker() {
       if (!link) return;
       const href = link.getAttribute('href') || '';
       const method = METHODS.find(([re]) => re.test(href))?.[1];
-      if (method) trackEvent('contact_click', { method, page_path: window.location.pathname });
+      if (!method) return;
+      trackEvent('contact_click', { method, page_path: window.location.pathname });
+      // The site's own count for the admin dashboard (works without GA too).
+      recordContactClick(method);
     };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);

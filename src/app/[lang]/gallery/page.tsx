@@ -8,10 +8,10 @@ import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang, localizePath } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
 
-// Cached and revalidated every 30s instead of re-querying the DB on every
-// visit — public browsing traffic doesn't need per-request freshness, and
-// this was the single biggest contributor to slow page loads.
-export const revalidate = 30;
+// Cached for a day instead of re-querying the DB on every visit (slow page
+// loads, and the free Neon database never got to sleep); any catalogue or
+// Settings edit drops the cache at once — see src/lib/publicCache.ts.
+export const revalidate = 86400;
 
 const siteUrl = SITE_URL;
 

@@ -38,11 +38,19 @@ const formatDate = (iso: string) =>
 // (to learn what buyers want) and what the assistant answered (to spot a
 // wrong answer). Visitors are anonymous — only language, country and the
 // page they started on are kept.
-export default function AdminAiChatsClient({ initialConversations }: { initialConversations: AiConversation[] }) {
+export default function AdminAiChatsClient({
+  initialConversations,
+  openId,
+}: {
+  initialConversations: AiConversation[];
+  openId?: string;
+}) {
   const { t, lang } = useApp();
   const a = t.admin;
   const [conversations, setConversations] = useState(initialConversations);
-  const [selectedId, setSelectedId] = useState<string | null>(initialConversations[0]?.id || null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    (openId && initialConversations.some((c) => c.id === openId) ? openId : initialConversations[0]?.id) || null
+  );
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {

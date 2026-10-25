@@ -130,6 +130,12 @@ Reply to a notification posts a curator reply via `src/lib/threads.ts` (shared w
 routes); buttons call `setInquiryStatus`/`setServiceRequestStatus`; Mondays the daily cron sends
 `src/lib/weeklyReport.ts` (also `/hisobot`). `TELEGRAM_API_URL` exists only to test against a mock.
 
+**Contact clicks** (floating WhatsApp button + every WhatsApp/Telegram/phone/email/Instagram/map link, via
+`ContactClickTracker` — always mounted, not only with GA) are recorded anonymously in `ContactClick` through
+`/api/stats/click` (`src/lib/contactClicks.ts#recordContactClick()`, sendBeacon; same daily visitor hash as
+`SiteVisit`, `src/lib/visitorId.ts`). The dashboard's Visitors section shows them and the AI assistant's
+conversations/questions for the same period; `/admin/ai-chats?open=<id>` opens one conversation.
+
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
 

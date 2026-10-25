@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { parseSocialLinks } from '@/lib/settingsUtils';
 import { trackEvent } from '@/lib/analytics';
+import { recordContactClick } from '@/lib/contactClicks';
 
 // Floating "chat on WhatsApp" button on every public page. The number comes
 // from the WhatsApp link in Admin → Settings (any social link pointing at
@@ -32,6 +33,7 @@ export default function WhatsAppButton() {
     const pageUrl = `${window.location.origin}${pathname}`;
     const message = `${t.whatsapp.greeting}\n${pageUrl}`;
     trackEvent('contact_click', { method: 'whatsapp_float', page_path: pathname });
+    recordContactClick('whatsapp');
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   };
 

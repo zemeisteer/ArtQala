@@ -19,7 +19,8 @@ import { getOrganizationJsonLd } from '@/lib/organizationJsonLd';
 
 // getOrganizationJsonLd() below queries SiteSettings — without a cache
 // window that would be a DB round-trip on every page render site-wide.
-export const revalidate = 60;
+// A day, dropped at once when Settings change (src/lib/publicCache.ts).
+export const revalidate = 86400;
 
 // One statically generated copy of every public page per language. (No
 // `dynamicParams = false` here — it would also apply to nested dynamic

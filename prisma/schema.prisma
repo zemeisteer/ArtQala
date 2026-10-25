@@ -408,6 +408,21 @@ model SiteVisit {
   @@index([created_at])
 }
 
+// A click on a direct-contact button/link on the public site — the floating
+// WhatsApp button and every WhatsApp/Telegram/phone/email/Instagram/map link
+// (src/components/ContactClickTracker.tsx). Anonymous like SiteVisit:
+// `visitor` is the same daily-rotating hash, so it counts people per day.
+model ContactClick {
+  id         String   @id @default(cuid())
+  method     String // whatsapp | telegram | phone | email | instagram | map
+  path       String   @default("/")
+  visitor    String?
+  country    String?
+  created_at DateTime @default(now())
+
+  @@index([created_at])
+}
+
 model InquiryMessage {
   id         String   @id @default(cuid())
   inquiry_id String

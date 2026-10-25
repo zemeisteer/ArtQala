@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { getClientIp } from '@/lib/rateLimit';
+import { BOT_UA, dailyVisitorId } from '@/lib/visitorId';
 import { splitLangPath } from '@/lib/i18n/routing';
-
-const BOT_UA = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|uptime|monitor/i;
 
 function deviceOf(ua: string): string {
   if (/ipad|tablet|(android(?!.*mobile))/i.test(ua)) return 'TABLET';
@@ -57,12 +54,7 @@ export async function POST(request: Request) {
       city = null;
     }
 
-    // Daily-rotating anonymous id: same person on the same day -> same hash.
-    const day = new Date().toISOString().slice(0, 10);
-    const visitor = createHash('sha256')
-      .update(`${process.env.NEXTAUTH_SECRET || 'artqala'}|${day}|${getClientIp(request)}|${ua}`)
-      .digest('hex')
-      .slice(0, 16);
+    const visitor = dailyVisitorId(request, ua);
 
     const visit = await prisma.siteVisit.create({
       data: {

@@ -8,7 +8,7 @@ import HomeClient from './HomeClient';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // rendering fresh on every request.
-export const revalidate = 30;
+export const revalidate = 86400;
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;

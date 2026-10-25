@@ -13,7 +13,7 @@ import { parseSizeCm } from '@/lib/paintingSize';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // rendering fresh on every request.
-export const revalidate = 30;
+export const revalidate = 86400;
 
 // Without this, a page under a dynamic segment ([id]) is rendered from the
 // database on EVERY visit and `revalidate` above does nothing. An empty list

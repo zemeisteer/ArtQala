@@ -5,6 +5,7 @@ import { SITE_URL } from '@/lib/siteUrl';
 import { runPriceAlerts } from '@/lib/priceAlerts';
 import { isTelegramConfigured, sendTelegramToAdmins } from '@/lib/telegram';
 import { buildWeeklyReport, isReportDay } from '@/lib/weeklyReport';
+import { refreshPublicSite } from '@/lib/publicCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,6 +107,10 @@ export async function GET(request: Request) {
       weeklyReport = { error: 'failed' };
     }
   }
+
+  // Public pages are cached for a day (src/lib/publicCache.ts): rebuild them
+  // daily too, so a discount that ended or started today shows.
+  refreshPublicSite();
 
   return NextResponse.json({ success: true, due: due.length, sent, skipped, priceAlerts, weeklyReport });
 }
