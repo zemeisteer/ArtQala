@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { LANGS, localizePath } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
 
-// Rebuilt at most once an hour (it used to query the database on every
-// single crawler request).
-export const revalidate = 3600;
+// Rebuilt at most once a day, or at once on a catalogue edit (it used to
+// query the database on every single crawler request).
+export const revalidate = 86400;
 
 // Every public page in all three languages (English unprefixed, /ru, /uz),
 // each entry listing its other-language versions so search engines connect

@@ -1,119 +1,78 @@
 import { NextResponse } from 'next/server';
+import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { SETTINGS_TAG } from '@/lib/publicCache';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  try {
-    // 1. Check SiteSettings from DB
-    const settings = await prisma.siteSettings.findUnique({
-      where: { id: 'default' },
-    });
+type Uzs = { usd: number; eur: number; rub: number };
 
-    // If manual rates are enabled, return them directly
-    if (settings?.manual_rates) {
-      const usdUzs = settings.rate_usd || 12850;
-      const eurUzs = settings.rate_eur || 13900;
-      const rubUzs = settings.rate_rub || 140;
+const body = (source: string, r: Uzs) => ({
+  source,
+  rates: {
+    USD: 1,
+    UZS: r.usd,
+    EUR: +(r.usd / r.eur).toFixed(4),
+    RUB: +(r.usd / r.rub).toFixed(2),
+  },
+  raw_uzs: { USD: r.usd, EUR: r.eur, RUB: r.rub },
+});
 
-      return NextResponse.json({
-        source: 'manual',
-        rates: {
-          USD: 1,
-          UZS: usdUzs,
-          EUR: +(usdUzs / eurUzs).toFixed(4),
-          RUB: +(usdUzs / rubUzs).toFixed(2),
-        },
-        raw_uzs: {
-          USD: usdUzs,
-          EUR: eurUzs,
-          RUB: rubUzs,
-        },
-      });
-    }
+// Every public page view asks for exchange rates. Worked out at most once
+// an hour on the server (and again as soon as Settings change) instead of on
+// every request — reading, and writing, the database each time kept the
+// free Neon database awake all day.
+const computeRates = unstable_cache(
+  async () => {
+    const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+    const stored: Uzs = {
+      usd: settings?.rate_usd || 12850,
+      eur: settings?.rate_eur || 13900,
+      rub: settings?.rate_rub || 140,
+    };
 
-    // 2. Fetch official Central Bank of Uzbekistan (cbu.uz) rates with fast timeout
+    // Manual rates set in Admin → Settings win.
+    if (settings?.manual_rates) return body('manual', stored);
+
+    // Official Central Bank of Uzbekistan (cbu.uz) rates, fast timeout.
     try {
       const cbuRes = await fetch('https://cbu.uz/oz/arkhiv-kursov-valyut/json/', {
-        next: { revalidate: 3600 }, // Cache 1 hour
         signal: AbortSignal.timeout(1500),
       });
-
       if (cbuRes.ok) {
-        const cbuData = await cbuRes.json();
-        
-        let usdRate = 12850;
-        let eurRate = 13900;
-        let rubRate = 140;
-
+        const cbuData = (await cbuRes.json()) as { Ccy: string; Rate: string }[];
+        const live = { ...stored, usd: 12850, eur: 13900, rub: 140 };
         for (const item of cbuData) {
-          if (item.Ccy === 'USD') usdRate = parseFloat(item.Rate);
-          if (item.Ccy === 'EUR') eurRate = parseFloat(item.Rate);
-          if (item.Ccy === 'RUB') rubRate = parseFloat(item.Rate);
+          if (item.Ccy === 'USD') live.usd = parseFloat(item.Rate);
+          if (item.Ccy === 'EUR') live.eur = parseFloat(item.Rate);
+          if (item.Ccy === 'RUB') live.rub = parseFloat(item.Rate);
         }
-
-        // Optionally update cached rates in settings for fallback
-        await prisma.siteSettings.upsert({
-          where: { id: 'default' },
-          update: {
-            rate_usd: usdRate,
-            rate_eur: eurRate,
-            rate_rub: rubRate,
-          },
-          create: {
-            id: 'default',
-            rate_usd: usdRate,
-            rate_eur: eurRate,
-            rate_rub: rubRate,
-          },
-        }).catch(() => null);
-
-        return NextResponse.json({
-          source: 'cbu.uz',
-          rates: {
-            USD: 1,
-            UZS: usdRate,
-            EUR: +(usdRate / eurRate).toFixed(4),
-            RUB: +(usdRate / rubRate).toFixed(2),
-          },
-          raw_uzs: {
-            USD: usdRate,
-            EUR: eurRate,
-            RUB: rubRate,
-          },
-        });
+        // Kept as the fallback for when cbu.uz is down — only written when
+        // the rate actually changed.
+        if (live.usd !== stored.usd || live.eur !== stored.eur || live.rub !== stored.rub) {
+          await prisma.siteSettings
+            .upsert({
+              where: { id: 'default' },
+              update: { rate_usd: live.usd, rate_eur: live.eur, rate_rub: live.rub },
+              create: { id: 'default', rate_usd: live.usd, rate_eur: live.eur, rate_rub: live.rub },
+            })
+            .catch(() => null);
+        }
+        return body('cbu.uz', live);
       }
     } catch (e) {
       console.warn('CBU API unreachable, using database settings fallback:', e);
     }
+    return body('fallback', stored);
+  },
+  ['fx-rates'],
+  { tags: [SETTINGS_TAG], revalidate: 3600 }
+);
 
-    // Fallback to settings in DB or defaults
-    const usdUzs = settings?.rate_usd || 12850;
-    const eurUzs = settings?.rate_eur || 13900;
-    const rubUzs = settings?.rate_rub || 140;
-
-    return NextResponse.json({
-      source: 'fallback',
-      rates: {
-        USD: 1,
-        UZS: usdUzs,
-        EUR: +(usdUzs / eurUzs).toFixed(4),
-        RUB: +(usdUzs / rubUzs).toFixed(2),
-      },
-      raw_uzs: {
-        USD: usdUzs,
-        EUR: eurUzs,
-        RUB: rubUzs,
-      },
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        source: 'default',
-        rates: { USD: 1, UZS: 12850, EUR: 0.92, RUB: 92 },
-        raw_uzs: { USD: 12850, EUR: 13900, RUB: 140 },
-      },
-      { status: 200 }
-    );
+export async function GET() {
+  try {
+    return NextResponse.json(await computeRates());
+  } catch {
+    return NextResponse.json(body('default', { usd: 12850, eur: 13900, rub: 140 }), { status: 200 });
   }
 }

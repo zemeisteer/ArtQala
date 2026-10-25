@@ -17,6 +17,15 @@ interface Props {
   devices: VisitorRow[];
   langs: VisitorRow[];
   paintingTitles: Record<string, { en: string; ru: string; uz: string }>;
+  // Clicks on contact buttons (WhatsApp…) and the site AI assistant, same period.
+  contact: { whatsappClicks: number; whatsappPeople: number; total: number; methods: VisitorRow[]; whatsappPages: VisitorRow[] };
+  ai: {
+    chats: number;
+    questions: number;
+    countries: VisitorRow[];
+    langs: VisitorRow[];
+    latest: { id: string; text: string; at: string; country: string | null }[];
+  };
 }
 
 const flag = (code: string) =>
@@ -109,6 +118,76 @@ export default function VisitorStatsView(props: Props) {
               {d === 1 ? a.periodToday : a.periodDays.replace('{n}', String(d))}
             </Link>
           ))}
+        </div>
+      </div>
+
+      {/* Contact buttons + AI assistant — the conversations that start
+          outside the inquiry forms */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div className="border border-[#E7E0D8] rounded-[4px] bg-white p-4 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#281C18] flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#25D366]" />
+                {a.contactTitle}
+              </h3>
+              <p className="text-xs text-[#726861] mt-1">
+                <strong className="text-2xl font-semibold text-[#281C18] mr-1">{props.contact.whatsappClicks}</strong>
+                {a.whatsappClicks} · <strong className="text-[#281C18]">{props.contact.whatsappPeople}</strong> {a.people}
+              </p>
+            </div>
+          </div>
+          <BarList
+            title={a.contactByButton}
+            rows={label(props.contact.methods, (m) => a.contactMethods[m as keyof typeof a.contactMethods] || m)}
+            total={props.contact.total}
+            emptyText={a.noDataYet}
+          />
+          <BarList
+            title={a.whatsappFromPage}
+            rows={label(props.contact.whatsappPages, pageLabel)}
+            total={props.contact.whatsappClicks}
+            emptyText={a.noDataYet}
+          />
+        </div>
+
+        <div className="border border-[#E7E0D8] rounded-[4px] bg-white p-4 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#281C18]">🤖 {a.aiTitle}</h3>
+              <p className="text-xs text-[#726861] mt-1">
+                <strong className="text-2xl font-semibold text-[#281C18] mr-1">{props.ai.chats}</strong>
+                {a.aiConversations} · <strong className="text-[#281C18]">{props.ai.questions}</strong> {a.aiQuestions}
+              </p>
+            </div>
+            <Link href="/admin/ai-chats" className="text-xs font-semibold text-[#BA4E25] hover:underline shrink-0">
+              {a.aiOpenAll}
+            </Link>
+          </div>
+          <BarList title={a.visitorCountries} rows={label(props.ai.countries, countryLabel)} total={props.ai.chats} emptyText={a.noDataYet} />
+          <div>
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#8F7E73] mb-2">{a.aiLatest}</h3>
+            {props.ai.latest.length === 0 ? (
+              <p className="text-xs text-[#A8988E]">{a.noDataYet}</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {props.ai.latest.map((q) => (
+                  <li key={q.id}>
+                    <Link
+                      href={`/admin/ai-chats?open=${q.id}`}
+                      className="block text-xs text-[#281C18] bg-[#FAF4EC] hover:bg-[#F4ECE1] rounded-[3px] px-2.5 py-1.5"
+                    >
+                      <span className="text-[#A8988E] mr-1.5">
+                        {q.country ? flag(q.country) : '🌐'}{' '}
+                        {new Date(q.at).toLocaleDateString(lang, { day: 'numeric', month: 'short' })}
+                      </span>
+                      “{q.text}”
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 

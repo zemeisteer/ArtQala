@@ -83,7 +83,7 @@ export default function SiteDocument({
           </>
         )}
         <AppProvider>
-          {GA_MEASUREMENT_ID && <ContactClickTracker />}
+          <ContactClickTracker />
           <VisitTracker />
           {children}
         </AppProvider>

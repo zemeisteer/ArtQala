@@ -3,14 +3,23 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
 import { coordsFromMapsLink } from '@/lib/mapsCoords';
 import { parseCoords } from '@/lib/settingsUtils';
+import { unstable_cache } from 'next/cache';
+import { PUBLIC_REVALIDATE_SECONDS, SETTINGS_TAG } from '@/lib/publicCache';
 
 export const dynamic = 'force-dynamic';
 
+// Every public page view asks for Settings — served from the server cache
+// (a day; dropped as soon as Settings change, see src/lib/publicCache.ts)
+// so it doesn't wake the database each time.
+const cachedSettings = unstable_cache(
+  () => prisma.siteSettings.findUnique({ where: { id: 'default' } }),
+  ['site-settings'],
+  { tags: [SETTINGS_TAG], revalidate: PUBLIC_REVALIDATE_SECONDS }
+);
+
 export async function GET() {
   try {
-    let settings = await prisma.siteSettings.findUnique({
-      where: { id: 'default' },
-    });
+    let settings = await cachedSettings();
 
     if (!settings) {
       settings = await prisma.siteSettings.create({

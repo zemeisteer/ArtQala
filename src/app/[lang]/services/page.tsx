@@ -11,7 +11,7 @@ import { mainImage } from '@/lib/paintingImages';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // force-dynamic.
-export const revalidate = 30;
+export const revalidate = 86400;
 
 const siteUrl = SITE_URL;
 

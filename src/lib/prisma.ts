@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { PUBLIC_MODELS, refreshPublicSite } from './publicCache';
 
 const databaseUrl = process.env.DATABASE_URL || '';
 const isNeon = databaseUrl.includes('neon.tech');
@@ -20,10 +21,46 @@ const createClient = () =>
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 
+const WRITES = new Set([
+  'create',
+  'createMany',
+  'createManyAndReturn',
+  'update',
+  'updateMany',
+  'updateManyAndReturn',
+  'upsert',
+  'delete',
+  'deleteMany',
+]);
+// Painting columns the public pages don't show — a view counter or the
+// cached wall-view box must not drop the whole site's cache.
+const INVISIBLE_PAINTING_FIELDS = new Set(['views_count', 'wall_view']);
+
+// Any write to what the public site shows drops its caches (see
+// src/lib/publicCache.ts), so pages can be cached for a day and still show
+// an admin's edit immediately.
+const withPublicRefresh = (client: ReturnType<typeof createClient>) =>
+  client.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }) {
+          const result = await query(args);
+          if (WRITES.has(operation) && PUBLIC_MODELS.has(model)) {
+            const data = (args as { data?: unknown }).data;
+            const fields = data && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data) : null;
+            const invisible = model === 'Painting' && fields?.length && fields.every((f) => INVISIBLE_PAINTING_FIELDS.has(f));
+            if (!invisible) refreshPublicSite();
+          }
+          return result;
+        },
+      },
+    },
+  });
+
 const globalForPrisma = globalThis as unknown as {
-  prisma: ReturnType<typeof createClient> | undefined;
+  prisma: ReturnType<typeof withPublicRefresh> | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? createClient();
+export const prisma = globalForPrisma.prisma ?? withPublicRefresh(createClient());
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

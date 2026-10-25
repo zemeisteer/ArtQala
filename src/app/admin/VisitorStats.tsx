@@ -38,20 +38,50 @@ export default async function VisitorStats({ daysParam }: { daysParam?: string }
   if (days === 1) since.setHours(0, 0, 0, 0);
   else since.setDate(since.getDate() - days);
 
-  const visits = await prisma.siteVisit.findMany({
-    where: { created_at: { gte: since } },
-    select: { path: true, country: true, city: true, referrer: true, device: true, lang: true, visitor: true },
-    orderBy: { created_at: 'asc' },
-    take: 200_000,
-  });
+  const [visits, clicks, aiChats, aiQuestions] = await Promise.all([
+    prisma.siteVisit.findMany({
+      where: { created_at: { gte: since } },
+      select: { path: true, country: true, city: true, referrer: true, device: true, lang: true, visitor: true },
+      orderBy: { created_at: 'asc' },
+      take: 200_000,
+    }),
+    // Contact buttons (WhatsApp…) — see ContactClick. Before the table exists
+    // (SQL not run yet) this is just empty.
+    prisma.contactClick
+      .findMany({
+        where: { created_at: { gte: since } },
+        select: { method: true, path: true, visitor: true },
+        take: 100_000,
+      })
+      .catch(() => []),
+    // The site's AI assistant: conversations started in the period, each
+    // with its first question.
+    prisma.aiConversation.findMany({
+      where: { created_at: { gte: since } },
+      select: {
+        id: true,
+        country: true,
+        lang: true,
+        created_at: true,
+        messages: { where: { role: 'USER' }, orderBy: { created_at: 'asc' }, take: 1, select: { content: true } },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 5_000,
+    }),
+    prisma.aiMessage.count({ where: { role: 'USER', created_at: { gte: since } } }),
+  ]);
 
   const tracked = visits.filter((v) => v.visitor);
   const pathOf = (raw: string) => splitLangPath(raw || '/').path;
 
+  const whatsapp = clicks.filter((c) => c.method === 'whatsapp');
+
   // Painting pages show their title instead of an id.
   const paintingIds = [
     ...new Set(
-      visits.map((v) => pathOf(v.path).match(/^\/gallery\/([^/?#]+)$/)?.[1]).filter((id): id is string => !!id)
+      [...visits, ...whatsapp]
+        .map((v) => pathOf(v.path).match(/^\/gallery\/([^/?#]+)$/)?.[1])
+        .filter((id): id is string => !!id)
     ),
   ];
   const paintings = paintingIds.length
@@ -82,6 +112,23 @@ export default async function VisitorStats({ daysParam }: { daysParam?: string }
       pages={tally(visits.map((v) => pathOf(v.path)))}
       devices={tally(tracked.map((v) => v.device))}
       langs={tally(tracked.map((v) => v.lang))}
+      contact={{
+        whatsappClicks: whatsapp.length,
+        whatsappPeople: new Set(whatsapp.map((c) => c.visitor).filter(Boolean)).size,
+        total: clicks.length,
+        methods: tally(clicks.map((c) => c.method)),
+        whatsappPages: tally(whatsapp.map((c) => pathOf(c.path))),
+      }}
+      ai={{
+        chats: aiChats.length,
+        questions: aiQuestions,
+        countries: tally(aiChats.map((c) => c.country)),
+        langs: tally(aiChats.map((c) => c.lang)),
+        latest: aiChats
+          .filter((c) => c.messages[0])
+          .slice(0, 6)
+          .map((c) => ({ id: c.id, text: c.messages[0].content.slice(0, 140), at: c.created_at.toISOString(), country: c.country })),
+      }}
       paintingTitles={Object.fromEntries(paintings.map((p) => [p.id, { en: p.title_en, ru: p.title_ru, uz: p.title_uz }]))}
     />
   );

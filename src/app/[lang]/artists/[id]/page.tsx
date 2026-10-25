@@ -10,9 +10,9 @@ import { SITE_URL } from '@/lib/siteUrl';
 import { mainImage } from '@/lib/paintingImages';
 import ArtistDetailClient from './ArtistDetailClient';
 
-// Same caching as the painting pages: built on first visit, then refreshed
-// in the background at most every 30 seconds.
-export const revalidate = 30;
+// Same caching as the painting pages: built on first visit, kept for a day
+// or until a catalogue edit (src/lib/publicCache.ts).
+export const revalidate = 86400;
 export function generateStaticParams() {
   return [];
 }
