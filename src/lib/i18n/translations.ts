@@ -510,6 +510,12 @@ export const translations = {
       errLinks: 'Please remove links and email addresses from your review.',
       errRateLimited: 'Too many reviews from this connection — please try again in an hour.',
       errInvalid: 'Please enter your name and a review of at least a few words.',
+      googleTitle: 'reviews',
+      googleSubtitle: 'Visitors also review us on Google Maps — read what they wrote, and leave your own there too.',
+      googleRead: 'Our reviews on Google',
+      googleReadAll: 'All reviews on Google',
+      googleWrite: 'Review us on Google',
+      googleCount: '{n} reviews on Google',
     },
     // 404 Not Found page
     notFound: {
@@ -1113,6 +1119,12 @@ export const translations = {
       errLinks: 'Пожалуйста, уберите из отзыва ссылки и адреса почты.',
       errRateLimited: 'Слишком много отзывов с этого подключения — попробуйте через час.',
       errInvalid: 'Укажите имя и напишите отзыв хотя бы в несколько слов.',
+      googleTitle: 'отзывы',
+      googleSubtitle: 'Посетители оставляют отзывы о нас и в Google Картах — почитайте их и оставьте свой.',
+      googleRead: 'Наши отзывы в Google',
+      googleReadAll: 'Все отзывы в Google',
+      googleWrite: 'Оставить отзыв в Google',
+      googleCount: '{n} отзывов в Google',
     },
     // 404 Not Found page
     notFound: {
@@ -1716,6 +1728,12 @@ export const translations = {
       errLinks: "Iltimos, sharhdan havolalar va email manzillarni olib tashlang.",
       errRateLimited: "Bu ulanishdan juda ko'p sharh yuborildi — bir soatdan keyin urinib ko'ring.",
       errInvalid: "Ismingizni va kamida bir necha so'zli sharh yozing.",
+      googleTitle: 'sharhlari',
+      googleSubtitle: "Mehmonlar Google Xaritalarda ham biz haqimizda sharh qoldirishadi — o'qing va o'zingiznikini ham yozing.",
+      googleRead: "Google'dagi sharhlarimiz",
+      googleReadAll: "Google'dagi barcha sharhlar",
+      googleWrite: "Google'da sharh yozish",
+      googleCount: "Google'da {n} ta sharh",
     },
     // 404 Not Found page
     notFound: {

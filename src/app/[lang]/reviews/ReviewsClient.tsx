@@ -7,10 +7,14 @@ import { useApp } from '@/context/AppContext';
 import { Star, ShieldCheck, Sparkles, ExternalLink, MessageSquareCheck } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import GeneralReviewForm from './GeneralReviewForm';
+import GoogleReviews, { type GoogleMapLink } from './GoogleReviews';
+import type { GooglePlaceReviews } from '@/lib/googleReviews';
 import { isVerifiedReview } from '@/lib/reviewVerified';
 
 interface ReviewsClientProps {
   initialReviews: any[];
+  google: GooglePlaceReviews[];
+  mapLinks: GoogleMapLink[];
 }
 
 const UZ_MONTHS = [
@@ -30,7 +34,7 @@ function formatReviewDate(dateStr: string, lang: 'en' | 'ru' | 'uz'): string {
   });
 }
 
-export default function ReviewsClient({ initialReviews }: ReviewsClientProps) {
+export default function ReviewsClient({ initialReviews, google, mapLinks }: ReviewsClientProps) {
   const { lang, t } = useApp();
 
   const totalCount = initialReviews.length;
@@ -91,6 +95,8 @@ export default function ReviewsClient({ initialReviews }: ReviewsClientProps) {
                 <span>{t.reviews.fullyVerifiedBadge}</span>
               </div>
             </div>
+
+            <GoogleReviews places={google} mapLinks={mapLinks} />
 
             {initialReviews.length > 0 ? (
               <div className="space-y-4">

@@ -141,6 +141,11 @@ page). Every review waits for curator approval. No CAPTCHA keys: `src/lib/review
 token from `/api/reviews/token`, min fill time, honeypot `website` field, no links) + a per-IP rate limit; client half
 in `src/components/ReviewGuard.tsx`. `user_id` is set only when the signed-in reviewer has an inquiry for that work;
 show the badge via `src/lib/reviewVerified.ts#isVerifiedReview()` (older reviews all came from buyers).
+`/reviews` also shows the gallery's **Google Maps reviews** (`src/lib/googleReviews.ts`, official Places API (New):
+rating, count and at most 5 reviews — Google's limit — cached a day per language, never in our JSON-LD) when the
+`GOOGLE_PLACES_API_KEY` env var is set; the place is `GOOGLE_PLACE_ID` (comma-separated) or found by text search per
+Settings address (name must match). Without the key it shows links to each Settings address's Google Maps page.
+`GOOGLE_PLACES_API_URL` exists only to test against a mock.
 
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
