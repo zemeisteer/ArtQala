@@ -44,6 +44,7 @@ export default function Header() {
     { href: '/artists', label: t.nav.artists },
     { href: '/services', label: t.nav.services },
     { href: '/delivery', label: t.nav.delivery },
+    { href: '/reviews', label: t.nav.reviews },
     { href: '/contact', label: t.nav.contact },
   ];
 
