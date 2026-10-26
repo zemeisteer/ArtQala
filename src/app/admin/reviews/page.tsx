@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { mainImage } from '@/lib/paintingImages';
+import { isVerifiedReview } from '@/lib/reviewVerified';
 
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
@@ -220,6 +221,9 @@ export default function AdminReviewsPage() {
                             ({rev.user.email})
                           </span>
                         )}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isVerifiedReview(rev) ? 'bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0]' : 'bg-white text-[#8F8178] border-[#E7E0D8]'}`}>
+                          {isVerifiedReview(rev) ? 'Tasdiqlangan xaridor' : 'Mehmon'}
+                        </span>
                       </div>
 
                       {/* Status Badge */}
@@ -263,6 +267,9 @@ export default function AdminReviewsPage() {
                     </p>
 
                     {/* Artwork Reference */}
+                    {!rev.painting && (
+                      <div className="pt-1 text-xs font-semibold text-[#429599]">Galereya haqida (umumiy sharh)</div>
+                    )}
                     {rev.painting && (
                       <div className="flex items-center gap-2 pt-1 text-xs">
                         <span className="text-[#8F8178]">Artwork:</span>

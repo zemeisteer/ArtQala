@@ -27,6 +27,7 @@ import {
   Send,
 } from 'lucide-react';
 import { mainImage } from '@/lib/paintingImages';
+import { ReviewHoneypot, reviewErrorText, reviewGuardFields, useReviewFormToken } from '@/components/ReviewGuard';
 import type { InquiryLine } from '@/lib/inquiryItems';
 
 export default function AccountPage() {
@@ -63,9 +64,12 @@ export default function AccountPage() {
     setReviewError(null);
   };
 
+  const reviewToken = useReviewFormToken(!!reviewInquiry);
+
   const handleSendReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewInquiry?.painting?.id) return;
+    const form = e.currentTarget as HTMLFormElement;
     setSubmittingReview(true);
     setReviewError(null);
     setReviewSuccess(null);
@@ -79,6 +83,7 @@ export default function AccountPage() {
           rating: reviewRating,
           author_name: user?.name || t.reviews.verifiedCollectorBadge,
           text: reviewText.trim(),
+          ...reviewGuardFields(form, reviewToken.token),
         }),
       });
       const data = await res.json();
@@ -95,7 +100,8 @@ export default function AccountPage() {
           setReviewSuccess(null);
         }, 2500);
       } else {
-        setReviewError(data.error || t.reviews.submitError);
+        setReviewError(reviewErrorText(data.code, t));
+        if (data.code === 'expired') reviewToken.refresh();
       }
     } catch {
       setReviewError(t.reviews.networkError);
@@ -869,7 +875,8 @@ export default function AccountPage() {
                 <span>{reviewSuccess}</span>
               </div>
             ) : (
-              <form onSubmit={handleSendReview} className="space-y-4">
+              <form onSubmit={handleSendReview} className="space-y-4 relative">
+                <ReviewHoneypot />
                 {reviewError && (
                   <div className="p-3 bg-[#FEE2E2] border border-[#FCA5A5] text-[#B91C1C] text-xs rounded-[2px]">
                     {reviewError}

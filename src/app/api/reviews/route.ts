@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { notifyAdmin } from '@/lib/adminNotify';
+import { checkRateLimit, getClientIp, recordFailedAttempt } from '@/lib/rateLimit';
+import { HONEYPOT_FIELD, checkFormToken, hasLink } from '@/lib/reviewGuard';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,99 +55,82 @@ export async function GET(request: Request) {
 }
 
 // POST /api/reviews
-// Submits a new review. Only allowed for authenticated users who have an inquiry for this artwork.
-// New reviews are saved with is_approved: false (pending admin moderation).
+// Anyone can review the gallery (no painting_id) or a work (painting_id).
+// Every review waits for a curator's approval (is_approved: false), and the
+// form carries the bot checks of src/lib/reviewGuard.ts. A review is linked
+// to the account (user_id — shown as "Verified Collector") only when the
+// signed-in reviewer has an inquiry for that painting.
 export async function POST(request: Request) {
   try {
+    const body = await request.json().catch(() => ({}));
+    const fail = (code: string, status = 400) => NextResponse.json({ success: false, code }, { status });
+
+    // Honeypot filled → a bot; pretend it worked so it doesn't adapt.
+    if (typeof body[HONEYPOT_FIELD] === 'string' && body[HONEYPOT_FIELD].trim()) {
+      return NextResponse.json({ success: true });
+    }
+    const token = checkFormToken(body.form_token);
+    if (token !== 'ok') return fail(token === 'too-fast' ? 'too_fast' : 'expired');
+
+    const text = typeof body.text === 'string' ? body.text.trim() : '';
+    const authorName = typeof body.author_name === 'string' ? body.author_name.trim().slice(0, 80) : '';
+    if (text.length < 5 || text.length > 2000 || !authorName) return fail('invalid');
+    if (hasLink(text) || hasLink(authorName)) return fail('links');
+
+    const rateKey = `review:${getClientIp(request)}`;
+    const limit = await checkRateLimit(rateKey, 3, 60 * 60 * 1000);
+    if (!limit.allowed) return fail('rate_limited', 429);
+
+    const painting_id = typeof body.painting_id === 'string' && body.painting_id ? body.painting_id : null;
+    const painting = painting_id
+      ? await prisma.painting.findUnique({ where: { id: painting_id }, select: { id: true, title_uz: true } })
+      : null;
+    if (painting_id && !painting) return fail('invalid', 404);
+
     const session = await getServerSession();
+    const verified =
+      session && painting
+        ? await prisma.inquiry.findFirst({
+            where: {
+              // The painting may also be one line of a multi-painting inquiry.
+              AND: [
+                { OR: [{ painting_id: painting.id }, { items: { some: { painting_id: painting.id } } }] },
+                { OR: [{ user_id: session.id }, { guest_email: session.email.toLowerCase() }] },
+              ],
+            },
+            select: { id: true },
+          })
+        : null;
 
-    if (!session) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Authentication required. Please sign in to leave a review.',
-        },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    const { painting_id, rating, text, author_name } = body;
-
-    if (!text || !text.trim()) {
-      return NextResponse.json(
-        { success: false, error: 'Review text is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!painting_id) {
-      return NextResponse.json(
-        { success: false, error: 'Painting ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify that the user has a valid inquiry for this specific artwork
-    const existingInquiry = await prisma.inquiry.findFirst({
-      where: {
-        // The painting may also be one line of a multi-painting inquiry.
-        AND: [
-          { OR: [{ painting_id }, { items: { some: { painting_id } } }] },
-          {
-            OR: [
-              { user_id: session.id },
-              { guest_email: session.email.toLowerCase() },
-            ],
-          },
-        ],
-      },
-    });
-
-    if (!existingInquiry) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Only verified collectors who have inquired about or acquired this artwork can leave a review.',
-        },
-        { status: 403 }
-      );
-    }
-
-    const numericRating = Math.min(5, Math.max(1, parseInt(rating) || 5));
-    const name = author_name || session.name || 'Verified Collector';
-
+    await recordFailedAttempt(rateKey, 60 * 60 * 1000);
     const review = await prisma.review.create({
       data: {
-        user_id: session.id,
-        painting_id,
-        author_name: name,
-        rating: numericRating,
-        text: text.trim(),
+        user_id: verified ? session!.id : null,
+        painting_id: painting?.id ?? null,
+        author_name: authorName,
+        rating: Math.min(5, Math.max(1, parseInt(body.rating) || 5)),
+        text,
         is_approved: false, // Moderatsiya talab qilinadi (TZ 8.12)
-      },
-      include: {
-        painting: {
-          select: {
-            id: true,
-            title_en: true,
-          },
-        },
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      review,
-      message:
-        'Thank you! Your review has been submitted and will be visible after admin approval.',
+    await notifyAdmin({
+      heading: 'Yangi sharh',
+      summary: `${authorName} ${painting ? `"${painting.title_uz}" asariga` : 'galereya haqida'} sharh qoldirdi. Tasdiqlaganingizdan keyin saytda chiqadi.`,
+      details: [
+        ['Ism', authorName],
+        ['Baho', '★'.repeat(review.rating)],
+        ['Asar', painting?.title_uz || 'Galereya haqida (umumiy)'],
+        ['Xaridor', verified ? 'Ha, tasdiqlangan' : "Yo'q"],
+      ],
+      message: text,
+      adminPath: '/admin/reviews',
+      subject: `Yangi sharh: ${authorName} (${review.rating}★)`,
     });
+
+    return NextResponse.json({ success: true, verified: !!verified });
   } catch (error) {
     console.error('Review submission error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to submit review' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, code: 'server' }, { status: 500 });
   }
 }

@@ -4,8 +4,10 @@ import React from 'react';
 import Link from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
-import { Star, ShieldCheck, Sparkles, ExternalLink, ArrowRight, MessageSquareCheck } from 'lucide-react';
+import { Star, ShieldCheck, Sparkles, ExternalLink, MessageSquareCheck } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import GeneralReviewForm from './GeneralReviewForm';
+import { isVerifiedReview } from '@/lib/reviewVerified';
 
 interface ReviewsClientProps {
   initialReviews: any[];
@@ -29,7 +31,7 @@ function formatReviewDate(dateStr: string, lang: 'en' | 'ru' | 'uz'): string {
 }
 
 export default function ReviewsClient({ initialReviews }: ReviewsClientProps) {
-  const { user, lang, t } = useApp();
+  const { lang, t } = useApp();
 
   const totalCount = initialReviews.length;
   const avgRating =
@@ -79,7 +81,7 @@ export default function ReviewsClient({ initialReviews }: ReviewsClientProps) {
                     ))}
                   </div>
                   <span className="text-xs text-[#726861] mt-0.5 block">
-                    {t.reviews.basedOn} {totalCount} {t.reviews.verifiedCollector} {totalCount === 1 ? t.reviews.reviewSingular : t.reviews.reviewPlural}
+                    {t.reviews.basedOn} {totalCount} {totalCount === 1 ? t.reviews.reviewSingular : t.reviews.reviewPlural}
                   </span>
                 </div>
               </div>
@@ -103,9 +105,11 @@ export default function ReviewsClient({ initialReviews }: ReviewsClientProps) {
                           <h3 className="font-serif text-lg font-semibold text-[#281C18]">
                             {r.author_name}
                           </h3>
-                          <span className="bg-[#FAF4EC] border border-[#E7E0D8] text-[#BA4E25] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            {t.reviews.verifiedCollectorBadge}
-                          </span>
+                          {isVerifiedReview(r) && (
+                            <span className="bg-[#FAF4EC] border border-[#E7E0D8] text-[#BA4E25] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              {t.reviews.verifiedCollectorBadge}
+                            </span>
+                          )}
                         </div>
                         <span className="text-[11px] text-[#8F8178]">
                           {formatReviewDate(r.created_at, lang)}
@@ -123,6 +127,11 @@ export default function ReviewsClient({ initialReviews }: ReviewsClientProps) {
                       "{r.text}"
                     </p>
 
+                    {!r.painting && (
+                      <div className="text-[10.5px] font-bold tracking-wider text-[#429599] uppercase pt-1 border-t border-[#F0EAE1]">
+                        {t.reviews.generalEyebrow}
+                      </div>
+                    )}
                     {r.painting && (
                       <div className="flex items-center justify-between text-xs pt-1 border-t border-[#F0EAE1]">
                         <span className="text-[#8F8178]">{t.reviews.artworkLabel}</span>
@@ -158,6 +167,8 @@ export default function ReviewsClient({ initialReviews }: ReviewsClientProps) {
 
           {/* Right Sidebar: Policy & Leave Review Guide */}
           <div className="lg:col-span-4 space-y-6">
+            <GeneralReviewForm />
+
             {/* How Reviews Work */}
             <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 space-y-4 shadow-xs">
               <div className="flex items-center gap-2 text-[#429599]">
@@ -186,25 +197,6 @@ export default function ReviewsClient({ initialReviews }: ReviewsClientProps) {
                 </div>
               </div>
 
-              <div className="pt-2">
-                {user ? (
-                  <Link
-                    href="/account"
-                    className="w-full bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-xs py-3 rounded-[3px] transition-all flex items-center justify-center gap-2 shadow-xs"
-                  >
-                    <span>{t.reviews.goToMyInquiries}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                ) : (
-                  <Link
-                    href="/signin"
-                    className="w-full bg-[#281C18] hover:bg-[#BA4E25] text-white font-semibold text-xs py-3 rounded-[3px] transition-all flex items-center justify-center gap-2 shadow-xs"
-                  >
-                    <span>{t.reviews.signInToLeaveFeedback}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
-              </div>
             </div>
 
             {/* Gallery Heritage Box */}
