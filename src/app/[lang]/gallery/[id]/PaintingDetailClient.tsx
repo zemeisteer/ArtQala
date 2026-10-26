@@ -10,6 +10,8 @@ import ShippingEstimator from '@/components/ShippingEstimator';
 import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCheckboxes';
 import { getSizeBucket, isWallPiece, parseSizeCm } from '@/lib/paintingSize';
 import WallPreviewModal from '@/components/WallPreviewModal';
+import { isVerifiedReview } from '@/lib/reviewVerified';
+import { ReviewHoneypot, reviewErrorText, reviewGuardFields, useReviewFormToken } from '@/components/ReviewGuard';
 import { useGalleryHref } from '@/lib/galleryReturn';
 import { paintingAccessoryTargets } from '@/lib/productType';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -96,6 +98,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccessMessage, setReviewSuccessMessage] = useState<string | null>(null);
   const [reviewErrorMessage, setReviewErrorMessage] = useState<string | null>(null);
+  const reviewToken = useReviewFormToken(showReviewModal);
 
   // Track painting view once when client mounts
   useEffect(() => {
@@ -235,6 +238,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
     setSubmittingReview(true);
     setReviewErrorMessage(null);
     setReviewSuccessMessage(null);
@@ -248,6 +252,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
           rating: reviewRating,
           author_name: reviewAuthor.trim() || user?.name || t.reviews.verifiedCollectorBadge,
           text: reviewText.trim(),
+          ...reviewGuardFields(form, reviewToken.token),
         }),
       });
 
@@ -267,7 +272,8 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
           setReviewSuccessMessage(null);
         }, 2800);
       } else {
-        setReviewErrorMessage(data.error || t.reviews.submitError);
+        setReviewErrorMessage(reviewErrorText(data.code, t));
+        if (data.code === 'expired') reviewToken.refresh();
       }
     } catch (err) {
       console.error('Error submitting review:', err);
@@ -471,26 +477,13 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                   </span>
                 </div>
 
-                {canReview ? (
-                  <button
-                    onClick={() => setShowReviewModal(true)}
-                    className="shrink-0 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white text-xs font-semibold px-4 py-2 rounded-[3px] transition flex items-center gap-1.5 shadow-xs"
-                  >
-                    <MessageSquarePlus className="w-3.5 h-3.5" />
-                    <span>{hasReviewed ? t.reviews.updateReviewBtn : t.reviews.writeReviewBtn}</span>
-                  </button>
-                ) : user ? (
-                  <span className="text-[11px] text-[#8F8178] italic shrink-0">
-                    {t.reviews.unlockReviewsHint}
-                  </span>
-                ) : (
-                  <Link
-                    href="/signin"
-                    className="shrink-0 text-xs font-semibold text-[#BA4E25] hover:underline"
-                  >
-                    {t.reviews.signInToReview}
-                  </Link>
-                )}
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="shrink-0 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white text-xs font-semibold px-4 py-2 rounded-[3px] transition flex items-center gap-1.5 shadow-xs"
+                >
+                  <MessageSquarePlus className="w-3.5 h-3.5" />
+                  <span>{canReview && hasReviewed ? t.reviews.updateReviewBtn : t.reviews.writeReviewBtn}</span>
+                </button>
               </div>
 
               {/* Reviews List */}
@@ -507,9 +500,11 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                           <span className="font-serif font-semibold text-sm text-[#281C18]">
                             {rev.author_name}
                           </span>
-                          <span className="bg-[#DCFCE7] text-[#16A34A] text-[10px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                            {t.account.verifiedBadge}
-                          </span>
+                          {isVerifiedReview(rev) && (
+                            <span className="bg-[#DCFCE7] text-[#16A34A] text-[10px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                              {t.account.verifiedBadge}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="flex text-[#DAA932]">
@@ -818,7 +813,8 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                 <span>{reviewSuccessMessage}</span>
               </div>
             ) : (
-              <form onSubmit={handleReviewSubmit} className="space-y-4">
+              <form onSubmit={handleReviewSubmit} className="space-y-4 relative">
+                <ReviewHoneypot />
                 {reviewErrorMessage && (
                   <div className="p-3 bg-[#FEE2E2] border border-[#FCA5A5] text-[#B91C1C] text-xs rounded-[2px]">
                     {reviewErrorMessage}

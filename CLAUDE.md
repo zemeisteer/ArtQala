@@ -136,6 +136,12 @@ routes); buttons call `setInquiryStatus`/`setServiceRequestStatus`; Mondays the 
 `SiteVisit`, `src/lib/visitorId.ts`). The dashboard's Visitors section shows them and the AI assistant's
 conversations/questions for the same period; `/admin/ai-chats?open=<id>` opens one conversation.
 
+**Reviews are open to anyone** — of the gallery (`Review.painting_id = null`, form on `/reviews`) or of a work (its
+page). Every review waits for curator approval. No CAPTCHA keys: `src/lib/reviewGuard.ts` (signed "form opened at"
+token from `/api/reviews/token`, min fill time, honeypot `website` field, no links) + a per-IP rate limit; client half
+in `src/components/ReviewGuard.tsx`. `user_id` is set only when the signed-in reviewer has an inquiry for that work;
+show the badge via `src/lib/reviewVerified.ts#isVerifiedReview()` (older reviews all came from buyers).
+
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
 
