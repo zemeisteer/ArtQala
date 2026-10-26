@@ -7,6 +7,8 @@ import ReviewsClient from './ReviewsClient';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
+import { getGoogleReviews } from '@/lib/googleReviews';
+import { getGalleryFacts } from '@/lib/galleryFacts';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
 // force-dynamic.
@@ -26,6 +28,11 @@ export default async function ReviewsPage({ params }: { params: Promise<{ lang: 
     siteUrl,
     isLang(rawLang) ? rawLang : 'en'
   );
+  const lang = isLang(rawLang) ? rawLang : 'en';
+  const [google, facts] = await Promise.all([getGoogleReviews(lang), getGalleryFacts()]);
+  const mapLinks = (facts?.locations || [])
+    .filter((l) => /^https?:\/\//.test(l.mapUrl || ''))
+    .map((l) => ({ label: l.address.split(',').pop()!.trim(), url: l.mapUrl }));
   const reviews = await prisma.review.findMany({
     where: { is_approved: true },
     include: {
@@ -72,7 +79,7 @@ export default async function ReviewsPage({ params }: { params: Promise<{ lang: 
           dangerouslySetInnerHTML={{ __html: safeJsonLdString(reviewsJsonLd) }}
         />
       )}
-      <ReviewsClient initialReviews={reviews} />
+      <ReviewsClient initialReviews={reviews} google={google} mapLinks={mapLinks} />
     </>
   );
 }
