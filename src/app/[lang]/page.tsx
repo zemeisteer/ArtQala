@@ -4,6 +4,7 @@ import { homeMetadata } from '@/lib/i18n/seo';
 import { getGalleryFacts } from '@/lib/galleryFacts';
 import { isLang } from '@/lib/i18n/routing';
 import { getFeaturedPaintings, slimPainting } from '@/lib/api';
+import { prisma } from '@/lib/prisma';
 import HomeClient from './HomeClient';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
@@ -17,7 +18,21 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 }
 
 export default async function HomePage() {
-  const featuredPaintings = await getFeaturedPaintings();
+  const [featuredPaintings, latestReviews, stats] = await Promise.all([
+    getFeaturedPaintings(),
+    prisma.review.findMany({
+      where: { is_approved: true },
+      select: { id: true, author_name: true, rating: true, text: true },
+      orderBy: { created_at: 'desc' },
+      take: 3,
+    }),
+    prisma.review.aggregate({ where: { is_approved: true }, _avg: { rating: true }, _count: true }),
+  ]);
 
-  return <HomeClient featuredPaintings={featuredPaintings.map(slimPainting)} />;
+  return (
+    <HomeClient
+      featuredPaintings={featuredPaintings.map(slimPainting)}
+      reviews={{ latest: latestReviews, average: stats._avg.rating || 0, count: stats._count }}
+    />
+  );
 }

@@ -10,14 +10,16 @@ import AnimatedGirihWatermark from '@/components/patterns/AnimatedGirihWatermark
 import AnimatedIslimiyDivider from '@/components/patterns/AnimatedIslimiyDivider';
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import { mainImage } from '@/lib/paintingImages';
+import HomeReviews, { type HomeReview } from './HomeReviews';
 
 const firstImage = (images: string) => mainImage(images);
 
 interface HomeClientProps {
   featuredPaintings: any[];
+  reviews: { latest: HomeReview[]; average: number; count: number };
 }
 
-export default function HomeClient({ featuredPaintings }: HomeClientProps) {
+export default function HomeClient({ featuredPaintings, reviews }: HomeClientProps) {
   const { t, lang } = useApp();
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -335,6 +337,8 @@ export default function HomeClient({ featuredPaintings }: HomeClientProps) {
           </div>
         </div>
       </section>
+
+      <HomeReviews reviews={reviews.latest} average={reviews.average} count={reviews.count} />
 
       {/* CTA Warm Banner */}
       <section className="bg-gradient-to-r from-[#BA4E25] to-[#8C3413] text-white py-14 sm:py-16 shadow-inner">

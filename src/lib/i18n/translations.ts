@@ -9,6 +9,7 @@ export const translations = {
       artists: 'Artists',
       services: 'Services',
       delivery: 'Delivery',
+      reviews: 'Reviews',
       contact: 'Contact',
       admin: 'Admin Panel',
       account: 'My Account',
@@ -516,6 +517,11 @@ export const translations = {
       googleReadAll: 'All reviews on Google',
       googleWrite: 'Review us on Google',
       googleCount: '{n} reviews on Google',
+      leaveReview: 'Leave a review',
+      allReviews: 'All reviews',
+      homeEyebrow: 'WHAT VISITORS SAY',
+      homeTitle: 'Reviews of Art Qala',
+      homeEmpty: 'Visited the gallery or bought a work? Be the first to share your impression.',
     },
     // 404 Not Found page
     notFound: {
@@ -619,6 +625,7 @@ export const translations = {
       artists: 'Художники',
       services: 'Услуги',
       delivery: 'Доставка',
+      reviews: 'Отзывы',
       contact: 'Контакты',
       admin: 'Админ-панель',
       account: 'Кабинет',
@@ -1125,6 +1132,11 @@ export const translations = {
       googleReadAll: 'Все отзывы в Google',
       googleWrite: 'Оставить отзыв в Google',
       googleCount: '{n} отзывов в Google',
+      leaveReview: 'Оставить отзыв',
+      allReviews: 'Все отзывы',
+      homeEyebrow: 'ЧТО ГОВОРЯТ ГОСТИ',
+      homeTitle: 'Отзывы об Art Qala',
+      homeEmpty: 'Были в галерее или купили работу? Оставьте первый отзыв.',
     },
     // 404 Not Found page
     notFound: {
@@ -1228,6 +1240,7 @@ export const translations = {
       artists: 'Rassomlar',
       services: 'Xizmatlar',
       delivery: 'Yetkazib berish',
+      reviews: 'Sharhlar',
       contact: 'Aloqa',
       admin: 'Admin panel',
       account: 'Kabinet',
@@ -1734,6 +1747,11 @@ export const translations = {
       googleReadAll: "Google'dagi barcha sharhlar",
       googleWrite: "Google'da sharh yozish",
       googleCount: "Google'da {n} ta sharh",
+      leaveReview: 'Sharh qoldirish',
+      allReviews: 'Barcha sharhlar',
+      homeEyebrow: 'MEHMONLAR FIKRI',
+      homeTitle: 'Art Qala haqida sharhlar',
+      homeEmpty: "Galereyaga kelganmisiz yoki asar sotib olganmisiz? Birinchi bo'lib fikr qoldiring.",
     },
     // 404 Not Found page
     notFound: {

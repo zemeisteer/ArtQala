@@ -4,7 +4,7 @@ import React from 'react';
 import Link from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
-import { Star, ShieldCheck, Sparkles, ExternalLink, MessageSquareCheck } from 'lucide-react';
+import { Star, ShieldCheck, Sparkles, ExternalLink, MessageSquareCheck, MessageSquarePlus } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import GeneralReviewForm from './GeneralReviewForm';
 import GoogleReviews, { type GoogleMapLink } from './GoogleReviews';
@@ -90,9 +90,18 @@ export default function ReviewsClient({ initialReviews, google, mapLinks }: Revi
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#16A34A] bg-[#DCFCE7] px-3 py-1.5 rounded-full border border-[#BBF7D0]">
-                <MessageSquareCheck className="w-4 h-4" />
-                <span>{t.reviews.fullyVerifiedBadge}</span>
+<div className="flex flex-col items-start sm:items-end gap-2">
+                <a
+                  href="#write-review"
+                  className="inline-flex items-center gap-1.5 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white text-xs font-semibold px-4 py-2.5 rounded-[3px] transition shadow-xs"
+                >
+                  <MessageSquarePlus className="w-3.5 h-3.5" />
+                  <span>{t.reviews.leaveReview}</span>
+                </a>
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#16A34A] bg-[#DCFCE7] px-3 py-1.5 rounded-full border border-[#BBF7D0]">
+                  <MessageSquareCheck className="w-4 h-4" />
+                  <span>{t.reviews.fullyVerifiedBadge}</span>
+                </div>
               </div>
             </div>
 
