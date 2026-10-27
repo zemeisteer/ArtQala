@@ -147,6 +147,10 @@ rating, count and at most 5 reviews — Google's limit — cached a day per lang
 Settings address (name must match). Without the key it shows links to each Settings address's Google Maps page.
 `GOOGLE_PLACES_API_URL` exists only to test against a mock.
 
+**Gallery wall labels**: Admin → Paintings → "QR yorliqlar" (`/admin/paintings/labels`, `?ids=` preselects) prints
+A4 sheets of labels whose QR opens `/gallery/<id>?ref=qr`; `VisitTracker` records such a landing with referrer
+`qr-label`, shown as its own source on the dashboard.
+
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
 

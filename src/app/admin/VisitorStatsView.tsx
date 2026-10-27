@@ -83,7 +83,7 @@ export default function VisitorStatsView(props: Props) {
   };
 
   const deviceLabel: Record<string, string> = { MOBILE: a.deviceMobile, DESKTOP: a.deviceDesktop, TABLET: a.deviceTablet };
-  const sourceLabel = (key: string) => (key === '__direct' ? a.sourceDirect : key === '__ai' ? a.sourceAi : key);
+  const sourceLabel = (key: string) => (key === '__direct' ? a.sourceDirect : key === '__ai' ? a.sourceAi : key === '__qr' ? a.sourceQr : key);
   const pageLabel = (path: string) => {
     const id = path.match(/^\/gallery\/([^/?#]+)$/)?.[1];
     if (!id) return path;

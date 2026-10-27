@@ -8,6 +8,7 @@ import { VISITOR_PERIODS } from './visitorPeriods';
 // are translated in the view.
 function sourceKey(host: string | null): string {
   if (!host) return '__direct';
+  if (host === 'qr-label') return '__qr';
   if (/(^|\.)google\./.test(host)) return 'Google';
   if (/instagram\.com$/.test(host)) return 'Instagram';
   if (/(facebook\.com|fb\.me)$/.test(host)) return 'Facebook';

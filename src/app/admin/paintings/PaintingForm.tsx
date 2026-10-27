@@ -1166,6 +1166,14 @@ export default function PaintingForm({
             </div>
 
             {!isNew && initialData?.id && <WallViewCard paintingId={initialData.id} />}
+            {!isNew && initialData?.id && (
+              <Link
+                href={`/admin/paintings/labels?ids=${initialData.id}`}
+                className="inline-flex items-center gap-2 text-xs font-semibold text-[#BA4E25] hover:underline"
+              >
+                Galereya uchun QR yorliq chop etish →
+              </Link>
+            )}
           </div>
 
           {/* Right Column (Pricing & Toggles) */}

@@ -18,7 +18,10 @@ export default function VisitTracker() {
 
     // Where the visitor came from (Google, Instagram, ...) only matters for
     // the page they landed on; later in-site navigations have no referrer.
-    const referrer = lastRecordedPath.current === null ? document.referrer : '';
+    // A scan of a gallery wall label (?ref=qr, Admin → Paintings → QR
+    // yorliqlar) has no referrer of its own.
+    const fromLabel = new URLSearchParams(window.location.search).get('ref') === 'qr';
+    const referrer = lastRecordedPath.current === null ? (fromLabel ? 'https://qr-label/' : document.referrer) : '';
     lastRecordedPath.current = pathname;
 
     // Send visit log asynchronously
