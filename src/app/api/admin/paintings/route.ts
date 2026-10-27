@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { notifyIndexNow } from '@/lib/indexNow';
 import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
+import { postPaintingToChannel } from '@/lib/telegramChannel';
 import { parseSoldPrice } from '@/lib/salePriceInput';
 
 export const dynamic = 'force-dynamic';
@@ -85,6 +86,10 @@ export async function POST(request: Request) {
     });
 
     notifyIndexNow([`/gallery/${newPainting.id}`, `/artists/${newPainting.artist_id}`]);
+    // A new, unsold work goes to the public Telegram channel (if connected).
+    if (!newPainting.is_sold) {
+      await postPaintingToChannel(newPainting.id).catch((error) => console.error('Channel post failed:', error));
+    }
     return NextResponse.json({ success: true, painting: newPainting });
   } catch (error) {
     console.error('Create painting error:', error);

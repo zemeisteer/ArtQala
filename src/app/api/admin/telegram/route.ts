@@ -10,6 +10,7 @@ import {
   sendTelegramToAdmins,
 } from '@/lib/telegram';
 import { buildWeeklyReport } from '@/lib/weeklyReport';
+import { getChannel, normalizeChannel, verifyChannel } from '@/lib/telegramChannel';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,10 +20,11 @@ export async function GET() {
   const auth = await requireAdmin();
   if (auth.errorResponse) return auth.errorResponse;
   const configured = isTelegramConfigured();
-  const [bot, chats, webhook] = await Promise.all([
+  const [bot, chats, webhook, channel] = await Promise.all([
     configured ? getBotInfo() : Promise.resolve(null),
     prisma.telegramChat.findMany({ orderBy: { created_at: 'asc' } }),
     configured ? getWebhookStatus() : Promise.resolve(null),
+    getChannel(),
   ]);
   return NextResponse.json({
     success: true,
@@ -32,6 +34,7 @@ export async function GET() {
     webhookActive: webhook?.active ?? false,
     webhookError: webhook?.lastError ?? null,
     chats,
+    channel,
   });
 }
 
@@ -61,6 +64,22 @@ export async function POST(request: Request) {
       "✅ <b>Art Qala</b>\nSinov xabari: yangi so'rovlar va xabarlar shu yerga keladi."
     );
     return NextResponse.json({ success: result.sent > 0, ...result });
+  }
+
+  // { action: 'channel', channel } — connect the public channel new works
+  // are posted to (checked first); an empty channel turns it off.
+  if (body?.action === 'channel') {
+    const raw = typeof body.channel === 'string' ? body.channel : '';
+    if (!raw.trim()) {
+      await prisma.siteSettings.update({ where: { id: 'default' }, data: { telegram_channel: null } });
+      return NextResponse.json({ success: true, channel: null });
+    }
+    const channel = normalizeChannel(raw);
+    if (!channel) return NextResponse.json({ success: false, error: "Kanal manzili noto'g'ri (masalan: @artqala)" }, { status: 400 });
+    const check = await verifyChannel(channel);
+    if (!check.ok) return NextResponse.json({ success: false, error: check.error }, { status: 400 });
+    await prisma.siteSettings.update({ where: { id: 'default' }, data: { telegram_channel: channel } });
+    return NextResponse.json({ success: true, channel, title: check.title });
   }
 
   if (body?.action === 'report') {

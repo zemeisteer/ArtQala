@@ -27,6 +27,7 @@ import TranslateStatus from '@/components/TranslateStatus';
 import { PLACEHOLDER_IMAGE } from '@/lib/paintingImages';
 import { accessoryAppliesTo } from '@/lib/productType';
 import WallViewCard from './WallViewCard';
+import ChannelPostButton from './ChannelPostButton';
 
 interface PaintingFormProps {
   initialData?: any;
@@ -1174,6 +1175,7 @@ export default function PaintingForm({
                 Galereya uchun QR yorliq chop etish →
               </Link>
             )}
+            {!isNew && initialData?.id && <ChannelPostButton paintingId={initialData.id} />}
           </div>
 
           {/* Right Column (Pricing & Toggles) */}
