@@ -8,6 +8,7 @@ import { Search, Heart, SlidersHorizontal, Send, ChevronDown, X, Palette, Calend
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import DandanaScrollTrack from '@/components/patterns/DandanaScrollTrack';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import RoomMatch from '@/components/RoomMatch';
 import FilterSelect from '@/components/FilterSelect';
 import { rememberGalleryQuery } from '@/lib/galleryReturn';
 import PublicPagination from '@/components/PublicPagination';
@@ -321,6 +322,9 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
           <p className="text-sm sm:text-base text-[#6E6057] leading-relaxed">
             {t.gallery.subtitle}
           </p>
+          <div className="pt-2">
+            <RoomMatch />
+          </div>
         </div>
 
         {/* Filter Pills & Search Bar */}

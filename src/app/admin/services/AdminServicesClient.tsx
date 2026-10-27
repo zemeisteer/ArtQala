@@ -3,12 +3,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Wrench, CheckCircle2, Send, Shield, User, Loader2, Mail, Gem, DollarSign, Trash2, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { WORKSHOP_SERVICE_TYPE } from '@/lib/workshops';
 import FilterSelect from '@/components/FilterSelect';
 
 interface AdminServicesClientProps {
   initialRequests: any[];
   initialSelectedId?: string;
 }
+
+// Masterclass bookings from /experiences are service requests too.
+const serviceTypeLabel = (type: string) => (type === WORKSHOP_SERVICE_TYPE ? 'Master-klass' : type);
 
 export default function AdminServicesClient({ initialRequests, initialSelectedId }: AdminServicesClientProps) {
   // Open the request a link pointed at (?open=), else the newest.
@@ -328,7 +332,7 @@ export default function AdminServicesClient({ initialRequests, initialSelectedId
                   {getStatusBadge(sr.status)}
                 </div>
                 <div className="text-xs font-semibold text-[#429599] uppercase tracking-wider mb-1">
-                  {sr.service_type}
+                  {serviceTypeLabel(sr.service_type)}
                 </div>
 
                 {lastMsg ? (
@@ -364,7 +368,7 @@ export default function AdminServicesClient({ initialRequests, initialSelectedId
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-[#BA4E25] uppercase tracking-wider">
-                      {selected.service_type}
+                      {serviceTypeLabel(selected.service_type)}
                     </span>
                     <span className="text-[#A8988E]">·</span>
                     <h3 className="font-serif text-xl font-semibold text-[#281C18]">

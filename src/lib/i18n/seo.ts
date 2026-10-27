@@ -6,7 +6,7 @@ import { OG_LOCALE, languageAlternates } from './routing';
 // each /ru/... and /uz/... page is indexed in its own language, so its title
 // and description must be too. `title` goes through the root layout's
 // "%s | Art Qala Gallery" template (except the home page, which is absolute).
-type PageKey = 'home' | 'gallery' | 'artists' | 'services' | 'contact' | 'reviews' | 'privacy' | 'terms' | 'delivery';
+type PageKey = 'home' | 'gallery' | 'artists' | 'services' | 'contact' | 'reviews' | 'privacy' | 'terms' | 'delivery' | 'gift' | 'workshops';
 
 const PAGES: Record<PageKey, { path: string } & Record<Language, { title: string; description: string }>> = {
   home: {
@@ -146,6 +146,36 @@ const PAGES: Record<PageKey, { path: string } & Record<Language, { title: string
       title: 'To‘lov va yetkazib berish',
       description:
         'Art Qala’da asar uchun qanday to‘lash (karta, Visa/Mastercard, Payme, Click, bank o‘tkazmasi, naqd) va uni olish: Toshkentda $500 dan bepul, O‘zbekiston bo‘ylab va butun dunyoga sug‘urtalangan UzPost orqali, olib chiqish hujjatlari bilan.',
+    },
+  },
+  gift: {
+    path: '/gift-card',
+    en: {
+      title: 'Gift Certificate',
+      description: 'Give an Art Qala gift certificate — the recipient chooses an original work of Uzbek art or a masterclass at our gallery. Sent by email, ready to print.',
+    },
+    ru: {
+      title: 'Подарочный сертификат',
+      description: 'Подарите сертификат Art Qala — получатель сам выберет оригинальную работу узбекского искусства или мастер-класс в галерее. Приходит на почту, готов к печати.',
+    },
+    uz: {
+      title: 'Sovg‘a sertifikati',
+      description: 'Art Qala sovg‘a sertifikatini hadya qiling — qabul qiluvchi o‘zbek san’atining asl asari yoki galereyadagi master-klassni o‘zi tanlaydi. Emailga keladi, chop etishga tayyor.',
+    },
+  },
+  workshops: {
+    path: '/experiences',
+    en: {
+      title: 'Masterclasses & Tours',
+      description: 'Hands-on masterclasses with Uzbek artists at Art Qala Gallery — painting, ceramics, wood carving. Book online.',
+    },
+    ru: {
+      title: 'Мастер-классы и экскурсии',
+      description: 'Мастер-классы с узбекскими художниками в галерее Art Qala — живопись, керамика, резьба по дереву. Запись онлайн.',
+    },
+    uz: {
+      title: 'Master-klasslar va ekskursiyalar',
+      description: 'Art Qala galereyasida o‘zbek ustalari bilan master-klasslar — rassomlik, kulolchilik, yog‘och o‘ymakorligi. Onlayn yozilish.',
     },
   },
   terms: {
