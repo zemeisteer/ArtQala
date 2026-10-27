@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Search, Pencil, Trash2, Palette } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Palette, QrCode } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
 import Pagination from '@/components/Pagination';
 import { mainImage } from '@/lib/paintingImages';
@@ -152,6 +152,13 @@ export default function AdminPaintingsClient({
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
         <SalesReportButton />
+        <Link
+          href="/admin/paintings/labels"
+          className="inline-flex items-center gap-2 bg-white border border-[#E7E0D8] hover:border-[#BA4E25] text-[#281C18] font-semibold text-xs px-4 py-2.5 rounded-[3px] transition-all"
+        >
+          <QrCode className="w-4 h-4" />
+          <span>QR yorliqlar</span>
+        </Link>
         <Link
           href={withBack('/admin/paintings/new')}
           className="inline-flex items-center gap-2 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-xs px-4 py-2.5 rounded-[3px] transition-all shadow-xs self-start sm:self-auto"
