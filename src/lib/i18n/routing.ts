@@ -9,21 +9,47 @@
 
 import type { Language } from './translations';
 
-export const LANGS: Language[] = ['en', 'ru', 'uz'];
+export const LANGS: Language[] = ['en', 'ru', 'uz', 'de', 'fr', 'ko', 'ja', 'zh'];
 export const DEFAULT_LANG: Language = 'en';
 // Remembers the visitor's choice; the middleware sends unprefixed page
 // requests from a browser with this cookie to its language's URL.
 export const LANG_COOKIE = 'artqala_lang';
 
-export const OG_LOCALE: Record<Language, string> = { en: 'en_US', ru: 'ru_RU', uz: 'uz_UZ' };
+export const OG_LOCALE: Record<Language, string> = {
+  en: 'en_US',
+  ru: 'ru_RU',
+  uz: 'uz_UZ',
+  de: 'de_DE',
+  fr: 'fr_FR',
+  ko: 'ko_KR',
+  ja: 'ja_JP',
+  zh: 'zh_CN',
+};
+
+// Each language's own name, for the language picker.
+export const LANG_NAMES: Record<Language, string> = {
+  en: 'English',
+  ru: 'Русский',
+  uz: "O'zbekcha",
+  de: 'Deutsch',
+  fr: 'Français',
+  ko: '한국어',
+  ja: '日本語',
+  zh: '中文',
+};
+
+// hreflang codes (zh = Simplified Chinese).
+const HREFLANG: Record<Language, string> = { en: 'en', ru: 'ru', uz: 'uz', de: 'de', fr: 'fr', ko: 'ko', ja: 'ja', zh: 'zh-Hans' };
 
 export function isLang(value: string | undefined | null): value is Language {
   return !!value && (LANGS as string[]).includes(value);
 }
 
+const LANG_PREFIX = new RegExp(`^\\/(${LANGS.join('|')})(?=\\/|$)(.*)$`);
+
 // "/ru/gallery?x=1" -> { lang: 'ru', path: '/gallery' }; unprefixed -> 'en'.
 export function splitLangPath(pathname: string): { lang: Language; path: string } {
-  const match = pathname.match(/^\/(en|ru|uz)(?=\/|$)(.*)$/);
+  const match = pathname.match(LANG_PREFIX);
   if (!match) return { lang: DEFAULT_LANG, path: pathname || '/' };
   return { lang: match[1] as Language, path: match[2] || '/' };
 }
@@ -40,9 +66,7 @@ export function languageAlternates(path: string, lang: Language) {
   return {
     canonical: localizePath(path, lang),
     languages: {
-      en: localizePath(path, 'en'),
-      ru: localizePath(path, 'ru'),
-      uz: localizePath(path, 'uz'),
+      ...Object.fromEntries(LANGS.map((l) => [HREFLANG[l], localizePath(path, l)])),
       'x-default': localizePath(path, 'en'),
     },
   };

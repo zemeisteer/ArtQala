@@ -709,3 +709,88 @@ async function sendResendEmail(params: {
     return { success: false, error: err.message || 'Network error sending email' };
   }
 }
+
+// --- Gift certificates (src/lib/giftCards.ts) ------------------------------
+
+function simpleEmail(title: string, body: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
+      <body style="margin: 0; padding: 0; background-color: #FAF4EC; font-family: 'Georgia', serif; color: #281C18;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FAF4EC; padding: 40px 15px;">
+          <tr>
+            <td align="center">
+              <table width="100%" style="max-width: 580px; background-color: #FDFBF9; border: 1px solid #E7E0D8; border-radius: 4px; padding: 36px 32px;">
+                <tr>
+                  <td style="border-bottom: 1px solid #EFE8DE; padding-bottom: 20px;">
+                    <h1 style="color: #BA4E25; margin: 0; font-size: 26px; letter-spacing: 1px;">Art Qala</h1>
+                    <p style="margin: 4px 0 0 0; color: #726861; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;">Gallery &amp; Studio · Uzbekistan</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top: 26px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.6; color: #554740;">
+                    ${body}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border-top: 1px solid #EFE8DE; padding-top: 22px; margin-top: 22px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #9E9086;">
+                    Art Qala Gallery · artqala.com
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+}
+
+// To the buyer right after they ask for a certificate.
+export async function sendGiftRequestReceivedEmail(params: {
+  to: string;
+  buyerName: string;
+  amount: number;
+  recipientName: string;
+}): Promise<EmailSendResult> {
+  const money = `$${Math.round(params.amount).toLocaleString('en-US')}`;
+  return sendResendEmail({
+    to: params.to,
+    subject: `Art Qala — your ${money} gift certificate request`,
+    html: simpleEmail(
+      'Gift certificate request',
+      `<h2 style="font-family: 'Georgia', serif; font-size: 20px; color: #281C18; margin: 0 0 12px 0;">Thank you, ${escapeHtml(params.buyerName)}</h2>
+       <p style="margin: 0 0 10px 0;">We received your request for a <strong>${money}</strong> Art Qala gift certificate for <strong>${escapeHtml(params.recipientName)}</strong>.</p>
+       <p style="margin: 0 0 10px 0;">Our curator will contact you shortly to arrange payment. As soon as it is received, we will email the certificate — ready to print or forward.</p>
+       <p style="margin: 0; color: #8F8178; font-size: 13px;">Questions? Just reply to this email.</p>`
+    ),
+  });
+}
+
+// Once the curator marks it PAID: the certificate link, to the recipient
+// (when the buyer asked for that) or to the buyer.
+export async function sendGiftCertificateEmail(params: {
+  to: string;
+  toName: string;
+  fromName: string;
+  amount: number;
+  code: string;
+  url: string;
+  message?: string | null;
+}): Promise<EmailSendResult> {
+  const money = `$${Math.round(params.amount).toLocaleString('en-US')}`;
+  return sendResendEmail({
+    to: params.to,
+    subject: `Your Art Qala gift certificate — ${money}`,
+    html: simpleEmail(
+      'Art Qala gift certificate',
+      `<h2 style="font-family: 'Georgia', serif; font-size: 20px; color: #281C18; margin: 0 0 12px 0;">A gift for ${escapeHtml(params.toName)}</h2>
+       <p style="margin: 0 0 10px 0;"><strong>${escapeHtml(params.fromName)}</strong> has given you an Art Qala gift certificate worth <strong>${money}</strong> — for an original work of art or a service at our gallery.</p>
+       ${params.message ? `<p style="margin: 0 0 10px 0; font-style: italic; color: #4D3F38;">&ldquo;${escapeHtml(params.message)}&rdquo;</p>` : ''}
+       <p style="margin: 0 0 6px 0;">Certificate code: <strong style="font-family: monospace; font-size: 16px; color: #BA4E25;">${escapeHtml(params.code)}</strong></p>
+       <p style="margin: 18px 0;"><a href="${params.url}" style="display: inline-block; background: #BA4E25; color: #ffffff; text-decoration: none; padding: 12px 22px; border-radius: 3px; font-weight: 600;">Open &amp; print the certificate</a></p>
+       <p style="margin: 0; color: #8F8178; font-size: 13px;">To use it, mention the code when you send an inquiry on artqala.com or visit the gallery.</p>`
+    ),
+  });
+}

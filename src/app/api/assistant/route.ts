@@ -12,7 +12,16 @@ export const maxDuration = 30;
 const MAX_MESSAGE_CHARS = 800;
 const MAX_MESSAGES_PER_CONVERSATION = 40; // user + assistant
 const HISTORY_MESSAGES = 16;
-const LANG_NAME: Record<Language, string> = { en: 'English', ru: 'Russian', uz: 'Uzbek (Latin script)' };
+const LANG_NAME: Record<Language, string> = {
+  en: 'English',
+  ru: 'Russian',
+  uz: 'Uzbek (Latin script)',
+  de: 'German',
+  fr: 'French',
+  ko: 'Korean',
+  ja: 'Japanese',
+  zh: 'Simplified Chinese',
+};
 
 // Website assistant for visitors: answers from the live fact sheet
 // (src/lib/assistant/knowledge.ts) and can look up shipping prices.

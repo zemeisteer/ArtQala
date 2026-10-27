@@ -8,6 +8,7 @@ import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
 import { getGoogleReviews } from '@/lib/googleReviews';
+import { localizeContent } from '@/lib/contentTranslations';
 import { getGalleryFacts } from '@/lib/galleryFacts';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
@@ -36,7 +37,7 @@ export default async function ReviewsPage({ params }: { params: Promise<{ lang: 
   const reviews = await prisma.review.findMany({
     where: { is_approved: true },
     include: {
-      painting: { select: { id: true, title_en: true, title_ru: true, title_uz: true } },
+      painting: { select: { id: true, title_en: true, title_ru: true, title_uz: true, translations: true } },
     },
     orderBy: { created_at: 'desc' },
   });
@@ -79,7 +80,7 @@ export default async function ReviewsPage({ params }: { params: Promise<{ lang: 
           dangerouslySetInnerHTML={{ __html: safeJsonLdString(reviewsJsonLd) }}
         />
       )}
-      <ReviewsClient initialReviews={reviews} google={google} mapLinks={mapLinks} />
+      <ReviewsClient initialReviews={localizeContent(reviews, lang)} google={google} mapLinks={mapLinks} />
     </>
   );
 }

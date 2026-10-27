@@ -6,6 +6,7 @@ import { safeJsonLdString } from '@/lib/jsonLd';
 import ArtistsClient from './ArtistsClient';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
+import { localizeContent } from '@/lib/contentTranslations';
 import { SITE_URL } from '@/lib/siteUrl';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
@@ -35,7 +36,7 @@ export default async function ArtistsPage({ params }: { params: Promise<{ lang: 
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }}
       />
-      <ArtistsClient artists={artists} />
+      <ArtistsClient artists={localizeContent(artists, rawLang)} />
     </>
   );
 }

@@ -135,6 +135,12 @@ export default function Footer() {
               <Link href="/delivery" className="hover:text-[#429599] transition-colors">
                 {DELIVERY[lang].title}
               </Link>
+              <Link href="/experiences" className="hover:text-[#429599] transition-colors">
+                {t.workshops.navLabel}
+              </Link>
+              <Link href="/gift-card" className="hover:text-[#429599] transition-colors">
+                {t.gift.navLabel}
+              </Link>
             </div>
           </div>
         </div>

@@ -8,6 +8,7 @@ import type { Language } from '@/lib/i18n/translations';
 import { OG_LOCALE, isLang, languageAlternates, localizePath } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
 import { mainImage } from '@/lib/paintingImages';
+import { localizeContent } from '@/lib/contentTranslations';
 import ArtistDetailClient from './ArtistDetailClient';
 
 // Same caching as the painting pages: built on first visit, kept for a day
@@ -36,7 +37,7 @@ function snippet(text: string, max = 160): string {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id, lang: rawLang } = await params;
   const lang: Language = isLang(rawLang) ? rawLang : 'en';
-  const artist = await getArtistWithPaintings(id);
+  const artist = localizeContent(await getArtistWithPaintings(id), lang);
   if (!artist) return { title: 'Artist Not Found' };
 
   const specialty = specialtyIn(artist, lang);
@@ -64,7 +65,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ArtistPage({ params }: PageProps) {
   const { id, lang: rawLang } = await params;
   const lang: Language = isLang(rawLang) ? rawLang : 'en';
-  const artist = await getArtistWithPaintings(id);
+  const artist = localizeContent(await getArtistWithPaintings(id), lang);
   if (!artist) notFound();
 
   const siteUrl = SITE_URL;

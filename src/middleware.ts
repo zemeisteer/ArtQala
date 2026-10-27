@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { LANG_COOKIE, splitLangPath } from '@/lib/i18n/routing';
+import { DEFAULT_LANG, LANG_COOKIE, isLang, splitLangPath } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
 import {
   ADMIN_GATE_COOKIE,
@@ -191,7 +191,7 @@ export async function middleware(request: NextRequest) {
 }
 
 // Public pages are served from app/[lang]/... (see src/lib/i18n/routing.ts):
-//   /ru/..., /uz/...  → served as-is
+//   /ru/..., /uz/..., /de/... → served as-is
 //   /en/...           → 308 to the unprefixed URL (English has no prefix)
 //   /...              → rewritten to /en/... — or, for a browser whose
 //                       visitor picked Russian/Uzbek (artqala_lang cookie),
@@ -209,7 +209,7 @@ function routePublicPage(request: NextRequest): NextResponse | null {
   if (!isPublicPage) return null;
 
   const firstSegment = pathname.split('/')[1];
-  if (firstSegment === 'ru' || firstSegment === 'uz') return null;
+  if (isLang(firstSegment) && firstSegment !== DEFAULT_LANG) return null;
 
   if (firstSegment === 'en') {
     const { path } = splitLangPath(pathname);
@@ -217,7 +217,7 @@ function routePublicPage(request: NextRequest): NextResponse | null {
   }
 
   const preferred = request.cookies.get(LANG_COOKIE)?.value;
-  if (preferred === 'ru' || preferred === 'uz') {
+  if (isLang(preferred) && preferred !== DEFAULT_LANG) {
     const target = pathname === '/' ? `/${preferred}` : `/${preferred}${pathname}`;
     return NextResponse.redirect(new URL(`${target}${search}`, request.url), 307);
   }

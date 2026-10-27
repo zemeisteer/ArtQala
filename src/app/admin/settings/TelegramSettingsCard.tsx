@@ -10,6 +10,7 @@ interface TelegramStatus {
   webhookActive: boolean;
   webhookError: string | null;
   chats: { chat_id: string; title: string }[];
+  channel: string | null;
 }
 
 // Admin → Settings → Telegram. New inquiries / service requests / customer
@@ -25,6 +26,7 @@ export default function TelegramSettingsCard() {
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [channelInput, setChannelInput] = useState<string | null>(null);
 
   const fetchStatus = () =>
     fetch('/api/admin/telegram')
@@ -100,6 +102,33 @@ export default function TelegramSettingsCard() {
           ? { ok: true, text: `${action === 'test' ? 'Sinov xabari' : 'Hisobot'} yuborildi (${data.sent} ta chat).` }
           : { ok: false, text: data.error || 'Yuborilmadi. Avval chatni ulang.' }
       );
+    } catch {
+      setNote({ ok: false, text: "Serverga bog'lanishda xatolik yuz berdi" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveChannel = async (value: string) => {
+    setBusy('channel');
+    setNote(null);
+    try {
+      const res = await fetch('/api/admin/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'channel', channel: value }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setNote({ ok: false, text: data.error || 'Xatolik yuz berdi' });
+        return;
+      }
+      setStatus((s) => (s ? { ...s, channel: data.channel } : s));
+      setChannelInput(null);
+      setNote({
+        ok: true,
+        text: data.channel ? `Kanal ulandi: ${data.title}. Yangi asarlar endi shu kanalga chiqadi.` : "Kanal o'chirildi.",
+      });
     } catch {
       setNote({ ok: false, text: "Serverga bog'lanishda xatolik yuz berdi" });
     } finally {
@@ -240,6 +269,47 @@ export default function TelegramSettingsCard() {
               yaratilganda yoqiladi).
             </p>
           )}
+          <div className="border-t border-[#EFE8DE] pt-4 space-y-2">
+            <h4 className="text-xs font-bold text-[#281C18]">Telegram kanal — yangi asarlar avtomatik chiqadi</h4>
+            <p className="text-[11px] text-[#726861]">
+              Admin&apos;da yangi asar qo&apos;shilganda bot uni rasmi, narxi va sayt havolasi bilan kanalga joylaydi. Avval
+              kanal sozlamalarida <b>@{status.botUsername}</b> ni <b>administrator</b> qiling (&quot;Xabar joylash&quot;
+              ruxsati bilan), keyin kanal manzilini yozing.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={channelInput ?? status.channel ?? ''}
+                onChange={(e) => setChannelInput(e.target.value)}
+                placeholder="@kanal_nomi"
+                className="flex-1 min-w-[180px] text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#229ED9]"
+              />
+              <button
+                type="button"
+                onClick={() => saveChannel(channelInput ?? status.channel ?? '')}
+                disabled={!!busy}
+                className="inline-flex items-center gap-1.5 bg-[#229ED9] hover:bg-[#1b8bc0] text-white text-xs font-semibold px-3.5 py-2 rounded-[3px] disabled:opacity-50"
+              >
+                {busy === 'channel' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Tekshirish va saqlash
+              </button>
+              {status.channel && (
+                <button
+                  type="button"
+                  onClick={() => saveChannel('')}
+                  disabled={!!busy}
+                  className="text-xs font-semibold text-[#8F7E73] hover:text-[#C62828] px-2"
+                >
+                  O&apos;chirish
+                </button>
+              )}
+            </div>
+            {status.channel && (
+              <p className="text-[11px] text-[#16A34A] flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Ulangan: {status.channel}
+              </p>
+            )}
+          </div>
+
           {status.webhookError && (
             <p className="text-[11px] text-[#B91C1C]">Telegram oxirgi xato: {status.webhookError}</p>
           )}

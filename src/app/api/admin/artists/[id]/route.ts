@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { notifyIndexNow } from '@/lib/indexNow';
 import { serializeAchievements } from '@/lib/artistAchievements';
+import { translateAfterSave } from '@/lib/translateContent';
 import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +37,7 @@ export async function PUT(
     });
 
     notifyIndexNow([`/artists/${updated.id}`, '/artists']);
+    translateAfterSave('artist', updated.id);
     return NextResponse.json({ success: true, artist: updated });
   } catch (error) {
     console.error('Update artist error:', error);

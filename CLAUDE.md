@@ -151,6 +151,31 @@ Settings address (name must match). Without the key it shows links to each Setti
 A4 sheets of labels whose QR opens `/gallery/<id>?ref=qr`; `VisitTracker` records such a landing with referrer
 `qr-label`, shown as its own source on the dashboard.
 
+**Site languages**: EN/RU/UZ plus DE/FR/KO/JA/ZH (`LANGS` in `src/lib/i18n/routing.ts`; `/de/...` etc.). UI texts for
+the extra languages are partial dictionaries in `src/lib/i18n/extra/<lang>.ts` (missing keys fall back to English),
+merged on the server and handed to the client through `RouteLangProvider`'s `dict` — never import them in client code.
+The admin stays EN/RU/UZ (`BaseLanguage`). Catalogue texts (Painting/Artist/Category/Workshop) get machine translations
+in their `translations` JSON column (`src/lib/translateContent.ts`: after each admin save via `after()`, the daily cron,
+and Admin → Settings "Saytning boshqa tillari"); server pages pass data through
+`src/lib/contentTranslations.ts#localizeContent(data, lang)`, which copies the page language's translation over the
+`*_en` fields and strips the column — so client code keeps its `lang === 'ru' ? x_ru : … : x_en` fallbacks. Legal pages
+(Privacy/Terms) fall back to English; `DELIVERY` and SEO texts (`seoExtra.ts`) exist in all eight.
+
+**Telegram channel**: `SiteSettings.telegram_channel` (Admin → Settings → Telegram; bot must be a channel admin). New
+unsold works are posted on create (`src/lib/telegramChannel.ts`); any work can be re-posted from its edit page.
+
+**Gift certificates** (`GiftCertificate`, `/gift-card`, Admin → Sovg'a sertifikatlari): request → curator arranges
+payment → "To'landi" emails a signed link to the printable certificate (`/gift/<code>?s=`, `src/lib/giftCards.ts`).
+
+**Masterclasses** (`Workshop`, Admin → Master-klasslar, public `/experiences`): a booking is a `ServiceRequest` with
+`service_type = 'WORKSHOP'`, so it shares the service-request admin page, Telegram buttons and reply thread.
+
+**"Find art for my room"** (`RoomMatch` on the gallery page, `/api/room-match`, `src/lib/roomMatch.ts`): the visitor's
+room photo plus thumbnails of available wall pieces go to Gemini in one request; the photo is never stored.
+
+The public forms (reviews, gift card, booking) share the bot checks in `src/lib/reviewGuard.ts` /
+`src/components/ReviewGuard.tsx` (token from `/api/reviews/token`).
+
 **Sales report**: `/api/admin/reports/sales?from&to` returns a real .xlsx built by the dependency-free
 `src/lib/xlsx.ts`, using `getSaleDetailsByPainting()` for the price actually received.
 

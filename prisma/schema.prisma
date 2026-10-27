@@ -39,6 +39,9 @@ model Painting {
   // "View on a wall": where the artwork sits in the main photo and its real
   // outer size (frame included) — JSON, see src/lib/wallView.ts.
   wall_view            String?
+  // Machine translations of title/description/technique for the languages
+  // beyond EN/RU/UZ — JSON, see src/lib/contentTranslations.ts.
+  translations         String?
   views_count          Int       @default(0)
 
   artist_id String
@@ -73,6 +76,9 @@ model Artist {
   // Awards & certificates: JSON array of
   // {title_uz, title_en, title_ru, year?, file?} (file = image/PDF URL).
   achievements String?
+  // Machine translations of bio/specialty for the extra languages (JSON,
+  // see src/lib/contentTranslations.ts).
+  translations String?
 
   // The artist's product type (a top-level Category, e.g. "Somon ishlari")
   // — lets the Paintings form auto-pick ota-kategoriya once the artist is
@@ -91,6 +97,8 @@ model Category {
   name_en String
   name_ru String
   name_uz String
+  // Machine translations of the name for the extra languages (JSON).
+  translations String?
 
   // Groups subject-matter categories (Nature, Portraits, ...) under a
   // physical product type (Kartina, Kulolchilik, ...). Top-level categories
@@ -365,6 +373,9 @@ model SiteSettings {
   rate_rub     Float   @default(140)
   manual_rates Boolean @default(false)
 
+  // Telegram channel (@name or -100… id) new works are posted to; null = off.
+  telegram_channel String?
+
   updated_at DateTime @updatedAt
 }
 
@@ -483,4 +494,51 @@ model TelegramChat {
   chat_id    String   @id
   title      String
   created_at DateTime @default(now())
+}
+
+// Gift certificates: requested on /gift-card, paid the usual way (100%
+// prepayment, arranged by the curator), then marked PAID in the admin, which
+// emails the certificate. REDEEMED once used against a purchase.
+model GiftCertificate {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  amount          Float // USD
+  buyer_name      String
+  buyer_email     String
+  buyer_phone     String?
+  recipient_name  String
+  recipient_email String?
+  message         String?
+  lang            String    @default("en")
+  status          String    @default("NEW") // NEW, PAID, REDEEMED, CANCELLED
+  admin_notes     String?
+  paid_at         DateTime?
+  redeemed_at     DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  @@index([status])
+}
+
+// Masterclasses / tours bookable on /experiences. A booking is a
+// ServiceRequest with service_type "WORKSHOP" (same admin page, Telegram
+// buttons and reply thread as other service requests).
+model Workshop {
+  id               String   @id @default(cuid())
+  title_uz         String
+  title_en         String
+  title_ru         String
+  description_uz   String?
+  description_en   String?
+  description_ru   String?
+  duration_minutes Int      @default(120)
+  price            Float // USD per person
+  max_people       Int?
+  location         String?
+  image            String?
+  is_active        Boolean  @default(true)
+  sort             Int      @default(0)
+  translations     String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 }
