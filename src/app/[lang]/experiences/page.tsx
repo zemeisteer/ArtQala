@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
+import { localizeContent } from '@/lib/contentTranslations';
 import ExperiencesClient from './ExperiencesClient';
 
 // Cached a day; Admin → Master-klasslar edits drop the cache at once
@@ -13,9 +14,10 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   return pageMetadata('workshops', isLang(lang) ? lang : 'en');
 }
 
-export default async function ExperiencesPage() {
+export default async function ExperiencesPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
   const workshops = await prisma.workshop
     .findMany({ where: { is_active: true }, orderBy: [{ sort: 'asc' }, { created_at: 'asc' }] })
     .catch(() => []);
-  return <ExperiencesClient workshops={JSON.parse(JSON.stringify(workshops))} />;
+  return <ExperiencesClient workshops={JSON.parse(JSON.stringify(localizeContent(workshops, lang)))} />;
 }

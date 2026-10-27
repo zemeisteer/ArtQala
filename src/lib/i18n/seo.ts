@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import type { Language } from './translations';
 import { OG_LOCALE, languageAlternates } from './routing';
+import { isBaseLang, type BaseLanguage } from './translations';
+import type { ExtraLanguage } from './dictionary';
+import { CITY_JOIN, CITY_LOCAL, EXTRA_PAGES } from './seoExtra';
 
 // Search/social titles and descriptions for the public pages, per language —
 // each /ru/... and /uz/... page is indexed in its own language, so its title
@@ -8,7 +11,7 @@ import { OG_LOCALE, languageAlternates } from './routing';
 // "%s | Art Qala Gallery" template (except the home page, which is absolute).
 type PageKey = 'home' | 'gallery' | 'artists' | 'services' | 'contact' | 'reviews' | 'privacy' | 'terms' | 'delivery' | 'gift' | 'workshops';
 
-const PAGES: Record<PageKey, { path: string } & Record<Language, { title: string; description: string }>> = {
+const PAGES: Record<PageKey, { path: string } & Record<BaseLanguage, { title: string; description: string }>> = {
   home: {
     path: '/',
     en: {
@@ -197,7 +200,7 @@ const PAGES: Record<PageKey, { path: string } & Record<Language, { title: string
 
 export function pageMetadata(key: PageKey, lang: Language): Metadata {
   const page = PAGES[key];
-  const { title, description } = page[lang];
+  const { title, description } = isBaseLang(lang) ? page[lang] : EXTRA_PAGES[lang as ExtraLanguage][key];
   const alternates = languageAlternates(page.path, lang);
   return {
     title: key === 'home' ? { absolute: title } : title,
@@ -224,11 +227,20 @@ const CITY_NAMES: Record<string, { en: string; ru: string; ruIn: string; uz: str
 };
 
 export function homeMetadata(lang: Language, cities: string[]): Metadata {
+  if (!isBaseLang(lang)) {
+    const l = lang as ExtraLanguage;
+    const names = (cities.length ? cities : ['Tashkent']).map((c) => CITY_LOCAL[c]?.[l] || c);
+    const fill = (s: string) => s.replace('{cities}', names.join(CITY_JOIN[l]));
+    const meta = pageMetadata('home', lang);
+    const title = fill(EXTRA_PAGES[l].home.title);
+    const description = fill(EXTRA_PAGES[l].home.description);
+    return { ...meta, title: { absolute: title }, description, openGraph: { ...meta.openGraph, title, description } };
+  }
   const meta = pageMetadata('home', lang);
   const known = cities.filter((c) => CITY_NAMES[c]);
   if (known.length === 0 || (known.length === 1 && known[0] === 'Tashkent')) return meta;
   const names = known.map((c) => CITY_NAMES[c]);
-  const { title, description } = PAGES.home[lang];
+  const { title, description } = PAGES.home[lang as BaseLanguage];
   const list = (xs: string[], and: string) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ${and} ${xs[xs.length - 1]}` : xs[0]);
   const next =
     lang === 'ru'

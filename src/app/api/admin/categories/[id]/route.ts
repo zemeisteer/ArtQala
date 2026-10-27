@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { translateAfterSave } from '@/lib/translateContent';
 import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,7 @@ export async function PUT(
       },
     });
 
+    translateAfterSave('category', updated.id);
     return NextResponse.json({ success: true, category: updated });
   } catch (error) {
     console.error('Update category error:', error);

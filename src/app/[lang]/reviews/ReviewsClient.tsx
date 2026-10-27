@@ -7,6 +7,7 @@ import { useApp } from '@/context/AppContext';
 import { Star, ShieldCheck, Sparkles, ExternalLink, MessageSquareCheck, MessageSquarePlus } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import GeneralReviewForm from './GeneralReviewForm';
+import type { Language } from '@/lib/i18n/translations';
 import GoogleReviews, { type GoogleMapLink } from './GoogleReviews';
 import type { GooglePlaceReviews } from '@/lib/googleReviews';
 import { isVerifiedReview } from '@/lib/reviewVerified';
@@ -22,12 +23,12 @@ const UZ_MONTHS = [
   'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr',
 ];
 
-function formatReviewDate(dateStr: string, lang: 'en' | 'ru' | 'uz'): string {
+function formatReviewDate(dateStr: string, lang: Language): string {
   const date = new Date(dateStr);
   if (lang === 'uz') {
     return `${date.getDate()}-${UZ_MONTHS[date.getMonth()]}, ${date.getFullYear()}`;
   }
-  return date.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', {
+  return date.toLocaleDateString(lang === 'en' ? 'en-US' : lang, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

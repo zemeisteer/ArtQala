@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { Settings, Save, CheckCircle2, Loader2, Globe, MapPin, Phone, Mail, Clock, Send, Plus, Trash2, AlertCircle, Languages, MessageSquare } from 'lucide-react';
 import TimePicker from '@/components/TimePicker';
 import TelegramSettingsCard from './TelegramSettingsCard';
+import TranslationsCard from './TranslationsCard';
 import { parseSocialLinks, SocialLink, parseLocations, parseCoords, GalleryLocation } from '@/lib/settingsUtils';
 
 export default function AdminSettingsPage() {
@@ -720,6 +721,7 @@ export default function AdminSettingsPage() {
 
       {/* Outside the form: its actions save on their own. */}
       <TelegramSettingsCard />
+      <TranslationsCard />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Language } from '@/lib/i18n/translations';
 import { splitLangPath } from '@/lib/i18n/routing';
 import { Heart, Menu, X, Shield, UserCircle } from 'lucide-react';
 import AnimatedChorgul from '@/components/patterns/AnimatedChorgul';
+import { LANGS, LANG_NAMES } from '@/lib/i18n/routing';
 import FilterSelect from '@/components/FilterSelect';
 
 const CURRENCY_OPTIONS = [
@@ -17,6 +18,9 @@ const CURRENCY_OPTIONS = [
   { value: 'RUB', label: '₽ RUB' },
   { value: 'EUR', label: '€ EUR' },
 ];
+
+// Every site language under its own name (the picker no longer fits as pills).
+const LANG_OPTIONS = LANGS.map((l) => ({ value: l, label: LANG_NAMES[l] }));
 
 export default function Header() {
   const pathname = usePathname();
@@ -149,19 +153,14 @@ export default function Header() {
 
           {/* Language and Currency Switchers */}
           <div className="flex items-center gap-1.5 pl-2 border-l border-[#E7E0D8]">
-            {(['en', 'ru', 'uz'] as Language[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                className={`text-[11px] font-semibold tracking-wider px-2 py-1 rounded-full uppercase transition-all duration-200 ${
-                  lang === l
-                    ? 'bg-[#BA4E25] text-white shadow-sm'
-                    : 'text-[#4D3F38] hover:text-[#BA4E25] border border-transparent hover:border-[#E7E0D8]'
-                }`}
-              >
-                {l}
-              </button>
-            ))}
+            <FilterSelect
+              value={lang}
+              onChange={(v) => setLang(v as Language)}
+              options={LANG_OPTIONS}
+              ariaLabel="Language"
+              className="w-[112px]"
+              buttonClassName="!rounded-full !py-1 !px-2.5 !text-[11px] !font-semibold !border-[#E7E0D8] hover:!border-[#BA4E25] hover:!text-[#BA4E25]"
+            />
 
             <FilterSelect
               value={currency}
@@ -252,21 +251,14 @@ export default function Header() {
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-[#E7E0D8]">
-            <div className="flex gap-1.5">
-              {(['en', 'ru', 'uz'] as Language[]).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full uppercase ${
-                    lang === l
-                      ? 'bg-[#BA4E25] text-white'
-                      : 'text-[#4D3F38] border border-[#E7E0D8]'
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
+            <FilterSelect
+              value={lang}
+              onChange={(v) => setLang(v as Language)}
+              options={LANG_OPTIONS}
+              ariaLabel="Language"
+              className="w-[140px]"
+              buttonClassName="!rounded-full !py-1.5 !px-3 !text-xs !font-semibold"
+            />
 
             <FilterSelect
               value={currency}

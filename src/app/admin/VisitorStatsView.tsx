@@ -88,7 +88,7 @@ export default function VisitorStatsView(props: Props) {
     const id = path.match(/^\/gallery\/([^/?#]+)$/)?.[1];
     if (!id) return path;
     const titles = props.paintingTitles[id];
-    return `🖼 ${titles ? titles[lang] || titles.en : id}`;
+    return `🖼 ${titles ? titles[lang as 'en'] || titles.en : id}`;
   };
 
   const label = (rows: { key: string; count: number }[], fn: (key: string) => string) =>

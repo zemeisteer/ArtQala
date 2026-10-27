@@ -19,7 +19,7 @@ import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
 import { DELIVERY, type DeliveryIcon } from '@/lib/deliveryInfo';
-import { translations } from '@/lib/i18n/translations';
+import { dictionaryFor } from '@/lib/i18n/extra';
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
@@ -112,13 +112,13 @@ export default async function DeliveryPage({ params }: { params: Promise<{ lang:
                 href="/contact"
                 className="inline-flex items-center bg-[#BA4E25] hover:bg-[#9C3E1B] text-white text-sm font-semibold px-5 py-2.5 rounded-[3px]"
               >
-                {translations[lang].nav.contact}
+                {dictionaryFor(lang).nav.contact}
               </Link>
               <Link
                 href="/terms"
                 className="inline-flex items-center border border-[#E7E0D8] bg-white text-[#281C18] text-sm font-semibold px-5 py-2.5 rounded-[3px] hover:border-[#BA4E25]"
               >
-                {translations[lang].footer.terms}
+                {dictionaryFor(lang).footer.terms}
               </Link>
             </div>
           </div>

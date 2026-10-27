@@ -6,8 +6,10 @@ import { runPriceAlerts } from '@/lib/priceAlerts';
 import { isTelegramConfigured, sendTelegramToAdmins } from '@/lib/telegram';
 import { buildWeeklyReport, isReportDay } from '@/lib/weeklyReport';
 import { refreshPublicSite } from '@/lib/publicCache';
+import { translatePending } from '@/lib/translateContent';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REMIND_AFTER_DAYS = 21;
@@ -108,9 +110,19 @@ export async function GET(request: Request) {
     }
   }
 
+  // Catalogue texts for the extra site languages that are still missing or
+  // out of date (normally done right after an admin save).
+  let translations: Awaited<ReturnType<typeof translatePending>> | { error: string };
+  try {
+    translations = await translatePending(15, 30_000);
+  } catch (error) {
+    console.error('Translations failed:', error);
+    translations = { error: 'failed' };
+  }
+
   // Public pages are cached for a day (src/lib/publicCache.ts): rebuild them
   // daily too, so a discount that ended or started today shows.
   refreshPublicSite();
 
-  return NextResponse.json({ success: true, due: due.length, sent, skipped, priceAlerts, weeklyReport });
+  return NextResponse.json({ success: true, due: due.length, sent, skipped, priceAlerts, weeklyReport, translations });
 }

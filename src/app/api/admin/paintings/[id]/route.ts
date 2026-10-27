@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { notifyIndexNow } from '@/lib/indexNow';
 import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
+import { translateAfterSave } from '@/lib/translateContent';
 import { parseSoldPrice } from '@/lib/salePriceInput';
 
 export const dynamic = 'force-dynamic';
@@ -92,6 +93,7 @@ export async function PUT(request: Request, context: RouteContext) {
     });
 
     notifyIndexNow([`/gallery/${id}`, `/artists/${updated.artist_id}`]);
+    translateAfterSave('painting', updated.id);
     return NextResponse.json({ success: true, painting: updated });
   } catch (error) {
     console.error('Update error:', error);

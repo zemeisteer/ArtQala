@@ -11,6 +11,7 @@ import AssistantChat from '@/components/AssistantChat';
 import { LANGS, OG_LOCALE, isLang } from '@/lib/i18n/routing';
 import { baseMetadata } from '@/lib/siteMetadata';
 import { getOrganizationJsonLd } from '@/lib/organizationJsonLd';
+import { extraDictionary } from '@/lib/i18n/extra';
 
 // This is the public site's ROOT layout (there is no app/layout.tsx): it
 // owns <html>, so the document language can follow the URL — /ru pages are
@@ -56,7 +57,7 @@ export default async function LangLayout({
 
   return (
     <SiteDocument lang={lang} jsonLd={orgJsonLd}>
-      <RouteLangProvider lang={lang}>
+      <RouteLangProvider lang={lang} dict={extraDictionary(lang)}>
         <Header />
         <main className="flex-grow">{children}</main>
         <KhorezmScrollTrack />

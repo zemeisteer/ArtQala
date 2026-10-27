@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { translateAfterSave } from '@/lib/translateContent';
 import { parseWorkshopInput } from '@/lib/workshops';
 
 export const dynamic = 'force-dynamic';
@@ -18,5 +19,6 @@ export async function POST(request: Request) {
   const parsed = parseWorkshopInput(await request.json().catch(() => ({})));
   if ('error' in parsed) return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
   const workshop = await prisma.workshop.create({ data: parsed.data });
+  translateAfterSave('workshop', workshop.id);
   return NextResponse.json({ success: true, workshop });
 }

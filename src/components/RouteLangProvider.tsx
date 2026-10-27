@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { RouteLangContext } from '@/context/AppContext';
 import type { Language } from '@/lib/i18n/translations';
+import type { Dictionary } from '@/lib/i18n/dictionary';
 import { DEFAULT_LANG, LANG_COOKIE, isLang, localizePath, splitLangPath } from '@/lib/i18n/routing';
 
 function rememberLang(lang: Language) {
@@ -18,7 +19,15 @@ function readLangCookie(): string | null {
   return match ? match[1] : null;
 }
 
-export default function RouteLangProvider({ lang, children }: { lang: Language; children: React.ReactNode }) {
+export default function RouteLangProvider({
+  lang,
+  dict,
+  children,
+}: {
+  lang: Language;
+  dict?: Dictionary;
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -50,7 +59,7 @@ export default function RouteLangProvider({ lang, children }: { lang: Language; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const value = useMemo(() => ({ lang, setLang }), [lang, setLang]);
+  const value = useMemo(() => ({ lang, setLang, dict }), [lang, setLang, dict]);
 
   return (
     <RouteLangContext.Provider value={value}>

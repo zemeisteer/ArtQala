@@ -4,6 +4,7 @@ import { notifyIndexNow } from '@/lib/indexNow';
 import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
 import { postPaintingToChannel } from '@/lib/telegramChannel';
+import { translateAfterSave } from '@/lib/translateContent';
 import { parseSoldPrice } from '@/lib/salePriceInput';
 
 export const dynamic = 'force-dynamic';
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
     if (!newPainting.is_sold) {
       await postPaintingToChannel(newPainting.id).catch((error) => console.error('Channel post failed:', error));
     }
+    translateAfterSave('painting', newPainting.id);
     return NextResponse.json({ success: true, painting: newPainting });
   } catch (error) {
     console.error('Create painting error:', error);

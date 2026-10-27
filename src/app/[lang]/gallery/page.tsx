@@ -6,6 +6,7 @@ import { safeJsonLdString } from '@/lib/jsonLd';
 import GalleryClient from './GalleryClient';
 import { pageMetadata } from '@/lib/i18n/seo';
 import { isLang, localizePath } from '@/lib/i18n/routing';
+import { localizeContent } from '@/lib/contentTranslations';
 import { SITE_URL } from '@/lib/siteUrl';
 
 // Cached for a day instead of re-querying the DB on every visit (slow page
@@ -24,7 +25,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ lang: 
   const { lang: rawLang } = await params;
   const lang = isLang(rawLang) ? rawLang : 'en';
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([{ name: 'Gallery', path: '/gallery' }], siteUrl, lang);
-  const [paintings, categories] = await Promise.all([getAllPaintings(), getCategories()]);
+  const [paintings, categories] = localizeContent(await Promise.all([getAllPaintings(), getCategories()]), lang);
 
   // Lets search engines see the collection as a list of individually
   // crawlable products, each linking to its own Product-schema page.

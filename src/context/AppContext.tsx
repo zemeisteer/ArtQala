@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { translations, Language } from '@/lib/i18n/translations';
+import { translations, Language, type BaseLanguage } from '@/lib/i18n/translations';
+import type { Dictionary } from '@/lib/i18n/dictionary';
 import { trackEvent } from '@/lib/analytics';
 
 export type Currency = 'USD' | 'UZS' | 'RUB' | 'EUR';
@@ -290,7 +291,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const t = translations[lang] || translations.en;
+  const t = translations[lang as BaseLanguage] || translations.en;
 
   return (
     <AppContext.Provider
@@ -325,6 +326,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 export interface RouteLangValue {
   lang: Language;
   setLang: (lang: Language) => void;
+  // UI texts for a language beyond EN/RU/UZ, handed down by the layout (so
+  // those dictionaries never ship in the shared JS bundle).
+  dict?: Dictionary;
 }
 export const RouteLangContext = createContext<RouteLangValue | null>(null);
 
@@ -339,7 +343,7 @@ export function useApp() {
       ...context,
       lang: routeLang.lang,
       setLang: routeLang.setLang,
-      t: translations[routeLang.lang] || translations.en,
+      t: routeLang.dict || translations[routeLang.lang as BaseLanguage] || translations.en,
     };
   }
   return context;

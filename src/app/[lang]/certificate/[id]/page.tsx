@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPaintingById } from '@/lib/api';
+import { localizeContent } from '@/lib/contentTranslations';
 import CertificateClient from './CertificateClient';
 
 interface PageProps {
@@ -34,8 +35,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 
 export default async function CertificatePage({ params }: PageProps) {
-  const { id } = await params;
-  const painting = await getPaintingById(id);
+  const { id, lang } = await params;
+  const painting = localizeContent(await getPaintingById(id), lang);
 
   if (!painting) {
     notFound();

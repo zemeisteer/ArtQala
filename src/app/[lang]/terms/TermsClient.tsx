@@ -190,7 +190,8 @@ export default function TermsClient() {
   const { lang, settings } = useApp();
   // The real contact address set in Admin → Settings, never a made-up one.
   const contactEmail = settings?.email || '';
-  const c = CONTENT[lang] || CONTENT.en;
+  // Legal texts exist in EN/RU/UZ; other languages read the English one.
+  const c = CONTENT[lang as keyof typeof CONTENT] || CONTENT.en;
 
   return (
     <div className="py-16 sm:py-20 px-6">

@@ -1,4 +1,10 @@
-export type Language = 'en' | 'ru' | 'uz';
+// Every language the public site is served in. UI texts for EN/RU/UZ are
+// below (the admin panel uses only these three); the others are in
+// src/lib/i18n/extra/<lang>.ts as partial overrides on top of English.
+export type Language = 'en' | 'ru' | 'uz' | 'de' | 'fr' | 'ko' | 'ja' | 'zh';
+export type BaseLanguage = 'en' | 'ru' | 'uz';
+export const BASE_LANGS: BaseLanguage[] = ['en', 'ru', 'uz'];
+export const isBaseLang = (l: string): l is BaseLanguage => (BASE_LANGS as string[]).includes(l);
 
 export const translations = {
   en: {

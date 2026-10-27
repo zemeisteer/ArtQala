@@ -9,6 +9,7 @@ import type { Language } from '@/lib/i18n/translations';
 import { OG_LOCALE, isLang, languageAlternates, localizePath } from '@/lib/i18n/routing';
 import { SITE_URL } from '@/lib/siteUrl';
 import { mainImage } from '@/lib/paintingImages';
+import { localizeContent } from '@/lib/contentTranslations';
 import { parseSizeCm } from '@/lib/paintingSize';
 
 // See src/app/gallery/page.tsx for why this is a cache window instead of
@@ -39,7 +40,7 @@ function localized(painting: any, lang: Language) {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id, lang: rawLang } = await params;
   const lang: Language = isLang(rawLang) ? rawLang : 'en';
-  const painting = await getPaintingById(id);
+  const painting = localizeContent(await getPaintingById(id), lang);
 
   if (!painting) {
     return {
@@ -131,7 +132,7 @@ function buildProductJsonLd(painting: any, siteUrl: string, lang: Language) {
 export default async function PaintingDetailPage({ params }: PageProps) {
   const { id, lang: rawLang } = await params;
   const lang: Language = isLang(rawLang) ? rawLang : 'en';
-  const painting = await getPaintingById(id);
+  const painting = localizeContent(await getPaintingById(id), lang);
 
   if (!painting) {
     notFound();
@@ -141,7 +142,7 @@ export default async function PaintingDetailPage({ params }: PageProps) {
     painting.id,
     painting.artist_id,
     painting.category_id
-  );
+  ).then((list) => localizeContent(list, lang));
 
   const siteUrl = SITE_URL;
   const productJsonLd = buildProductJsonLd(painting, siteUrl, lang);
