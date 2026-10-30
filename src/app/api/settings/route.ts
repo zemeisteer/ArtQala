@@ -110,6 +110,7 @@ export async function PUT(req: Request) {
         rate_eur: parseFloat(body.rate_eur) || 13900,
         rate_rub: parseFloat(body.rate_rub) || 140,
         manual_rates: Boolean(body.manual_rates),
+        ...(body.fx_margin !== undefined && { fx_margin: Math.max(0, Math.min(30, parseFloat(body.fx_margin) || 0)) }),
       },
       create: {
         id: 'default',

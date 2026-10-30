@@ -181,7 +181,7 @@ export default function DatePicker({
                 onChange(formatValue(today));
                 setOpen(false);
               }}
-              className="w-full mt-2 pt-2 border-t border-[#F0EAE1] text-[11px] font-semibold text-[#429599] hover:underline"
+              className="w-full mt-2 pt-2 border-t border-[#F0EAE1] text-[11px] font-semibold text-[#347578] hover:underline"
             >
               {todayLabel}
             </button>

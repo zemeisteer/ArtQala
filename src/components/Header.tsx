@@ -16,6 +16,9 @@ const CURRENCY_OPTIONS = [
   { value: 'USD', label: '$ USD' },
   { value: 'UZS', label: "so'm UZS" },
   { value: 'RUB', label: '₽ RUB' },
+  { value: 'KRW', label: '₩ KRW' },
+  { value: 'JPY', label: '¥ JPY' },
+  { value: 'CNY', label: '元 CNY' },
   { value: 'EUR', label: '€ EUR' },
 ];
 
@@ -170,7 +173,7 @@ export default function Header() {
               options={CURRENCY_OPTIONS}
               ariaLabel="Currency"
               className="w-[84px] ml-1"
-              buttonClassName="!rounded-full !py-1 !px-2.5 !text-[11px] !font-semibold !border-[#E7E0D8] hover:!border-[#429599] hover:!text-[#429599]"
+              buttonClassName="!rounded-full !py-1 !px-2.5 !text-[11px] !font-semibold !border-[#E7E0D8] hover:!border-[#429599] hover:!text-[#347578]"
             />
             <span className="hidden 2xl:inline-flex">
               <AnimatedChorgul />
@@ -223,7 +226,7 @@ export default function Header() {
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-base font-semibold text-[#429599] flex items-center gap-2 pt-2 border-t border-[#E7E0D8]"
+                className="text-base font-semibold text-[#347578] flex items-center gap-2 pt-2 border-t border-[#E7E0D8]"
               >
                 <Shield className="w-4 h-4" />
                 {t.nav.admin}

@@ -53,7 +53,7 @@ export default function ExperiencesClient({ workshops }: { workshops: PublicWork
       <Breadcrumbs items={[{ label: w.navLabel }]} />
       <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14">
         <div className="max-w-2xl mb-10 space-y-2">
-          <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">{w.eyebrow}</span>
+          <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">{w.eyebrow}</span>
           <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-[#281C18]">{w.title}</h1>
           <p className="text-sm sm:text-base text-[#6E6057] leading-relaxed">{w.subtitle}</p>
         </div>
@@ -102,7 +102,7 @@ export default function ExperiencesClient({ workshops }: { workshops: PublicWork
                   <div className="mt-auto pt-2 flex items-center justify-between">
                     <div>
                       <span className="font-serif text-2xl font-bold text-[#BA4E25]">${Math.round(x.price)}</span>{' '}
-                      <span className="text-xs text-[#8F8178]">{w.perPerson}</span>
+                      <span className="text-xs text-[#756962]">{w.perPerson}</span>
                     </div>
                     <button
                       onClick={() => setBooking(x)}
@@ -232,14 +232,14 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
   return (
     <div className="fixed inset-0 z-50 bg-[#281C18]/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-4 overflow-y-auto">
       <div className="bg-[#FAF4EC] border border-[#E7E0D8] rounded-[4px] max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative my-8">
-        <button onClick={onClose} aria-label={w.cancel} className="absolute top-5 right-5 text-[#8F8178] hover:text-[#281C18] p-1">
+        <button onClick={onClose} aria-label={w.cancel} className="absolute top-5 right-5 text-[#756962] hover:text-[#281C18] p-1">
           <X className="w-5 h-5" />
         </button>
         <h3 className="font-serif text-2xl font-semibold text-[#281C18] pr-8">
           {w.bookTitle.replace('{title}', pick(workshop, 'title', lang))}
         </h3>
         {sent ? (
-          <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-sm text-[#16A34A] flex items-start gap-2">
+          <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-sm text-[#107B38] flex items-start gap-2">
             <CheckCircle2 className="w-5 h-5 shrink-0" />
             <span>{w.thanks}</span>
           </div>
@@ -262,9 +262,9 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
             <div>
               <span className={label}>{w.chooseTime}</span>
               {!date || date < today ? (
-                <p className="text-xs text-[#8F8178]">{w.chooseDate}</p>
+                <p className="text-xs text-[#756962]">{w.chooseDate}</p>
               ) : loadingSlots ? (
-                <p className="text-xs text-[#8F8178]">{w.loadingSlots}</p>
+                <p className="text-xs text-[#756962]">{w.loadingSlots}</p>
               ) : slots && !slots.runsThatDay ? (
                 <p className="text-xs text-[#B91C1C]">{w.notThatDay}</p>
               ) : fixedTimes ? (
@@ -304,7 +304,7 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
                     }}
                   />
                   {slots && slots.sessions.some((s) => s.full) && (
-                    <p className="text-[11px] text-[#8F8178]">
+                    <p className="text-[11px] text-[#756962]">
                       {w.takenTimes} {slots.sessions.filter((s) => s.full).map((s) => s.time).join(', ')}
                     </p>
                   )}

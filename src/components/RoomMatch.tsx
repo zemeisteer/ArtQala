@@ -90,7 +90,7 @@ export default function RoomMatch() {
                 reset();
               }}
               aria-label={r.close}
-              className="absolute top-5 right-5 text-[#8F8178] hover:text-[#281C18] p-1"
+              className="absolute top-5 right-5 text-[#756962] hover:text-[#281C18] p-1"
             >
               <X className="w-5 h-5" />
             </button>
@@ -122,7 +122,7 @@ export default function RoomMatch() {
                   <Camera className="w-8 h-8 text-[#BA4E25]" />
                   <span className="text-sm font-semibold">{r.upload}</span>
                 </button>
-                <p className="text-[11px] text-[#8F8178] text-center">{r.privacy}</p>
+                <p className="text-[11px] text-[#756962] text-center">{r.privacy}</p>
               </div>
             ) : (
               <div className="grid sm:grid-cols-[180px_1fr] gap-5 items-start">
@@ -158,13 +158,13 @@ export default function RoomMatch() {
                             <Link href={`/gallery/${m.id}`} className="font-serif font-semibold text-[#281C18] hover:text-[#BA4E25] block">
                               {m.title}
                             </Link>
-                            <div className="text-[11px] text-[#8F8178]">
+                            <div className="text-[11px] text-[#756962]">
                               {m.artist} · {m.size} · <b className="text-[#281C18]">{formatPrice(m.discount_price ?? m.price)}</b>
                             </div>
                             <p className="text-xs text-[#554740] leading-relaxed">{m.reason}</p>
                             <Link
                               href={`/gallery/${m.id}?wall=1`}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#429599] hover:underline"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#347578] hover:underline"
                             >
                               <Frame className="w-3.5 h-3.5" /> {r.viewOnWall}
                             </Link>

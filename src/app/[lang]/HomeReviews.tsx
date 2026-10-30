@@ -23,7 +23,7 @@ export default function HomeReviews({ reviews, average, count }: { reviews: Home
       <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1.5">
-            <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">{r.homeEyebrow}</span>
+            <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">{r.homeEyebrow}</span>
             <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-[#281C18]">{r.homeTitle}</h2>
             {count > 0 && (
               <div className="flex items-center gap-2 pt-1">

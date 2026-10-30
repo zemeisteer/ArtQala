@@ -119,7 +119,7 @@ export default function SignUpPage() {
               {t.auth.fullNameLabel} *
             </label>
             <div className="relative">
-              <User className="w-4 h-4 text-[#8F8178] absolute left-3 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-[#756962] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
@@ -137,7 +137,7 @@ export default function SignUpPage() {
               {t.auth.countryLabel} *
             </label>
             <div className="relative">
-              <Globe className="w-4 h-4 text-[#8F8178] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+              <Globe className="w-4 h-4 text-[#756962] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
               <FilterSelect
                 value={country}
                 onChange={setCountry}
@@ -172,7 +172,7 @@ export default function SignUpPage() {
               )}
             </div>
             <div className="relative">
-              <Mail className="w-4 h-4 text-[#8F8178] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-[#756962] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
@@ -205,7 +205,7 @@ export default function SignUpPage() {
               {t.auth.passwordLabel} *
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-[#8F8178] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-[#756962] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
@@ -223,7 +223,7 @@ export default function SignUpPage() {
               {t.auth.passwordConfirmLabel} *
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-[#8F8178] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-[#756962] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
@@ -304,7 +304,7 @@ export default function SignUpPage() {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-[#E7E0D8]" />
           </div>
-          <span className="relative bg-[#FDFBF9] px-3 text-[11px] text-[#9E9086] uppercase font-semibold">
+          <span className="relative bg-[#FDFBF9] px-3 text-[11px] text-[#746A63] uppercase font-semibold">
             {t.auth.orContinueWith}
           </span>
         </div>

@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
               className="h-10 w-auto mx-auto object-contain"
             />
           </Link>
-          <div className="w-12 h-12 rounded-full bg-[#429599]/10 text-[#429599] flex items-center justify-center mx-auto mb-2">
+          <div className="w-12 h-12 rounded-full bg-[#429599]/10 text-[#347578] flex items-center justify-center mx-auto mb-2">
             <KeyRound className="w-6 h-6" />
           </div>
           <h1 className="font-serif text-3xl font-semibold text-[#281C18]">
@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
               {t.auth.emailLabel}
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-[#8F8178] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-[#756962] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required

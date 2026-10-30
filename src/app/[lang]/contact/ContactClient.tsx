@@ -60,7 +60,7 @@ export default function ContactClient() {
       <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14">
         {/* Page Head */}
         <div className="max-w-2xl mb-12 space-y-2">
-          <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+          <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
             {t.contact.eyebrow}
           </span>
           <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-[#281C18]">

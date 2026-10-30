@@ -68,6 +68,7 @@ export default function AdminSettingsPage() {
   const [rateUsd, setRateUsd] = useState('12850');
   const [rateEur, setRateEur] = useState('13900');
   const [rateRub, setRateRub] = useState('140');
+  const [fxMargin, setFxMargin] = useState('3');
 
   // Uzbekistan phone validator (+998 XX XXX XX XX)
   const isValidUzPhone = (num: string): boolean => {
@@ -208,6 +209,7 @@ export default function AdminSettingsPage() {
           setRateUsd(String(s.rate_usd || 12850));
           setRateEur(String(s.rate_eur || 13900));
           setRateRub(String(s.rate_rub || 140));
+          setFxMargin(String(s.fx_margin ?? 3));
         }
       })
       .catch((e) => console.error(e))
@@ -245,6 +247,7 @@ export default function AdminSettingsPage() {
           rate_usd: rateUsd,
           rate_eur: rateEur,
           rate_rub: rateRub,
+          fx_margin: fxMargin,
         }),
       });
 
@@ -694,6 +697,29 @@ export default function AdminSettingsPage() {
                 className="w-full text-xs px-3.5 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25] disabled:bg-gray-100 disabled:text-gray-500"
               />
             </div>
+          </div>
+
+          <div className="border-t border-[#EFE8DE] pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+            <div>
+              <label className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+                Himoya foizi (%)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={30}
+                step="0.5"
+                value={fxMargin}
+                onChange={(e) => setFxMargin(e.target.value)}
+                className="w-full text-xs px-3.5 py-2 bg-white border border-[#E7E0D8] rounded-[3px] focus:outline-none focus:border-[#BA4E25]"
+              />
+            </div>
+            <p className="sm:col-span-2 text-xs text-[#726861] leading-relaxed">
+              Saytda narx so&apos;m, rubl, yevro, von, iyena yoki yuanda ko&apos;rsatilganda kursga shu foiz qo&apos;shiladi
+              va narx doim <b>yuqoriga</b> yaxlitlanadi — mijoz boshqa valyutada to&apos;lasa ham, dollar narxidan kam
+              chiqmaydi (banklar dollarni Markaziy bank kursidan qimmatroq sotadi). Dollardagi narx o&apos;zgarmaydi.
+              Masalan 3% bo&apos;lsa: $1 000 lik asar = 1 000 × kurs × 1,03.
+            </p>
           </div>
         </div>
 

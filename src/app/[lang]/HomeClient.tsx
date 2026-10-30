@@ -221,7 +221,7 @@ export default function HomeClient({ featuredPaintings, reviews }: HomeClientPro
           <AnimatedMadohil />
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12 reveal">
             <div>
-              <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+              <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
                 {t.home.featuredEyebrow}
               </span>
               <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-[#281C18] mt-2">
@@ -257,7 +257,7 @@ export default function HomeClient({ featuredPaintings, reviews }: HomeClientPro
         <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14">
           <AnimatedMadohil />
           <div className="text-center max-w-xl mx-auto mb-14 reveal">
-            <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+            <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
               {t.home.whatWeOfferEyebrow}
             </span>
             <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-[#281C18] mt-2">
@@ -293,7 +293,7 @@ export default function HomeClient({ featuredPaintings, reviews }: HomeClientPro
               style={{ transitionDelay: '0.1s' }}
             >
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-full bg-[#429599]/10 flex items-center justify-center text-[#429599] group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-[#429599]/10 flex items-center justify-center text-[#347578] group-hover:scale-110 transition-transform">
                   <Users className="w-6 h-6" />
                 </div>
                 <h3 className="font-serif text-2xl font-semibold text-[#281C18]">
@@ -305,7 +305,7 @@ export default function HomeClient({ featuredPaintings, reviews }: HomeClientPro
               </div>
               <Link
                 href="/artists"
-                className="text-xs font-bold text-[#429599] hover:text-[#28696B] flex items-center gap-1.5 pt-6 mt-auto"
+                className="text-xs font-bold text-[#347578] hover:text-[#28696B] flex items-center gap-1.5 pt-6 mt-auto"
               >
                 <span>{t.home.offerArtistsLink}</span>
               </Link>

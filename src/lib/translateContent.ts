@@ -20,13 +20,14 @@ const LANG_NAMES: Record<string, string> = {
   zh: 'Simplified Chinese',
 };
 
-export type TranslatableModel = 'painting' | 'artist' | 'category' | 'workshop';
+export type TranslatableModel = 'painting' | 'artist' | 'category' | 'workshop' | 'story';
 
 const FIELDS: Record<TranslatableModel, string[]> = {
   painting: ['title', 'description', 'technique'],
   artist: ['bio', 'specialty'],
   category: ['name'],
   workshop: ['title', 'description'],
+  story: ['title', 'excerpt', 'body'],
 };
 
 const WHAT: Record<TranslatableModel, string> = {
@@ -34,6 +35,7 @@ const WHAT: Record<TranslatableModel, string> = {
   artist: 'an artist represented by an art gallery in Uzbekistan',
   category: 'a category of artworks in an art gallery',
   workshop: 'a masterclass / workshop offered by an art gallery in Uzbekistan',
+  story: 'an article on an art gallery website in Uzbekistan (keep the Markdown: ## headings, - lists, **bold**, [links](url), ![images](url) unchanged except the visible text)',
 };
 
 type Row = { id: string; translations: string | null } & Record<string, unknown>;

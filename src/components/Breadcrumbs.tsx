@@ -19,7 +19,7 @@ export default function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
 
   return (
     <nav aria-label="Breadcrumb" className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14 pt-6">
-      <ol className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#8F8178]">
+      <ol className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#756962]">
         {allItems.map((item, i) => {
           const isLast = i === allItems.length - 1;
           return (

@@ -206,7 +206,7 @@ export default function WallPreviewModal({
           <h3 className="font-serif text-lg font-semibold text-[#281C18] truncate pr-3">
             {t.painting.viewOnWall} — {title}
           </h3>
-          <button onClick={onClose} className="text-[#8F8178] hover:text-[#281C18] p-1" aria-label="Close">
+          <button onClick={onClose} className="text-[#756962] hover:text-[#281C18] p-1" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>

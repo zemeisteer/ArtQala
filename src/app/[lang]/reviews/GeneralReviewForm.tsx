@@ -56,7 +56,7 @@ export default function GeneralReviewForm() {
       </div>
 
       {sent ? (
-        <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-xs text-[#16A34A] flex items-start gap-2">
+        <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-xs text-[#107B38] flex items-start gap-2">
           <CheckCircle2 className="w-5 h-5 shrink-0" />
           <span>{t.reviews.thanksModerated}</span>
         </div>

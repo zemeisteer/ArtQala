@@ -42,21 +42,21 @@ export default function GiftCertificateView({
             <div className="font-serif text-6xl font-bold text-[#BA4E25]">${Math.round(gift.amount).toLocaleString('en-US')}</div>
             <div className="grid sm:grid-cols-2 gap-4 max-w-lg mx-auto text-left sm:text-center">
               <div>
-                <div className="text-[10.5px] font-bold uppercase tracking-wider text-[#8F8178]">{g.certFor}</div>
+                <div className="text-[10.5px] font-bold uppercase tracking-wider text-[#756962]">{g.certFor}</div>
                 <div className="font-serif text-xl text-[#281C18]">{gift.recipient}</div>
               </div>
               <div>
-                <div className="text-[10.5px] font-bold uppercase tracking-wider text-[#8F8178]">{g.certFrom}</div>
+                <div className="text-[10.5px] font-bold uppercase tracking-wider text-[#756962]">{g.certFrom}</div>
                 <div className="font-serif text-xl text-[#281C18]">{gift.from}</div>
               </div>
             </div>
             {gift.message && <p className="font-serif italic text-lg text-[#4D3F38] max-w-xl mx-auto">&ldquo;{gift.message}&rdquo;</p>}
             <div className="inline-block border border-dashed border-[#BA4E25] px-5 py-2 rounded-[3px]">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#8F8178] mr-2">{g.certCode}</span>
+              <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#756962] mr-2">{g.certCode}</span>
               <span className="font-mono text-xl font-bold text-[#281C18]">{gift.code}</span>
             </div>
             <p className="text-xs text-[#6B5E55] max-w-xl mx-auto leading-relaxed">{g.certUse}</p>
-            <p className="text-[11px] text-[#9E9086]">
+            <p className="text-[11px] text-[#746A63]">
               {new Date(gift.issued).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · artqala.com
             </p>
           </div>

@@ -14,7 +14,7 @@ export default function NotFoundBody() {
   return (
     <div className="flex-grow min-h-[70vh] flex items-center justify-center px-6 py-20 bg-[#FAF4EC]">
       <div className="max-w-md w-full text-center space-y-5">
-        <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+        <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
           {t.notFound.eyebrow}
         </span>
         <div className="font-serif text-7xl sm:text-8xl font-semibold text-[#BA4E25]">404</div>

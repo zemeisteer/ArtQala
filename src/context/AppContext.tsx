@@ -5,7 +5,8 @@ import { translations, Language, type BaseLanguage } from '@/lib/i18n/translatio
 import type { Dictionary } from '@/lib/i18n/dictionary';
 import { trackEvent } from '@/lib/analytics';
 
-export type Currency = 'USD' | 'UZS' | 'RUB' | 'EUR';
+export type Currency = 'USD' | 'UZS' | 'RUB' | 'EUR' | 'KRW' | 'JPY' | 'CNY';
+export const CURRENCIES: Currency[] = ['USD', 'UZS', 'RUB', 'EUR', 'KRW', 'JPY', 'CNY'];
 
 export interface UserSession {
   id: string;
@@ -43,6 +44,7 @@ interface AppContextType {
   setLang: (lang: Language) => void;
   currency: Currency;
   setCurrency: (currency: Currency) => void;
+  suggestCurrency: (currency: Currency) => void;
   formatPrice: (priceUSD: number) => string;
   // Units of the selected currency per 1 USD — for converting user-typed
   // amounts (e.g. the gallery's price filter) back to USD.
@@ -64,6 +66,9 @@ const DEFAULT_RATES: Record<Currency, number> = {
   UZS: 12850,
   RUB: 92.5,
   EUR: 0.92,
+  KRW: 1380,
+  JPY: 152,
+  CNY: 7.2,
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -149,7 +154,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const savedCurrency = localStorage.getItem('artqala_currency') as Currency;
-    if (savedCurrency && ['USD', 'UZS', 'RUB', 'EUR'].includes(savedCurrency)) {
+    if (savedCurrency && CURRENCIES.includes(savedCurrency)) {
       setCurrencyState(savedCurrency);
     }
 
@@ -189,6 +194,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('artqala_currency', c);
     }
+  };
+
+  // A page language's own currency (won on /ko, yen on /ja…) unless the
+  // visitor picked one themselves — not remembered, so it follows the page.
+  const suggestCurrency = (c: Currency) => {
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem('artqala_currency');
+    } catch {}
+    if (!saved) setCurrencyState(c);
   };
 
   // Signed in: keep the account's wishlist (server) in step with this
@@ -274,18 +289,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const rate = rates[currency] || 1;
     const converted = priceUSD * rate;
 
-    // Converted prices are rounded *up* to a clean figure (so'm to the next
-    // thousand, rubles to the next ten) — 47,323,480 so'm reads as a
-    // calculation artifact, 47,324,000 so'm as a price.
+    // Converted prices (the rates already carry the Settings safety margin,
+    // see /api/rates) are always rounded *up* to a clean figure, so a price
+    // paid in another currency never comes out below the dollar price.
+    const up = (step: number) => Math.ceil(converted / step - 1e-9) * step;
     switch (currency) {
       case 'USD':
         return `$${Math.round(converted).toLocaleString()}`;
       case 'UZS':
-        return `${(Math.ceil(converted / 1000) * 1000).toLocaleString('uz-UZ')} so'm`;
+        return `${up(1000).toLocaleString('uz-UZ')} so'm`;
       case 'RUB':
-        return `${(Math.ceil(converted / 10) * 10).toLocaleString('ru-RU')} ₽`;
+        return `${up(10).toLocaleString('ru-RU')} ₽`;
       case 'EUR':
-        return `${Math.round(converted).toLocaleString()} €`;
+        return `${up(1).toLocaleString('de-DE')} €`;
+      case 'KRW':
+        return `₩${up(1000).toLocaleString('ko-KR')}`;
+      case 'JPY':
+        return `¥${up(100).toLocaleString('ja-JP')}`;
+      case 'CNY':
+        return `¥${up(10).toLocaleString('zh-CN')} 元`;
       default:
         return `$${priceUSD}`;
     }
@@ -300,6 +322,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLang,
         currency,
         setCurrency,
+        suggestCurrency,
         formatPrice,
         currencyRate: rates[currency] || 1,
         wishlist,

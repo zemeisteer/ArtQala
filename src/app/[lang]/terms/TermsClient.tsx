@@ -197,13 +197,13 @@ export default function TermsClient() {
     <div className="py-16 sm:py-20 px-6">
       <div className="max-w-3xl mx-auto bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-8 sm:p-12 space-y-6">
         <div className="space-y-2 border-b border-[#E7E0D8] pb-6">
-          <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+          <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
             {c.eyebrow}
           </span>
           <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#281C18]">
             {c.title}
           </h1>
-          <p className="text-xs text-[#8F8178]">{c.effectiveDate}</p>
+          <p className="text-xs text-[#756962]">{c.effectiveDate}</p>
         </div>
 
         <p className="text-xs sm:text-sm text-[#4D3F38] leading-relaxed">{c.intro}</p>

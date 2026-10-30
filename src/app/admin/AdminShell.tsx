@@ -26,6 +26,7 @@ import {
   X,
   Gift,
   CalendarDays,
+  BookOpen,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -97,6 +98,7 @@ export default function AdminShell({ children }: AdminLayoutProps) {
     { href: '/admin/services', label: t.admin.services, icon: Wrench },
     { href: '/admin/workshops', label: t.admin.workshops, icon: CalendarDays },
     { href: '/admin/gift-cards', label: t.admin.giftCards, icon: Gift },
+    { href: '/admin/stories', label: t.admin.stories, icon: BookOpen },
     { href: '/admin/messages', label: t.admin.messages, icon: Mail },
     { href: '/admin/ai-chats', label: t.admin.aiChats, icon: Sparkles },
     { href: '/admin/customers', label: t.admin.customers, icon: Users2 },

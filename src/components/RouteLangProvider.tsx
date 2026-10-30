@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { RouteLangContext } from '@/context/AppContext';
+import { RouteLangContext, useApp, type Currency } from '@/context/AppContext';
 import type { Language } from '@/lib/i18n/translations';
 import type { Dictionary } from '@/lib/i18n/dictionary';
 import { DEFAULT_LANG, LANG_COOKIE, isLang, localizePath, splitLangPath } from '@/lib/i18n/routing';
@@ -58,6 +58,15 @@ export default function RouteLangProvider({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Visitors on /ko, /ja, /zh, /de, /fr see prices in their own currency
+  // unless they picked one.
+  const { suggestCurrency } = useApp();
+  useEffect(() => {
+    const own: Partial<Record<Language, Currency>> = { de: 'EUR', fr: 'EUR', ko: 'KRW', ja: 'JPY', zh: 'CNY' };
+    if (own[lang]) suggestCurrency(own[lang]!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   const value = useMemo(() => ({ lang, setLang, dict }), [lang, setLang, dict]);
 

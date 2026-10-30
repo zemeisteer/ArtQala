@@ -15,7 +15,8 @@ export type ExtraPageKey =
   | 'terms'
   | 'delivery'
   | 'gift'
-  | 'workshops';
+  | 'workshops'
+  | 'stories';
 
 export const CITY_LOCAL: Record<string, Record<ExtraLanguage, string>> = {
   Tashkent: { de: 'Taschkent', fr: 'Tachkent', ko: '타슈켄트', ja: 'タシケント', zh: '塔什干' },
@@ -44,6 +45,7 @@ export const EXTRA_PAGES: Record<ExtraLanguage, Record<ExtraPageKey, Entry>> = {
     delivery: { title: 'Zahlung & Lieferung', description: 'Wie Sie ein Werk bei Art Qala bezahlen und wie es zu Ihnen kommt: versicherter Versand weltweit mit Ausfuhrpapieren.' },
     gift: { title: 'Geschenkgutschein', description: 'Verschenken Sie einen Gutschein von Art Qala — der Beschenkte wählt ein usbekisches Original oder einen Workshop.' },
     workshops: { title: 'Workshops & Führungen', description: 'Workshops mit usbekischen Künstlern bei Art Qala — Malerei, Keramik, Holzschnitzerei. Online buchen.' },
+    stories: { title: 'Geschichten — usbekische Kunst & Handwerk', description: 'Geschichten über usbekische Malerei, Keramik, Holzschnitzerei, die Künstler von Art Qala und die Städte Taschkent und Chiwa.' },
   },
   fr: {
     home: {
@@ -61,6 +63,7 @@ export const EXTRA_PAGES: Record<ExtraLanguage, Record<ExtraPageKey, Entry>> = {
     delivery: { title: 'Paiement & livraison', description: 'Comment payer une œuvre chez Art Qala et comment elle vous parvient : envoi assuré dans le monde entier avec documents d’exportation.' },
     gift: { title: 'Carte cadeau', description: 'Offrez une carte cadeau Art Qala — le bénéficiaire choisit une œuvre ouzbèke originale ou un atelier.' },
     workshops: { title: 'Ateliers & visites', description: 'Ateliers avec des artistes ouzbeks chez Art Qala — peinture, céramique, sculpture sur bois. Réservation en ligne.' },
+    stories: { title: 'Récits — art et artisanat ouzbeks', description: 'Récits sur la peinture, la céramique et la sculpture sur bois ouzbèkes, les artistes d’Art Qala et les villes de Tachkent et Khiva.' },
   },
   ko: {
     home: {
@@ -77,6 +80,7 @@ export const EXTRA_PAGES: Record<ExtraLanguage, Record<ExtraPageKey, Entry>> = {
     delivery: { title: '결제 & 배송', description: 'Art Qala 작품 결제 방법과 배송 안내: 보험 가입 해외 배송과 반출 서류 제공.' },
     gift: { title: '기프트 카드', description: 'Art Qala 기프트 카드를 선물하세요 — 받는 분이 우즈베크 원화나 마스터클래스를 직접 고릅니다.' },
     workshops: { title: '마스터클래스 & 투어', description: 'Art Qala에서 우즈베키스탄 작가와 함께하는 마스터클래스 — 회화, 도자기, 목공예. 온라인 예약.' },
+    stories: { title: '이야기 — 우즈베키스탄 예술과 공예', description: '우즈베키스탄 회화, 도자기, 목공예, Art Qala 작가들, 그리고 타슈켄트와 히바에 관한 이야기.' },
   },
   ja: {
     home: {
@@ -93,6 +97,7 @@ export const EXTRA_PAGES: Record<ExtraLanguage, Record<ExtraPageKey, Entry>> = {
     delivery: { title: 'お支払い・配送', description: 'Art Qala の作品のお支払い方法と配送：保険付きの国際配送、輸出書類付き。' },
     gift: { title: 'ギフト券', description: 'Art Qala のギフト券を贈りませんか — ウズベクの原画やワークショップを受取人が選べます。' },
     workshops: { title: 'ワークショップ & ツアー', description: 'Art Qala でウズベキスタンの作家と体験するワークショップ — 絵画、陶芸、木彫り。オンライン予約。' },
+    stories: { title: 'ストーリー — ウズベキスタンのアートと工芸', description: 'ウズベキスタンの絵画、陶芸、木彫り、Art Qala の作家たち、タシケントとヒヴァの街についての物語。' },
   },
   zh: {
     home: {
@@ -109,5 +114,6 @@ export const EXTRA_PAGES: Record<ExtraLanguage, Record<ExtraPageKey, Entry>> = {
     delivery: { title: '付款与配送', description: '如何为 Art Qala 的作品付款以及作品如何送达：带保险的国际运输并提供出境文件。' },
     gift: { title: '礼品卡', description: '赠送 Art Qala 礼品卡——由收礼人挑选乌兹别克原创作品或大师课。' },
     workshops: { title: '大师课与导览', description: '在 Art Qala 与乌兹别克艺术家一起上大师课——绘画、陶艺、木雕。在线预约。' },
+    stories: { title: '故事 — 乌兹别克艺术与手工艺', description: '关于乌兹别克绘画、陶瓷、木雕、Art Qala 艺术家以及塔什干和希瓦的故事。' },
   },
 };

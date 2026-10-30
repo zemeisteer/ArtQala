@@ -3,12 +3,16 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import PaintingCard, { PaintingItem } from '@/components/PaintingCard';
-import WishlistInquiryModal from '@/components/WishlistInquiryModal';
-import { Search, Heart, SlidersHorizontal, Send, ChevronDown, X, Palette, CalendarDays, Ruler, Layers, Wallet } from 'lucide-react';
+import dynamic from 'next/dynamic';
+// Only needed once a visitor opens it — keeps the phone-number library out
+// of the gallery's first load.
+const WishlistInquiryModal = dynamic(() => import('@/components/WishlistInquiryModal'), { ssr: false });
+import { Search, Heart, SlidersHorizontal, Send, ChevronDown, X, Palette, CalendarDays, Ruler, Layers, Wallet, Share2 } from 'lucide-react';
 import AnimatedMadohil from '@/components/patterns/AnimatedMadohil';
 import DandanaScrollTrack from '@/components/patterns/DandanaScrollTrack';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import RoomMatch from '@/components/RoomMatch';
+import RecentlyViewed from '@/components/RecentlyViewed';
 import FilterSelect from '@/components/FilterSelect';
 import { rememberGalleryQuery } from '@/lib/galleryReturn';
 import PublicPagination from '@/components/PublicPagination';
@@ -24,7 +28,11 @@ interface GalleryClientProps {
 }
 
 export default function GalleryClient({ paintings, categories }: GalleryClientProps) {
-  const { lang, t, wishlist, currency, currencyRate } = useApp();
+  const { lang, t, wishlist, toggleWishlist, currency, currencyRate } = useApp();
+  // A list someone shared (?shared=id1,id2): shown on its own, with a
+  // button to save it all to this visitor's wishlist.
+  const [sharedIds, setSharedIds] = useState<string[] | null>(null);
+  const [shareNote, setShareNote] = useState<string | null>(null);
 
   // The top pills are product types only (ota kategoriya — Kartina,
   // Kulolchilik, ...); the subject/theme (bola kategoriya — Portret,
@@ -74,6 +82,8 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     // Syncing React state from an external source (the address bar) once,
     // after hydration — the case set-state-in-effect is allowed for.
     /* eslint-disable react-hooks/set-state-in-effect */
+    const shared = (params.get('shared') || '').split(',').filter((x) => /^[a-z0-9]{10,40}$/i.test(x)).slice(0, 60);
+    if (shared.length) setSharedIds(shared);
     if ([...params.keys()].length > 0) {
       skipFilterResets.current = param('category') !== 'all';
       setSelectedCategory(param('category'));
@@ -208,13 +218,14 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     if (maxPrice) next.set('max', maxPrice);
     if (sortBy !== 'newest') next.set('sort', sortBy);
     if (page > 1) next.set('page', String(page));
+    if (sharedIds) next.set('shared', sharedIds.join(','));
     const qs = next.toString();
     rememberGalleryQuery(qs ? `?${qs}` : '');
     const url = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
     if (url !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(window.history.state, '', url);
     }
-  }, [urlApplied, selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy, page]);
+  }, [urlApplied, selectedCategory, selectedSubCategory, searchQuery, onlyWishlist, selectedArtistId, selectedYear, selectedSize, minPrice, maxPrice, sortBy, page, sharedIds]);
 
   // What a visitor actually pays (a discount if there is one), in USD.
   const effectivePrice = (p: any): number =>
@@ -237,6 +248,9 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
 
       // Wishlist filter
       if (onlyWishlist && !wishlist.includes(p.id)) {
+        return false;
+      }
+      if (sharedIds && !sharedIds.includes(p.id)) {
         return false;
       }
 
@@ -287,6 +301,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     selectedCategory,
     selectedSubCategory,
     onlyWishlist,
+    sharedIds,
     wishlist,
     searchQuery,
     selectedArtistId,
@@ -313,7 +328,7 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
         {/* Page Head */}
         <AnimatedMadohil />
         <div className="max-w-2xl mb-10 space-y-2">
-          <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+          <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
             {t.gallery.eyebrow}
           </span>
           <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-[#281C18]">
@@ -326,6 +341,8 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
             <RoomMatch />
           </div>
         </div>
+
+        <RecentlyViewed className="mb-8" />
 
         {/* Filter Pills & Search Bar */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-10 pb-6 border-b border-[#E7E0D8]">
@@ -413,6 +430,8 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
             />
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              aria-label={t.gallery.advancedFilters}
+              aria-expanded={showAdvancedFilters}
               className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all whitespace-nowrap shrink-0 ${
                 showAdvancedFilters || hasActiveAdvancedFilters
                   ? 'bg-[#281C18] text-[#FAF4EC] border-[#281C18]'
@@ -548,9 +567,59 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
           </div>
         )}
 
+        {sharedIds && (
+          <div className="mb-6 bg-[#FFFBEF] border border-[#F0DFB0] rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-[#281C18] flex items-center gap-2">
+              <Share2 className="w-4 h-4 text-[#BA4E25]" />
+              {t.gallery.sharedTitle.replace('{n}', String(filteredPaintings.length))}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  for (const id of sharedIds) if (!wishlist.includes(id) && paintings.some((p) => p.id === id)) toggleWishlist(id);
+                  setShareNote(t.gallery.savedShared);
+                }}
+                className="inline-flex items-center gap-1.5 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white text-xs font-semibold px-4 py-2 rounded-[3px]"
+              >
+                <Heart className="w-3.5 h-3.5" /> {t.gallery.saveAllShared}
+              </button>
+              <button
+                onClick={() => setSharedIds(null)}
+                className="text-xs font-semibold text-[#554740] hover:text-[#BA4E25] px-2"
+              >
+                {t.gallery.viewAllPaintings}
+              </button>
+            </div>
+          </div>
+        )}
+        {shareNote && <p className="mb-4 text-sm text-[#107B38]">{shareNote}</p>}
+
         {/* Send inquiry about all wishlist pieces at once */}
         {onlyWishlist && filteredPaintings.length > 0 && (
-          <div className="flex justify-end mb-5">
+          <div className="flex flex-wrap justify-end gap-2 mb-5">
+            <button
+              onClick={async () => {
+                const url = `${window.location.origin}${window.location.pathname}?shared=${filteredPaintings.map((p) => p.id).join(',')}`;
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ title: 'Art Qala', text: t.gallery.shareText, url });
+                    return;
+                  }
+                } catch {
+                  return; // closed the share sheet
+                }
+                try {
+                  await navigator.clipboard.writeText(url);
+                  setShareNote(t.gallery.linkCopied);
+                } catch {
+                  window.prompt(t.gallery.shareList, url);
+                }
+              }}
+              className="bg-white border border-[#E7E0D8] hover:border-[#BA4E25] text-[#281C18] text-xs font-semibold px-4 py-2.5 rounded-[3px] transition flex items-center gap-1.5"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>{t.gallery.shareList}</span>
+            </button>
             <button
               onClick={() => setShowWishlistInquiry(true)}
               className="bg-[#281C18] hover:bg-[#BA4E25] text-white text-xs font-semibold px-4 py-2.5 rounded-[3px] transition flex items-center gap-1.5 shadow-xs"

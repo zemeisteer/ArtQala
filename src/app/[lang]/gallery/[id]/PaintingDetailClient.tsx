@@ -9,7 +9,10 @@ import PhoneInput from '@/components/PhoneInput';
 import ShippingEstimator from '@/components/ShippingEstimator';
 import AccessoryCheckboxes, { SelectedAccessory } from '@/components/AccessoryCheckboxes';
 import { getSizeBucket, isWallPiece, parseSizeCm } from '@/lib/paintingSize';
-import WallPreviewModal from '@/components/WallPreviewModal';
+import dynamic from 'next/dynamic';
+// Loaded when opened (room view / AR / camera, full-size photos) — not part
+// of the painting page's first load.
+const WallPreviewModal = dynamic(() => import('@/components/WallPreviewModal'), { ssr: false });
 import { isVerifiedReview } from '@/lib/reviewVerified';
 import { ReviewHoneypot, reviewErrorText, reviewGuardFields, useReviewFormToken } from '@/components/ReviewGuard';
 import { useGalleryHref } from '@/lib/galleryReturn';
@@ -35,7 +38,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { DELIVERY } from '@/lib/deliveryInfo';
-import ImageLightbox from '@/components/ImageLightbox';
+const ImageLightbox = dynamic(() => import('@/components/ImageLightbox'), { ssr: false });
+import RecentlyViewed, { recordRecentlyViewed } from '@/components/RecentlyViewed';
 import { trackLead } from '@/lib/analytics';
 import { parseImages, PLACEHOLDER_IMAGE } from '@/lib/paintingImages';
 
@@ -193,6 +197,11 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
   const parsedImages = parseImages(painting.images);
   const imageList: string[] = parsedImages.length > 0 ? parsedImages : [PLACEHOLDER_IMAGE];
   const imageSrc = imageList[Math.min(activeImage, imageList.length - 1)];
+
+  useEffect(() => {
+    recordRecentlyViewed({ id: painting.id, title, artist: painting.artist?.name || '', image: imageList[0] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [painting.id, title]);
 
   const isFavorited = wishlist.includes(painting.id);
   const hasDiscount = !!painting.discount_price && painting.discount_price < painting.price;
@@ -405,7 +414,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
 
             {/* Certificate of Authenticity Info Box */}
             <div className="bg-[#FAF4EC] border border-[#E7E0D8] rounded-[3px] p-5 flex items-start gap-3.5">
-              <ShieldCheck className="w-6 h-6 text-[#429599] shrink-0 mt-0.5" />
+              <ShieldCheck className="w-6 h-6 text-[#347578] shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-serif font-semibold text-base text-[#281C18]">
                   {t.painting.authenticity}
@@ -429,7 +438,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#EFE8DE]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold tracking-widest text-[#429599] uppercase">
+                    <span className="text-xs font-bold tracking-widest text-[#347578] uppercase">
                       {t.reviews.collectorReviewsEyebrow}
                     </span>
                     <Sparkles className="w-3.5 h-3.5 text-[#DAA932]" />
@@ -461,7 +470,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                       </span>
                     </div>
                   ) : (
-                    <span className="text-xs text-[#8F8178] italic">
+                    <span className="text-xs text-[#756962] italic">
                       {t.reviews.noApprovedReviewsYet}
                     </span>
                   )}
@@ -488,7 +497,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
 
               {/* Reviews List */}
               {loadingReviews ? (
-                <div className="py-6 text-center text-xs text-[#8F8178]">
+                <div className="py-6 text-center text-xs text-[#756962]">
                   {t.reviews.loadingReviews}
                 </div>
               ) : reviews.length > 0 ? (
@@ -501,7 +510,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                             {rev.author_name}
                           </span>
                           {isVerifiedReview(rev) && (
-                            <span className="bg-[#DCFCE7] text-[#16A34A] text-[10px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                            <span className="bg-[#DCFCE7] text-[#107B38] text-[10px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
                               {t.account.verifiedBadge}
                             </span>
                           )}
@@ -512,7 +521,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                               <Star key={i} className="w-3.5 h-3.5 fill-current" />
                             ))}
                           </div>
-                          <span className="text-[11px] text-[#9E9086]">
+                          <span className="text-[11px] text-[#746A63]">
                             {new Date(rev.created_at).toLocaleDateString()}
                           </span>
                         </div>
@@ -524,7 +533,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                   ))}
                 </div>
               ) : (
-                <div className="py-6 text-center text-xs text-[#8F8178]">
+                <div className="py-6 text-center text-xs text-[#756962]">
                   {t.reviews.beFirstReview.replace('{title}', title)}
                 </div>
               )}
@@ -569,7 +578,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                   <span className="font-serif text-3xl font-bold text-[#BA4E25]">
                     {formatPrice(painting.discount_price)}
                   </span>
-                  <span className="text-sm text-[#8F8178] line-through">
+                  <span className="text-sm text-[#756962] line-through">
                     {formatPrice(painting.price)}
                   </span>
                 </>
@@ -578,7 +587,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                   {formatPrice(painting.price)}
                 </span>
               )}
-              <span className="text-xs text-[#8F8178] ml-auto">
+              <span className="text-xs text-[#756962] ml-auto">
                 {painting.is_sold ? t.gallery.soldBadge : t.painting.availableStatus}
               </span>
             </div>
@@ -605,7 +614,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
             {/* Specifications */}
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
-                <span className="text-[#8F8178] block uppercase text-[10px] tracking-wider">
+                <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
                   {t.painting.size}
                 </span>
                 <span className="font-semibold text-[#281C18] mt-0.5 block">
@@ -613,7 +622,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                 </span>
               </div>
               <div className="border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
-                <span className="text-[#8F8178] block uppercase text-[10px] tracking-wider">
+                <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
                   {t.painting.technique}
                 </span>
                 <span className="font-semibold text-[#281C18] mt-0.5 block">
@@ -622,7 +631,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
               </div>
               {painting.included_accessory_names?.length > 0 && (
                 <div className="col-span-2 border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
-                  <span className="text-[#8F8178] block uppercase text-[10px] tracking-wider">
+                  <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
                     {t.accessories.included}
                   </span>
                   <span className="font-semibold text-[#281C18] mt-0.5 block">
@@ -734,7 +743,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                       placeholder="I would like to inquire about reservation, delivery to my hotel in Tashkent, or international shipping..."
                       className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25] resize-none"
                     />
-                    <p className="text-[10.5px] text-[#8F8178] mt-1.5 flex items-start gap-1">
+                    <p className="text-[10.5px] text-[#756962] mt-1.5 flex items-start gap-1">
                       <Info className="w-3 h-3 shrink-0 mt-0.5" />
                       <span>{t.painting.protectiveCaseHint}</span>
                     </p>
@@ -762,11 +771,13 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
           </div>
         </div>
 
+        <RecentlyViewed excludeId={painting.id} className="mt-16 sm:mt-20 pt-10 border-t border-[#E7E0D8]" />
+
         {/* Related Paintings Carousel */}
         {relatedPaintings.length > 0 && (
           <div className="mt-16 sm:mt-20 pt-10 border-t border-[#E7E0D8]">
             <div className="mb-6">
-              <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+              <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
                 {t.painting.relatedEyebrow}
               </span>
               <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[#281C18] mt-1">
@@ -790,13 +801,13 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
           <div className="bg-[#FAF4EC] border border-[#E7E0D8] rounded-[4px] max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
             <button
               onClick={() => setShowReviewModal(false)}
-              className="absolute top-5 right-5 text-[#8F8178] hover:text-[#281C18] p-1 transition"
+              className="absolute top-5 right-5 text-[#756962] hover:text-[#281C18] p-1 transition"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div>
-              <span className="text-[11px] font-bold tracking-widest text-[#429599] uppercase">
+              <span className="text-[11px] font-bold tracking-widest text-[#347578] uppercase">
                 {t.reviews.modalEyebrow}
               </span>
               <h3 className="font-serif text-2xl font-semibold text-[#281C18] mt-1">
@@ -808,7 +819,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
             </div>
 
             {reviewSuccessMessage ? (
-              <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-xs text-[#16A34A] flex items-center gap-2">
+              <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-xs text-[#107B38] flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <span>{reviewSuccessMessage}</span>
               </div>

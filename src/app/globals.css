@@ -156,3 +156,15 @@ button[data-wish-state='on'] {
 button[data-wish-state='on'] svg {
   fill: currentColor;
 }
+
+/* Story articles (src/lib/storyMarkdown.ts) */
+.story-body { color: #3F332D; font-size: 1.05rem; line-height: 1.8; }
+.story-body p { margin: 0 0 1.1em; }
+.story-body h2 { font-family: var(--font-serif, Georgia, serif); font-size: 1.6rem; font-weight: 600; color: #281C18; margin: 1.6em 0 0.5em; line-height: 1.25; }
+.story-body h3 { font-family: var(--font-serif, Georgia, serif); font-size: 1.25rem; font-weight: 600; color: #281C18; margin: 1.3em 0 0.4em; }
+.story-body ul { margin: 0 0 1.1em 1.2em; list-style: disc; }
+.story-body li { margin: 0.25em 0; }
+.story-body a { color: #BA4E25; text-decoration: underline; text-underline-offset: 2px; }
+.story-body figure { margin: 1.6em 0; }
+.story-body img { width: 100%; height: auto; border-radius: 4px; }
+.story-body figcaption { font-size: 0.85rem; color: #8F8178; text-align: center; margin-top: 0.4em; }

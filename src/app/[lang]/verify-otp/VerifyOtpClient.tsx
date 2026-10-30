@@ -98,7 +98,7 @@ export default function VerifyOtpClient() {
           />
         </Link>
 
-        <div className="w-12 h-12 rounded-full bg-[#429599]/10 text-[#429599] flex items-center justify-center mx-auto mb-4">
+        <div className="w-12 h-12 rounded-full bg-[#429599]/10 text-[#347578] flex items-center justify-center mx-auto mb-4">
           <ShieldCheck className="w-6 h-6" />
         </div>
 

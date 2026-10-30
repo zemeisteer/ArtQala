@@ -372,6 +372,10 @@ model SiteSettings {
   rate_eur     Float   @default(13900)
   rate_rub     Float   @default(140)
   manual_rates Boolean @default(false)
+  // Safety margin (%) added to every non-USD price shown on the site, so a
+  // price paid in so'm/euro/won… still covers the dollar price at the rate
+  // banks actually sell at (the CBU rate is the official mid rate).
+  fx_margin    Float   @default(3)
 
   // Telegram channel (@name or -100… id) new works are posted to; null = off.
   telegram_channel String?
@@ -569,4 +573,30 @@ model WorkshopBooking {
 
   @@index([workshop_id, date])
   @@index([status])
+}
+
+// "Hikoyalar" — articles about the gallery, artists and crafts (public
+// /stories). Written in Uzbek in the admin; EN/RU auto-translated in the form,
+// the other site languages in `translations` (src/lib/translateContent.ts).
+// `body_*` is light Markdown (see src/lib/storyMarkdown.ts).
+model Story {
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  title_uz     String
+  title_en     String
+  title_ru     String
+  excerpt_uz   String?
+  excerpt_en   String?
+  excerpt_ru   String?
+  body_uz      String
+  body_en      String
+  body_ru      String
+  cover        String?
+  published    Boolean   @default(false)
+  published_at DateTime?
+  translations String?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  @@index([published, published_at])
 }

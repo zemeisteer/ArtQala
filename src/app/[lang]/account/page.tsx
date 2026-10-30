@@ -483,7 +483,7 @@ export default function AccountPage() {
                                       ? inq.painting?.title_uz
                                       : inq.painting?.title_en) || t.account.paintingFallback}
                                   </span>
-                                  <ExternalLink className="w-3.5 h-3.5 text-[#8F8178]" />
+                                  <ExternalLink className="w-3.5 h-3.5 text-[#756962]" />
                                 </Link>
                               )}
                               {hasUnread && (
@@ -511,13 +511,13 @@ export default function AccountPage() {
                                     {l.accessories.map((a) => (
                                       <span
                                         key={a.id}
-                                        className={l.finalPrice != null ? 'line-through text-[#B5A599]' : 'text-[#8F8178]'}
+                                        className={l.finalPrice != null ? 'line-through text-[#B5A599]' : 'text-[#756962]'}
                                       >
                                         + {lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en} ({formatPrice(a.price)})
                                       </span>
                                     ))}
                                     {l.finalPrice != null && (
-                                      <span className="font-semibold text-[#16A34A]">
+                                      <span className="font-semibold text-[#107B38]">
                                         {t.account.agreedPrice}: {formatPrice(l.finalPrice)}
                                       </span>
                                     )}
@@ -538,7 +538,7 @@ export default function AccountPage() {
                                   {inq.customer_total != null && inq.customer_total !== inq.total ? (
                                     <>
                                       <span className="line-through text-[#B5A599] font-normal">{formatPrice(inq.total || 0)}</span>{' '}
-                                      <span className="text-[#16A34A]">{formatPrice(inq.customer_total)}</span>
+                                      <span className="text-[#107B38]">{formatPrice(inq.customer_total)}</span>
                                     </>
                                   ) : (
                                     formatPrice(inq.total || 0)
@@ -553,7 +553,7 @@ export default function AccountPage() {
                                     <span className="line-through text-[#B5A599]">
                                       {formatPrice(inq.total || inq.painting?.price || 0)}
                                     </span>{' '}
-                                    <span className="font-semibold text-[#16A34A]">
+                                    <span className="font-semibold text-[#107B38]">
                                       {t.account.agreedPrice}: {formatPrice(inq.final_price)}
                                     </span>
                                   </>
@@ -576,7 +576,7 @@ export default function AccountPage() {
                         <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#EFE8DE]">
                           <div className="flex items-center gap-2">
                             {getStatusBadge(inq.status)}
-                            <span className="text-[11px] text-[#9E9086]">
+                            <span className="text-[11px] text-[#746A63]">
                               {new Date(inq.created_at).toLocaleDateString()}
                             </span>
                           </div>
@@ -667,7 +667,7 @@ export default function AccountPage() {
                         <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#EFE8DE]">
                           <div className="flex items-center gap-2">
                             {getStatusBadge(sr.status)}
-                            <span className="text-[11px] text-[#9E9086]">
+                            <span className="text-[11px] text-[#746A63]">
                               {new Date(sr.created_at).toLocaleDateString()}
                             </span>
                           </div>
@@ -786,7 +786,7 @@ export default function AccountPage() {
               </div>
 
               <div className="pt-2">
-                <span className="text-xs text-[#8F8178]">
+                <span className="text-xs text-[#756962]">
                   {t.account.accountRoleLabel}: <strong className="text-[#281C18]">{user?.role}</strong>
                 </span>
               </div>
@@ -845,13 +845,13 @@ export default function AccountPage() {
           <div className="bg-[#FAF4EC] border border-[#E7E0D8] rounded-[4px] max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
             <button
               onClick={() => setReviewInquiry(null)}
-              className="absolute top-5 right-5 text-[#8F8178] hover:text-[#281C18] p-1 transition"
+              className="absolute top-5 right-5 text-[#756962] hover:text-[#281C18] p-1 transition"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div>
-              <span className="text-[11px] font-bold tracking-widest text-[#429599] uppercase">
+              <span className="text-[11px] font-bold tracking-widest text-[#347578] uppercase">
                 {t.reviews.modalEyebrow}
               </span>
               <h3 className="font-serif text-2xl font-semibold text-[#281C18] mt-1">
@@ -870,7 +870,7 @@ export default function AccountPage() {
             </div>
 
             {reviewSuccess ? (
-              <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-xs text-[#16A34A] flex items-center gap-2">
+              <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-xs text-[#107B38] flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <span>{reviewSuccess}</span>
               </div>
