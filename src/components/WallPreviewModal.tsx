@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Camera, Loader2, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import CameraWallView from '@/components/CameraWallView';
+import CameraWallView, { requestMotionPermission } from '@/components/CameraWallView';
 
 // "View on a wall".
 // - On a phone: the phone's own AR viewer (iOS Quick Look / Android Scene
@@ -36,8 +36,8 @@ interface WallData {
 }
 
 // 'ios-inapp': an iPhone browser without Quick Look (Telegram, Instagram…
-// in-app browsers, the Google app) — the button hands the AR model to Safari
-// (see openAr), with the open-in-Safari tip as fallback. Safari and
+// in-app browsers, the Google app) — the button opens the in-page camera
+// view, with a tip that Safari has the exact AR. Safari and
 // Chrome/Edge/Firefox on iOS do have Quick Look (the latter only from a real
 // .usdz link, which is what we give them).
 // null: a computer — a QR code opens this view on the phone.
@@ -131,21 +131,24 @@ export default function WallPreviewModal({
     };
   }, [paintingId]);
 
+  // The motion permission has to be asked inside the tap itself.
+  const openCamera = () => {
+    requestMotionPermission();
+    setCameraOpen(true);
+  };
+
   const openAr = () => {
     if (!data) return;
     // No AR viewer in this browser (Google app, Telegram/Instagram…): tell
     // the visitor to open the page in Safari/Chrome, where the artwork sticks
     // to the wall. The simple camera view stays an opt-in below — it can't
     // track the wall, so it must never stand in for the real AR unasked.
-    // iOS 17+ hands an x-safari-https:// link to Safari, which opens the
-    // USDZ straight in Quick Look — the real, wall-anchored AR. Older iOS
-    // ignores the scheme; the help shows when the page is still in front.
+    // No Quick Look here (and the Google app blocks handing the model to
+    // Safari): the in-page camera view, kept on the wall by the gyroscope,
+    // plus the tip that Safari has the exact, measured AR.
     if (arMode === 'ios-inapp') {
-      const usdz = new URL(data.usdz, window.location.href);
-      window.location.href = `x-safari-${usdz.href}#allowsContentScaling=0`;
-      window.setTimeout(() => {
-        if (document.visibilityState === 'visible') setShowInAppHelp(true);
-      }, 1500);
+      openCamera();
+      setShowInAppHelp(true);
       return;
     }
     if (arMode === 'ios') {
@@ -248,10 +251,10 @@ export default function WallPreviewModal({
             )}
             {/* The phone's own AR viewer didn't open (or isn't there): the
                 in-page camera works in every browser. */}
-            {(arMode !== 'ios-inapp' || showInAppHelp) && (
+            {arMode !== 'ios-inapp' && (
               <button
                 type="button"
-                onClick={() => setCameraOpen(true)}
+                onClick={openCamera}
                 disabled={loading || !data}
                 className={`w-full text-xs font-semibold underline disabled:opacity-50 ${
                   arFailed ? 'text-[#BA4E25]' : 'text-[#6E6057]'

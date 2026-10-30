@@ -115,6 +115,7 @@ export const zh: ExtraDictionary = {
     camDistance: '与墙距离：',
     camAdjusted: '已手动调整',
     camReset: '真实尺寸',
+    camRecenter: '回到中心',
     camCapture: '保存 / 分享照片',
     camDenied: '相机权限被阻止。请在浏览器设置中允许本网站使用相机，然后重试。',
     camUnsupported: '此浏览器无法打开相机。请在 Safari 或 Chrome 中打开页面。',

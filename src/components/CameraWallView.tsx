@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, Loader2, RotateCcw, X } from 'lucide-react';
+import { Camera, Crosshair, Loader2, RotateCcw, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 // "View on a wall" for EVERY phone browser — including the ones without the
@@ -11,7 +11,9 @@ import { useApp } from '@/context/AppContext';
 // The visitor drags it with a finger and pinches to resize. Its starting
 // size is the real one for the distance they say they stand from the wall,
 // from the typical phone camera's field of view — approximate, unlike the
-// native AR viewers, which measure the wall. A photo of the result can be
+// native AR viewers, which measure the wall. The phone's gyroscope keeps the
+// artwork in place on the wall while the phone turns or tilts (walking is
+// not tracked; "re-centre" undoes any drift). A photo of the result can be
 // saved or shared.
 
 interface CameraWallViewProps {
@@ -23,6 +25,28 @@ interface CameraWallViewProps {
 }
 
 const DISTANCES = [1, 1.5, 2, 3];
+
+// iPhone asks before a page may read the gyroscope, and only from a tap:
+// call this in the click that opens the camera view.
+let motionPermission: Promise<boolean> = Promise.resolve(true);
+export function requestMotionPermission() {
+  const DM =
+    typeof window !== 'undefined'
+      ? (window.DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> } | undefined)
+      : undefined;
+  if (DM?.requestPermission) {
+    motionPermission = DM.requestPermission()
+      .then((r) => r === 'granted')
+      .catch(() => false);
+  }
+  return motionPermission;
+}
+
+function screenAngle() {
+  if (typeof window === 'undefined') return 0;
+  const legacy = (window as unknown as { orientation?: number }).orientation;
+  return screen.orientation?.angle ?? legacy ?? 0;
+}
 // Typical main phone camera: ~63° across the long side of the frame, ~48°
 // across the short side.
 const FOV_LONG = 63;
@@ -42,6 +66,12 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
   const [scale, setScale] = useState(1); // the visitor's pinch on top of the real size
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null); // artwork centre, px
   const [saving, setSaving] = useState(false);
+  // How far the phone has turned since the artwork was placed, as the
+  // on-screen shift (px) and roll (degrees) that keep it on the same spot.
+  const [track, setTrack] = useState({ x: 0, y: 0, roll: 0 });
+  const [tracking, setTracking] = useState(false);
+  const trackRef = useRef({ x: 0, y: 0, roll: 0 });
+  const focalRef = useRef(0); // camera focal length in screen px
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<{ dist: number; scale: number } | null>(null);
 
@@ -110,7 +140,54 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
   const pxPerCm = frameW && wallAcrossCm ? frameW / wallAcrossCm : 0;
   const artW = widthCm * pxPerCm * scale;
   const artH = heightCm * pxPerCm * scale;
-  const center = pos || { x: box.w / 2, y: box.h * 0.42 };
+  const base = pos || { x: box.w / 2, y: box.h * 0.42 };
+  const center = { x: base.x + track.x, y: base.y + track.y };
+  const focal = frameW ? frameW / 2 / Math.tan(fovAcross / 2) : 0;
+  useEffect(() => {
+    focalRef.current = focal;
+  }, [focal]);
+
+  // Gyroscope: integrate the rotation rate. Turning the phone left moves the
+  // wall (and the artwork on it) right on screen, tilting it up moves it
+  // down, rolling it turns it the other way. Portrait only.
+  useEffect(() => {
+    let last = 0;
+    let frame = 0;
+    let on = true;
+    const onMotion = (e: DeviceMotionEvent) => {
+      const r = e.rotationRate;
+      const f = focalRef.current;
+      const dt = last ? (e.timeStamp - last) / 1000 : 0;
+      last = e.timeStamp;
+      if (!r || r.beta == null || r.gamma == null || !f || dt <= 0 || dt > 0.2 || screenAngle() !== 0) return;
+      const rad = Math.PI / 180;
+      const tr = trackRef.current;
+      tr.x += r.gamma * rad * dt * f;
+      tr.y += r.beta * rad * dt * f;
+      tr.roll += (r.alpha ?? 0) * dt;
+      if (!frame) {
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          setTrack({ ...trackRef.current });
+          setTracking(true);
+        });
+      }
+    };
+    motionPermission.then((ok) => {
+      if (ok && on) window.addEventListener('devicemotion', onMotion);
+    });
+    return () => {
+      on = false;
+      window.removeEventListener('devicemotion', onMotion);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const recenter = () => {
+    trackRef.current = { x: 0, y: 0, roll: 0 };
+    setTrack(trackRef.current);
+    setPos(null);
+  };
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -129,7 +206,7 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
       const d = Math.hypot(a.x - b.x, a.y - b.y);
       setScale(Math.min(4, Math.max(0.25, gesture.current.scale * (d / gesture.current.dist))));
     } else if (pointers.current.size === 1) {
-      setPos({ x: center.x + (e.clientX - prev.x), y: center.y + (e.clientY - prev.y) });
+      setPos({ x: base.x + (e.clientX - prev.x), y: base.y + (e.clientY - prev.y) });
     }
   };
   const onPointerUp = (e: React.PointerEvent) => {
@@ -155,7 +232,9 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
       ctx.shadowColor = 'rgba(0,0,0,0.45)';
       ctx.shadowBlur = 18;
       ctx.shadowOffsetY = 6;
-      ctx.drawImage(img, center.x - artW / 2, center.y - artH / 2, artW, artH);
+      ctx.translate(center.x, center.y);
+      ctx.rotate((track.roll * Math.PI) / 180);
+      ctx.drawImage(img, -artW / 2, -artH / 2, artW, artH);
       const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', 0.9));
       if (!blob) return;
       const file = new File([blob], 'art-qala-wall.jpg', { type: 'image/jpeg' });
@@ -211,7 +290,13 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
             alt={title}
             draggable={false}
             className="absolute max-w-none pointer-events-none shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
-            style={{ width: artW, height: artH, left: center.x - artW / 2, top: center.y - artH / 2 }}
+            style={{
+              width: artW,
+              height: artH,
+              left: center.x - artW / 2,
+              top: center.y - artH / 2,
+              transform: track.roll ? `rotate(${track.roll}deg)` : undefined,
+            }}
           />
         )}
 
@@ -247,12 +332,20 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
             {Math.round(widthCm)} × {Math.round(heightCm)} {cmLabel}
             {scale !== 1 && <span className="font-normal text-white/60"> · {t.painting.camAdjusted}</span>}
           </span>
-          {scale !== 1 && (
-            <button type="button" onClick={() => setScale(1)} className="flex items-center gap-1 text-[#E8A27F]">
-              <RotateCcw className="w-3.5 h-3.5" />
-              {t.painting.camReset}
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {tracking && (
+              <button type="button" onClick={recenter} className="flex items-center gap-1 text-[#E8A27F]">
+                <Crosshair className="w-3.5 h-3.5" />
+                {t.painting.camRecenter}
+              </button>
+            )}
+            {scale !== 1 && (
+              <button type="button" onClick={() => setScale(1)} className="flex items-center gap-1 text-[#E8A27F]">
+                <RotateCcw className="w-3.5 h-3.5" />
+                {t.painting.camReset}
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[11px] text-white/70 shrink-0">{t.painting.camDistance}</span>
