@@ -36,9 +36,10 @@ interface WallData {
 }
 
 // 'ios-inapp': an iPhone browser without Quick Look (Telegram, Instagram…
-// in-app browsers, the Google app) — the visitor is told to open the page
-// in Safari. Safari and Chrome/Edge/Firefox on iOS do have Quick Look (the
-// latter only from a real .usdz link, which is what we give them).
+// in-app browsers, the Google app) — the button hands the AR model to Safari
+// (see openAr), with the open-in-Safari tip as fallback. Safari and
+// Chrome/Edge/Firefox on iOS do have Quick Look (the latter only from a real
+// .usdz link, which is what we give them).
 // null: a computer — a QR code opens this view on the phone.
 type ArMode = 'ios' | 'ios-inapp' | 'android' | null;
 
@@ -136,8 +137,15 @@ export default function WallPreviewModal({
     // the visitor to open the page in Safari/Chrome, where the artwork sticks
     // to the wall. The simple camera view stays an opt-in below — it can't
     // track the wall, so it must never stand in for the real AR unasked.
+    // iOS 17+ hands an x-safari-https:// link to Safari, which opens the
+    // USDZ straight in Quick Look — the real, wall-anchored AR. Older iOS
+    // ignores the scheme; the help shows when the page is still in front.
     if (arMode === 'ios-inapp') {
-      setShowInAppHelp(true);
+      const usdz = new URL(data.usdz, window.location.href);
+      window.location.href = `x-safari-${usdz.href}#allowsContentScaling=0`;
+      window.setTimeout(() => {
+        if (document.visibilityState === 'visible') setShowInAppHelp(true);
+      }, 1500);
       return;
     }
     if (arMode === 'ios') {
