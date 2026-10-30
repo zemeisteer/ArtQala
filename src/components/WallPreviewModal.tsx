@@ -36,7 +36,7 @@ interface WallData {
 }
 
 // 'ios-inapp': an iPhone browser without Quick Look (Telegram, Instagram…
-// in-app browsers, the Google app) — the button opens the in-page camera
+// in-app browsers) — the button opens the in-page camera
 // view, with a tip that Safari has the exact AR. Safari and
 // Chrome/Edge/Firefox on iOS do have Quick Look (the latter only from a real
 // .usdz link, which is what we give them).
@@ -48,8 +48,9 @@ function detectArMode(): ArMode {
   const ua = navigator.userAgent;
   const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (ios) {
-    if (/GSA\//.test(ua)) return 'ios-inapp';
-    if (/CriOS\/|EdgiOS\/|FxiOS\/|DuckDuckGo\//.test(ua)) return 'ios';
+    // Google's own iOS apps (Chrome, the Google app) open Quick Look from a
+    // real .usdz link, like the other non-Safari browsers.
+    if (/GSA\/|CriOS\/|EdgiOS\/|FxiOS\/|DuckDuckGo\//.test(ua)) return 'ios';
     return document.createElement('a').relList?.supports?.('ar') ? 'ios' : 'ios-inapp';
   }
   if (/android/i.test(ua)) return 'android';
@@ -143,7 +144,7 @@ export default function WallPreviewModal({
     // the visitor to open the page in Safari/Chrome, where the artwork sticks
     // to the wall. The simple camera view stays an opt-in below — it can't
     // track the wall, so it must never stand in for the real AR unasked.
-    // No Quick Look here (and the Google app blocks handing the model to
+    // No Quick Look here (and these apps block handing the model to
     // Safari): the in-page camera view, kept on the wall by the gyroscope,
     // plus the tip that Safari has the exact, measured AR.
     if (arMode === 'ios-inapp') {

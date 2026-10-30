@@ -80,11 +80,12 @@ never re-computed. Computers get a QR code that opens the view on a phone (`?wal
 `/ar/painting.usdz` (real-size models, `src/lib/paintingGlb.ts` / `paintingUsdz.ts`, both dependency-free) serve it.
 Phones open it in their own AR viewer — Android Scene Viewer via an `intent://` URL, iOS Quick Look via the server
 USDZ's real URL (a blob URL only works in Safari; Chrome/Edge/Firefox on iOS need a real link). The USDZ is tipped
-back 90° because Quick Look's wall anchor uses Y as the wall normal. The Google app on iOS (GSA) has no Quick Look.
+back 90° because Quick Look's wall anchor uses Y as the wall normal. The Google app on iOS (GSA) opens it like Chrome
+does (real link) — the owner reports it worked there before it was routed to the in-app path.
 Every phone browser also gets `CameraWallView` (in-page camera + draggable/pinchable artwork kept on its spot by the
 gyroscope while the phone turns — `requestMotionPermission()` must run in the opening tap on iPhone; start size from the chosen
 distance to the wall and a typical camera field of view, photo save/share) — the primary path where there is no AR
-viewer (Google app, Telegram/Instagram in-app browsers) and a "didn't work?" fallback elsewhere. It needs
+viewer (Telegram/Instagram in-app browsers) and a "didn't work?" fallback elsewhere. It needs
 `Permissions-Policy: camera=(self)` in `next.config.ts`.
 
 **AI assistants / search** (ChatGPT, Claude, Gemini, Perplexity answering "a gallery selling paintings in
