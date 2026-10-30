@@ -132,11 +132,12 @@ export default function WallPreviewModal({
 
   const openAr = () => {
     if (!data) return;
-    // No AR viewer in this browser (Google app, Telegram/Instagram…): the
-    // in-page camera view instead, plus a tip on where the exact one works.
+    // No AR viewer in this browser (Google app, Telegram/Instagram…): tell
+    // the visitor to open the page in Safari/Chrome, where the artwork sticks
+    // to the wall. The simple camera view stays an opt-in below — it can't
+    // track the wall, so it must never stand in for the real AR unasked.
     if (arMode === 'ios-inapp') {
       setShowInAppHelp(true);
-      setCameraOpen(true);
       return;
     }
     if (arMode === 'ios') {
@@ -239,7 +240,7 @@ export default function WallPreviewModal({
             )}
             {/* The phone's own AR viewer didn't open (or isn't there): the
                 in-page camera works in every browser. */}
-            {arMode !== 'ios-inapp' && (
+            {(arMode !== 'ios-inapp' || showInAppHelp) && (
               <button
                 type="button"
                 onClick={() => setCameraOpen(true)}
