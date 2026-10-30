@@ -107,6 +107,7 @@ export const ja: ExtraDictionary = {
     camDistance: '壁まで：',
     camAdjusted: '手動で調整済み',
     camReset: '実寸',
+    camRecenter: '中央に戻す',
     camCapture: '写真を保存／共有',
     camDenied: 'カメラへのアクセスがブロックされました。ブラウザの設定でこのサイトのカメラを許可して、もう一度お試しください。',
     camUnsupported: 'このブラウザではカメラを開けません。Safari または Chrome でページを開いてください。',

@@ -110,6 +110,7 @@ export const fr: ExtraDictionary = {
     camDistance: 'Distance au mur :',
     camAdjusted: 'ajustée à la main',
     camReset: 'Taille réelle',
+    camRecenter: 'Recentrer',
     camCapture: 'Enregistrer / partager la photo',
     camDenied: 'L’accès à la caméra a été bloqué. Autorisez la caméra pour ce site dans les réglages du navigateur et réessayez.',
     camUnsupported: 'Ce navigateur ne peut pas ouvrir la caméra. Ouvrez la page dans Safari ou Chrome.',

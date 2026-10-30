@@ -108,6 +108,7 @@ export const ko: ExtraDictionary = {
     camDistance: '벽까지:',
     camAdjusted: '직접 조정함',
     camReset: '실제 크기',
+    camRecenter: '가운데로',
     camCapture: '사진 저장 / 공유',
     camDenied: '카메라 접근이 차단되었습니다. 브라우저 설정에서 이 사이트의 카메라를 허용한 뒤 다시 시도하세요.',
     camUnsupported: '이 브라우저에서는 카메라를 열 수 없습니다. Safari 또는 Chrome에서 여세요.',
