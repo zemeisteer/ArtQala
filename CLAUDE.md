@@ -167,8 +167,11 @@ unsold works are posted on create (`src/lib/telegramChannel.ts`); any work can b
 **Gift certificates** (`GiftCertificate`, `/gift-card`, Admin → Sovg'a sertifikatlari): request → curator arranges
 payment → "To'landi" emails a signed link to the printable certificate (`/gift/<code>?s=`, `src/lib/giftCards.ts`).
 
-**Masterclasses** (`Workshop`, Admin → Master-klasslar, public `/experiences`): a booking is a `ServiceRequest` with
-`service_type = 'WORKSHOP'`, so it shares the service-request admin page, Telegram buttons and reply thread.
+**Masterclasses** (`Workshop`, Admin → Master-klasslar, public `/experiences`, header menu): a workshop has session
+start times (`times`) and run days (`weekdays`); a booking is a `WorkshopBooking` for one session (date + time).
+A session holds `max_people` people across its NEW/CONFIRMED bookings (no `max_people` = private: one booking takes
+it) — checked and taken in one Serializable transaction in `/api/workshops/book`; `/api/workshops/[id]/availability`
+tells the form which sessions are full. Bookings are managed in the "Bronlar" tab (confirming emails the customer).
 
 **"Find art for my room"** (`RoomMatch` on the gallery page, `/api/room-match`, `src/lib/roomMatch.ts`): the visitor's
 room photo plus thumbnails of available wall pieces go to Gemini in one request; the photo is never stored.

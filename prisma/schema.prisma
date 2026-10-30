@@ -520,9 +520,8 @@ model GiftCertificate {
   @@index([status])
 }
 
-// Masterclasses / tours bookable on /experiences. A booking is a
-// ServiceRequest with service_type "WORKSHOP" (same admin page, Telegram
-// buttons and reply thread as other service requests).
+// Masterclasses / tours bookable on /experiences (bookings: WorkshopBooking,
+// managed in Admin → Master-klasslar).
 model Workshop {
   id               String   @id @default(cuid())
   title_uz         String
@@ -539,6 +538,35 @@ model Workshop {
   is_active        Boolean  @default(true)
   sort             Int      @default(0)
   translations     String?
+  // Session start times ("HH:MM") a visitor picks from; empty = any time.
+  times            String[] @default([])
+  // Days it runs (0 = Sunday … 6 = Saturday); empty = every day.
+  weekdays         Int[]    @default([])
+  bookings         WorkshopBooking[]
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
+}
+
+// A booking for one session (workshop + date + time). A session holds up to
+// Workshop.max_people people across all NEW/CONFIRMED bookings; with no
+// max_people it is private — one booking takes it. See src/lib/workshops.ts.
+model WorkshopBooking {
+  id          String   @id @default(cuid())
+  workshop_id String
+  workshop    Workshop @relation(fields: [workshop_id], references: [id], onDelete: Cascade)
+  date        String // YYYY-MM-DD
+  time        String // HH:MM
+  people      Int
+  name        String
+  email       String
+  phone       String
+  note        String?
+  lang        String   @default("en")
+  status      String   @default("NEW") // NEW, CONFIRMED, DONE, CANCELLED
+  admin_notes String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([workshop_id, date])
+  @@index([status])
 }

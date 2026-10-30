@@ -8,6 +8,14 @@ interface DatePickerProps {
   onChange: (value: string) => void;
   className?: string;
   buttonClassName?: string;
+  // Days before this ('YYYY-MM-DD') can't be picked.
+  min?: string;
+  // Extra rule for days that can't be picked (e.g. a weekday a masterclass doesn't run).
+  isDisabled?: (value: string) => boolean;
+  // Public site: month/weekday names in this language (default: Uzbek, as in the admin).
+  locale?: string;
+  placeholder?: string;
+  todayLabel?: string;
 }
 
 const MONTH_NAMES = [
@@ -30,12 +38,23 @@ function formatValue(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatDisplay(date: Date | null): string {
+function formatDisplay(date: Date | null, locale?: string): string {
   if (!date) return '';
+  if (locale) return date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
   return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-export default function DatePicker({ value, onChange, className = '', buttonClassName = '' }: DatePickerProps) {
+export default function DatePicker({
+  value,
+  onChange,
+  className = '',
+  buttonClassName = '',
+  min,
+  isDisabled,
+  locale,
+  placeholder = 'Sanani tanlang',
+  todayLabel = 'Bugun',
+}: DatePickerProps) {
   const selected = parseDate(value);
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => selected || new Date());
@@ -70,6 +89,17 @@ export default function DatePicker({ value, onChange, className = '', buttonClas
     selected && selected.getFullYear() === year && selected.getMonth() === month && selected.getDate() === d;
 
   const today = new Date();
+  const disabled = (d: number) => {
+    const v = formatValue(new Date(year, month, d));
+    return (!!min && v < min) || !!isDisabled?.(v);
+  };
+  const monthTitle = locale
+    ? new Date(year, month, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
+    : `${MONTH_NAMES[month]} ${year}`;
+  // Monday-first, 2024-01-01 was a Monday.
+  const weekdayLabels = locale
+    ? Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(locale, { weekday: 'narrow' }))
+    : WEEKDAY_LABELS;
   const isToday = (d: number) =>
     today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
 
@@ -81,7 +111,7 @@ export default function DatePicker({ value, onChange, className = '', buttonClas
         className={`w-full flex items-center gap-2 text-xs px-3 py-2.5 bg-white border border-[#E7E0D8] rounded-md hover:border-[#BA4E25]/50 focus:outline-none focus:ring-2 focus:ring-[#BA4E25]/20 focus:border-[#BA4E25] transition-colors text-left text-[#281C18] ${buttonClassName}`}
       >
         <Calendar className="w-3.5 h-3.5 text-[#8A7C73] shrink-0" />
-        <span className="truncate">{selected ? formatDisplay(selected) : 'Sanani tanlang'}</span>
+        <span className="truncate">{selected ? formatDisplay(selected, locale) : placeholder}</span>
       </button>
 
       {open && (
@@ -95,7 +125,7 @@ export default function DatePicker({ value, onChange, className = '', buttonClas
               <ChevronLeft className="w-4 h-4" />
             </button>
             <span className="text-xs font-semibold text-[#281C18]">
-              {MONTH_NAMES[month]} {year}
+              {monthTitle}
             </span>
             <button
               type="button"
@@ -107,8 +137,8 @@ export default function DatePicker({ value, onChange, className = '', buttonClas
           </div>
 
           <div className="grid grid-cols-7 gap-0.5 mb-1">
-            {WEEKDAY_LABELS.map((w) => (
-              <div key={w} className="text-center text-[9.5px] font-bold text-[#A8988E] py-1">
+            {weekdayLabels.map((w, i) => (
+              <div key={i} className="text-center text-[9.5px] font-bold text-[#A8988E] py-1">
                 {w}
               </div>
             ))}
@@ -122,12 +152,15 @@ export default function DatePicker({ value, onChange, className = '', buttonClas
                 <button
                   key={idx}
                   type="button"
+                  disabled={disabled(d)}
                   onClick={() => {
                     onChange(formatValue(new Date(year, month, d)));
                     setOpen(false);
                   }}
                   className={`aspect-square text-[11px] rounded transition-colors flex items-center justify-center ${
-                    isSameDay(d)
+                    disabled(d)
+                      ? 'text-[#D9D0C6] cursor-not-allowed'
+                      : isSameDay(d)
                       ? 'bg-[#BA4E25] text-white font-semibold'
                       : isToday(d)
                       ? 'text-[#BA4E25] font-semibold hover:bg-[#FAF4EC]'
@@ -140,16 +173,19 @@ export default function DatePicker({ value, onChange, className = '', buttonClas
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              onChange(formatValue(today));
-              setOpen(false);
-            }}
-            className="w-full mt-2 pt-2 border-t border-[#F0EAE1] text-[11px] font-semibold text-[#429599] hover:underline"
-          >
-            Bugun
-          </button>
+          {todayLabel && (
+            <button
+              type="button"
+              disabled={(!!min && formatValue(today) < min) || !!isDisabled?.(formatValue(today))}
+              onClick={() => {
+                onChange(formatValue(today));
+                setOpen(false);
+              }}
+              className="w-full mt-2 pt-2 border-t border-[#F0EAE1] text-[11px] font-semibold text-[#429599] hover:underline"
+            >
+              {todayLabel}
+            </button>
+          )}
         </div>
       )}
     </div>

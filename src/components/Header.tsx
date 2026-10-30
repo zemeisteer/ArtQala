@@ -48,6 +48,7 @@ export default function Header() {
     { href: '/artists', label: t.nav.artists },
     { href: '/services', label: t.nav.services },
     { href: '/delivery', label: t.nav.delivery },
+    { href: '/experiences', label: t.workshops.navLabel },
     { href: '/reviews', label: t.nav.reviews },
     { href: '/contact', label: t.nav.contact },
   ];
@@ -68,8 +69,9 @@ export default function Header() {
               className="brand-mark h-[46px] w-auto object-contain transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1"
             />
           </div>
-          <div className="hidden sm:flex flex-col leading-none">
-            <span className="text-[9.5px] tracking-[3px] text-[#BA4E25] font-semibold mt-1">
+          {/* Hidden where the full menu is tight (xl), shown again on 2xl. */}
+          <div className="hidden sm:flex xl:hidden 2xl:flex flex-col leading-none">
+            <span className="text-[9.5px] tracking-[3px] text-[#BA4E25] font-semibold mt-1 whitespace-nowrap">
               {t.nav.tagline}
             </span>
           </div>
@@ -79,7 +81,7 @@ export default function Header() {
         {/* The full nav needs ~1150px (more with the longer Uzbek labels) —
             below xl it used to wrap "Sign In" and the tagline onto several
             lines on tablets/small laptops, so those get the menu button. */}
-        <nav className="hidden xl:flex items-center gap-6 2xl:gap-8">
+        <nav className="hidden xl:flex items-center gap-5 2xl:gap-8">
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -170,7 +172,9 @@ export default function Header() {
               className="w-[84px] ml-1"
               buttonClassName="!rounded-full !py-1 !px-2.5 !text-[11px] !font-semibold !border-[#E7E0D8] hover:!border-[#429599] hover:!text-[#429599]"
             />
-            <AnimatedChorgul />
+            <span className="hidden 2xl:inline-flex">
+              <AnimatedChorgul />
+            </span>
           </div>
         </nav>
 

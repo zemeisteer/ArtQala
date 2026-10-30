@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Gift, Send, CheckCircle2 } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import PhoneInput from '@/components/PhoneInput';
 import { useApp } from '@/context/AppContext';
 import { ReviewHoneypot, reviewErrorText, reviewGuardFields, useReviewFormToken } from '@/components/ReviewGuard';
 
@@ -22,6 +23,7 @@ export default function GiftCardClient() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [phoneValid, setPhoneValid] = useState(true);
   const token = useReviewFormToken(!sent);
 
   const value = custom ? Math.round(Number(custom)) : amount;
@@ -36,6 +38,10 @@ export default function GiftCardClient() {
       setError(g.errAmount);
       return;
     }
+    if (!phoneValid) {
+      setError(t.phoneInput.invalidPhone);
+      return;
+    }
     setSending(true);
     try {
       const res = await fetch('/api/gift-cards', {
@@ -46,7 +52,7 @@ export default function GiftCardClient() {
       const data = await res.json();
       if (data.success) setSent(true);
       else {
-        setError(data.code === 'amount' ? g.errAmount : reviewErrorText(data.code, t));
+        setError(data.code === 'amount' ? g.errAmount : data.code === 'phone' ? t.phoneInput.invalidPhone : reviewErrorText(data.code, t));
         if (data.code === 'expired') token.refresh();
       }
     } catch {
@@ -125,7 +131,12 @@ export default function GiftCardClient() {
                     </div>
                     <div>
                       <label className={label}>{g.yourPhone}</label>
-                      <input type="tel" maxLength={40} value={f.buyer_phone} onChange={set('buyer_phone')} className={input} />
+                      <PhoneInput
+                        value={f.buyer_phone}
+                        onChange={(v) => setF((x) => ({ ...x, buyer_phone: v }))}
+                        onValidityChange={setPhoneValid}
+                        required={false}
+                      />
                     </div>
                   </div>
                   <div className="space-y-3">

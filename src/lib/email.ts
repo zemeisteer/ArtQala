@@ -794,3 +794,54 @@ export async function sendGiftCertificateEmail(params: {
     ),
   });
 }
+
+// Masterclass booking: "received" right after booking, "confirmed" when the
+// curator confirms it in Admin → Master-klasslar.
+export async function sendWorkshopBookingEmail(params: {
+  to: string;
+  name: string;
+  workshop: string;
+  date: string;
+  time: string;
+  people: number;
+  total: number;
+  confirmed: boolean;
+}): Promise<EmailSendResult> {
+  const when = `${new Date(`${params.date}T12:00:00Z`).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })}, ${params.time}`;
+  const rows = [
+    ['Masterclass', params.workshop],
+    ['When', when],
+    ['People', String(params.people)],
+    ['Total', `$${Math.round(params.total).toLocaleString('en-US')}`],
+  ]
+    .map(
+      ([k, v]) =>
+        `<tr><td style="padding: 3px 14px 3px 0; color: #8F8178;">${escapeHtml(k)}</td><td style="padding: 3px 0; color: #281C18;"><strong>${escapeHtml(v)}</strong></td></tr>`
+    )
+    .join('');
+  return sendResendEmail({
+    to: params.to,
+    subject: params.confirmed
+      ? `Confirmed: ${params.workshop} — ${when}`
+      : `Art Qala — we received your booking for ${params.workshop}`,
+    html: simpleEmail(
+      'Masterclass booking',
+      `<h2 style="font-family: 'Georgia', serif; font-size: 20px; color: #281C18; margin: 0 0 12px 0;">${
+        params.confirmed ? 'Your place is confirmed' : 'Thank you'
+      }, ${escapeHtml(params.name)}</h2>
+       <p style="margin: 0 0 12px 0;">${
+         params.confirmed
+           ? 'Our curator has confirmed your masterclass. We look forward to seeing you!'
+           : 'We received your booking request. Our curator will confirm it shortly — usually within a day.'
+       }</p>
+       <table border="0" cellspacing="0" cellpadding="0" style="font-size: 14px; margin: 0 0 14px 0;">${rows}</table>
+       <p style="margin: 0; color: #8F8178; font-size: 13px;">Need to change something? Just reply to this email.</p>`
+    ),
+  });
+}

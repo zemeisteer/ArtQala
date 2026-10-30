@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Clock, Users, MapPin, X, Send, CheckCircle2, Palette } from 'lucide-react';
+import { Clock, Users, MapPin, X, Send, CheckCircle2, Palette, CalendarDays } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import DatePicker from '@/components/DatePicker';
 import TimePicker from '@/components/TimePicker';
+import PhoneInput from '@/components/PhoneInput';
 import { useApp } from '@/context/AppContext';
 import { pick } from '@/lib/contentTranslations';
+import { weekdayOf } from '@/lib/workshops';
 import { ReviewHoneypot, reviewErrorText, reviewGuardFields, useReviewFormToken } from '@/components/ReviewGuard';
 
 export interface PublicWorkshop {
@@ -23,10 +25,20 @@ export interface PublicWorkshop {
   max_people: number | null;
   location: string | null;
   image: string | null;
+  times: string[];
+  weekdays: number[];
 }
 
 const input = 'w-full text-sm px-3.5 py-2.5 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25]';
 const label = 'block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1';
+
+// "Mon", "Пн", "月"… — 2024-01-07 was a Sunday.
+// Browsers have no Uzbek names, so those are spelled out here.
+const UZ_WEEKDAYS = ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
+const weekdayName = (d: number, lang: string) =>
+  lang === 'uz'
+    ? UZ_WEEKDAYS[d]
+    : new Date(Date.UTC(2024, 0, 7 + d)).toLocaleDateString(lang === 'en' ? 'en-GB' : lang, { weekday: 'short', timeZone: 'UTC' });
 
 export default function ExperiencesClient({ workshops }: { workshops: PublicWorkshop[] }) {
   const { t, lang } = useApp();
@@ -79,6 +91,13 @@ export default function ExperiencesClient({ workshops }: { workshops: PublicWork
                         <MapPin className="w-3.5 h-3.5" /> {x.location}
                       </span>
                     )}
+                    {(x.times.length > 0 || x.weekdays.length > 0) && (
+                      <span className="flex items-center gap-1 w-full">
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        {x.weekdays.length ? x.weekdays.map((d) => weekdayName(d, lang)).join(', ') : w.everyDay}
+                        {x.times.length > 0 && ` · ${x.times.join(', ')}`}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-auto pt-2 flex items-center justify-between">
                     <div>
@@ -103,29 +122,73 @@ export default function ExperiencesClient({ workshops }: { workshops: PublicWork
   );
 }
 
+interface SessionState {
+  time: string;
+  taken: number;
+  left: number | null;
+  full: boolean;
+}
+
 function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose: () => void }) {
   const { t, lang, user } = useApp();
   const w = t.workshops;
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [people, setPeople] = useState(2);
+  const [people, setPeople] = useState(1);
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [phone, setPhone] = useState('');
+  const [phoneValid, setPhoneValid] = useState(false);
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [slots, setSlots] = useState<{ runsThatDay: boolean; sessions: SessionState[] } | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const token = useReviewFormToken(!sent);
-  const max = workshop.max_people || 20;
+  const fixedTimes = workshop.times.length > 0;
+  const today = new Date().toISOString().slice(0, 10);
+
+  const loadSlots = async (d: string) => {
+    setLoadingSlots(true);
+    try {
+      const res = await fetch(`/api/workshops/${workshop.id}/availability?date=${d}`, { cache: 'no-store' });
+      const data = await res.json();
+      setSlots(data.success ? { runsThatDay: data.runsThatDay, sessions: data.sessions } : null);
+    } catch {
+      setSlots(null);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const pickDate = (d: string) => {
+    setDate(d);
+    setTime('');
+    setError(null);
+    setSlots(null);
+    if (d && d < today) {
+      setError(w.errDate);
+      return;
+    }
+    if (d) loadSlots(d);
+  };
+
+  const session = slots?.sessions.find((s) => s.time === time);
+  const takenHere = session?.taken || 0;
+  const timeFull = !!session?.full;
+  // Seats this booking may take in the chosen session.
+  const maxHere = workshop.max_people ? Math.max(1, workshop.max_people - takenHere) : 20;
+  const shownTimes = fixedTimes ? workshop.times.map((tm) => slots?.sessions.find((s) => s.time === tm) || { time: tm, taken: 0, left: workshop.max_people, full: false }) : [];
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    if (!date) {
-      setError(w.errInvalid);
-      return;
-    }
+    if (!date || date < today) return setError(w.errDate);
+    if (slots && !slots.runsThatDay) return setError(w.notThatDay);
+    if (!time) return setError(w.errTime);
+    if (timeFull) return setError(w.errFull);
+    if (!phoneValid) return setError(t.phoneInput.invalidPhone);
     setSending(true);
     setError(null);
     try {
@@ -136,18 +199,27 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
           workshop_id: workshop.id,
           date,
           time,
-          people,
+          people: Math.min(people, maxHere),
           name: name ?? user?.name ?? '',
           email: email ?? user?.email ?? '',
           phone,
           note,
+          lang,
           ...reviewGuardFields(form, token.token),
         }),
       });
       const data = await res.json();
       if (data.success) setSent(true);
       else {
-        setError(data.code === 'invalid' ? w.errInvalid : reviewErrorText(data.code, t));
+        const byCode: Record<string, string> = {
+          full: w.errFull,
+          date: w.errDate,
+          time: w.errTime,
+          phone: t.phoneInput.invalidPhone,
+          invalid: w.errInvalid,
+        };
+        setError(byCode[data.code] || reviewErrorText(data.code, t));
+        if (data.code === 'full') loadSlots(date);
         if (data.code === 'expired') token.refresh();
       }
     } catch {
@@ -172,18 +244,75 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
             <span>{w.thanks}</span>
           </div>
         ) : (
-          <form onSubmit={submit} className="space-y-3.5 relative">
+          <form onSubmit={submit} className="space-y-4 relative">
             <ReviewHoneypot />
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <span className={label}>{w.date}</span>
-                <DatePicker value={date} onChange={setDate} />
-              </div>
-              <div>
-                <span className={label}>{w.time}</span>
-                <TimePicker value={time} onChange={setTime} />
-              </div>
+            <div>
+              <span className={label}>{w.date}</span>
+              <DatePicker
+                value={date}
+                onChange={pickDate}
+                min={today}
+                isDisabled={(d) => workshop.weekdays.length > 0 && !workshop.weekdays.includes(weekdayOf(d))}
+                locale={lang === 'uz' ? undefined : lang === 'en' ? 'en-GB' : lang}
+                placeholder={w.chooseDate}
+                todayLabel=""
+              />
             </div>
+
+            <div>
+              <span className={label}>{w.chooseTime}</span>
+              {!date || date < today ? (
+                <p className="text-xs text-[#8F8178]">{w.chooseDate}</p>
+              ) : loadingSlots ? (
+                <p className="text-xs text-[#8F8178]">{w.loadingSlots}</p>
+              ) : slots && !slots.runsThatDay ? (
+                <p className="text-xs text-[#B91C1C]">{w.notThatDay}</p>
+              ) : fixedTimes ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {shownTimes.map((s) => (
+                    <button
+                      key={s.time}
+                      type="button"
+                      disabled={s.full}
+                      onClick={() => {
+                        setTime(s.time);
+                        setError(null);
+                        if (s.left !== null) setPeople((p) => Math.min(p, Math.max(1, s.left!)));
+                      }}
+                      className={`rounded-[3px] border px-2 py-2 text-center transition ${
+                        s.full
+                          ? 'bg-[#F3EEE8] border-[#E7E0D8] text-[#B5A599] cursor-not-allowed line-through'
+                          : time === s.time
+                            ? 'bg-[#BA4E25] border-[#BA4E25] text-white'
+                            : 'bg-white border-[#E7E0D8] text-[#281C18] hover:border-[#BA4E25]'
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold">{s.time}</span>
+                      <span className="block text-[10.5px]">
+                        {s.full ? w.full : s.left !== null ? w.seatsLeft.replace('{n}', String(s.left)) : w.free}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <TimePicker
+                    value={time}
+                    onChange={(v) => {
+                      setTime(v);
+                      setError(null);
+                    }}
+                  />
+                  {slots && slots.sessions.some((s) => s.full) && (
+                    <p className="text-[11px] text-[#8F8178]">
+                      {w.takenTimes} {slots.sessions.filter((s) => s.full).map((s) => s.time).join(', ')}
+                    </p>
+                  )}
+                  {timeFull && <p className="text-xs text-[#B91C1C]">{w.errFull}</p>}
+                </div>
+              )}
+            </div>
+
             <div>
               <span className={label}>{w.people}</span>
               <div className="flex items-center gap-2">
@@ -191,7 +320,7 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
                   −
                 </button>
                 <span className="w-10 text-center font-semibold">{people}</span>
-                <button type="button" onClick={() => setPeople((p) => Math.min(max, p + 1))} className="w-9 h-9 border border-[#E7E0D8] bg-white rounded-[3px] text-lg">
+                <button type="button" onClick={() => setPeople((p) => Math.min(maxHere, p + 1))} className="w-9 h-9 border border-[#E7E0D8] bg-white rounded-[3px] text-lg">
                   +
                 </button>
                 <span className="ml-auto text-sm text-[#554740]">
@@ -203,15 +332,13 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
               <label className={label}>{w.name}</label>
               <input required maxLength={80} value={name ?? user?.name ?? ''} onChange={(e) => setName(e.target.value)} className={input} />
             </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className={label}>{w.contact}</label>
-                <input required type="email" maxLength={120} value={email ?? user?.email ?? ''} onChange={(e) => setEmail(e.target.value)} className={input} />
-              </div>
-              <div>
-                <label className={label}>{w.phone}</label>
-                <input type="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} className={input} />
-              </div>
+            <div>
+              <label className={label}>{w.contact}</label>
+              <input required type="email" maxLength={120} value={email ?? user?.email ?? ''} onChange={(e) => setEmail(e.target.value)} className={input} />
+            </div>
+            <div>
+              <span className={label}>{w.phone} *</span>
+              <PhoneInput value={phone} onChange={setPhone} onValidityChange={setPhoneValid} />
             </div>
             <div>
               <label className={label}>{w.note}</label>
@@ -224,7 +351,7 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
               </button>
               <button
                 type="submit"
-                disabled={sending}
+                disabled={sending || timeFull}
                 className="bg-[#BA4E25] hover:bg-[#9C3E1B] disabled:opacity-60 text-white font-semibold text-xs px-6 py-2.5 rounded-[3px] flex items-center gap-2"
               >
                 <Send className="w-3.5 h-3.5" /> {sending ? w.sending : w.submit}
