@@ -3,9 +3,11 @@ import { SITE_URL } from './siteUrl';
 import { tg, tgEscape, isTelegramConfigured } from './telegram';
 import { mainImage, PLACEHOLDER_IMAGE } from './paintingImages';
 import { localizePath } from './i18n/routing';
+import { parseSizeCm } from './paintingSize';
 
 // The gallery's public Telegram channel: a new work added in the admin is
-// posted there (photo, title, artist, size, price, link), and any work can
+// posted there in English (photo, title, artist, size, "View on site"
+// button — the owner wants nothing more), and any work can
 // be (re)posted from its edit page. The bot must be an admin of the channel
 // with "Post messages". Set in Admin → Settings → Telegram
 // (SiteSettings.telegram_channel; empty = off).
@@ -45,7 +47,13 @@ export async function verifyChannel(channel: string): Promise<{ ok: true; title:
   return { ok: true, title: chat.result.title || channel };
 }
 
-const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
+// "90 × 70 cm" whatever unit the admin typed ("sm", "dyum"…).
+function englishSize(size: string | null): string {
+  const s = parseSizeCm(size);
+  if (!s) return size || '';
+  const n = (v: number) => String(Math.round(v * 10) / 10);
+  return `${[s.width, s.height, s.depth].filter((v): v is number => !!v).map(n).join(' × ')} cm`;
+}
 const absolute = (url: string) => (url.startsWith('http') ? url : `${SITE_URL}${url.startsWith('/') ? '' : '/'}${url}`);
 
 export async function postPaintingToChannel(
@@ -57,22 +65,14 @@ export async function postPaintingToChannel(
   const p = await prisma.painting.findUnique({ where: { id: paintingId }, include: { artist: true } });
   if (!p) return { ok: false, error: 'Asar topilmadi' };
 
-  const url = `${SITE_URL}${localizePath(`/gallery/${p.id}`, 'uz')}`;
-  const price = p.is_sold
-    ? '🔴 Sotilgan — o\'xshashini buyurtma qilish mumkin'
-    : p.discount_price && p.discount_price < p.price
-      ? `💰 <b>${usd(p.discount_price)}</b> <s>${usd(p.price)}</s>`
-      : `💰 <b>${usd(p.price)}</b>`;
-  const facts = [p.technique_uz || p.technique_en, p.size, p.year ? String(p.year) : ''].filter(Boolean).join(' · ');
+  const url = `${SITE_URL}${localizePath(`/gallery/${p.id}`, 'en')}`;
+  const size = englishSize(p.size);
   const caption = [
-    `🖼 <b>${tgEscape(p.title_uz || p.title_en)}</b>${p.title_en && p.title_en !== p.title_uz ? ` / ${tgEscape(p.title_en)}` : ''}`,
-    ...(p.artist?.name ? [`👤 ${tgEscape(p.artist.name)}`] : []),
-    ...(facts ? [tgEscape(facts)] : []),
-    price,
-    '',
-    `🔗 <a href="${url}">artqala.com</a> — narx o'z valyutangizda, butun dunyoga yetkazib berish`,
+    `<b>${tgEscape(p.title_en || p.title_uz)}</b>`,
+    ...(p.artist?.name ? [`Artist: ${tgEscape(p.artist.name)}`] : []),
+    ...(size ? [`Size: ${tgEscape(size)}`] : []),
   ].join('\n');
-  const reply_markup = { inline_keyboard: [[{ text: "Saytda ko'rish", url }]] };
+  const reply_markup = { inline_keyboard: [[{ text: 'View on site', url }]] };
 
   const photo = mainImage(p.images);
   const res =
