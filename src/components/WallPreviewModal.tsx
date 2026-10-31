@@ -33,6 +33,7 @@ interface WallData {
   image: string;
   model: string;
   usdz: string;
+  artist: string | null;
 }
 
 // 'ios-inapp': an iPhone browser without Quick Look (Telegram, Instagram…
@@ -428,6 +429,7 @@ export default function WallPreviewModal({
         <CameraWallView
           image={data.image}
           title={title}
+          artist={data.artist}
           widthCm={widthCm}
           heightCm={heightCm}
           onClose={() => setCameraOpen(false)}
