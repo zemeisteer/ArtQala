@@ -1,13 +1,17 @@
-# Nightly encrypted backup of the production database (Neon) and of every
-# uploaded image it references (Vercel Blob / Cloudinary).
+# Nightly encrypted backup of the production database (Neon or Supabase)
+# and of every uploaded image it references (Vercel Blob / Cloudinary).
 #
-# Neon's free plan only keeps 6 hours of history, so this keeps a daily
-# copy for 30 days. The archive is encrypted (AES-256, gpg) with
-# BACKUP_PASSPHRASE before upload — this repository is public, so an
+# Neon's free plan only keeps 6 hours of history and Supabase's free plan
+# has no downloadable backups, so this keeps a daily copy for 30 days.
+# The archive is encrypted (AES-256, gpg) with BACKUP_PASSPHRASE before
+# upload — this repository is public, so an
 # unencrypted artifact would be readable by anyone.
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
-#   DATABASE_URL       Neon *direct* (non-pooler) connection string
+#   DATABASE_URL       Neon: the *direct* (non-pooler) connection string.
+#                      Supabase: Connect → "Session pooler" (port 5432) —
+#                      its direct db.<ref>.supabase.co address is IPv6-only
+#                      on the free plan, which GitHub's runners can't reach.
 #   BACKUP_PASSPHRASE  long random password — keep a copy somewhere safe,
 #                      without it the backups cannot be opened
 #
@@ -47,7 +51,7 @@ jobs:
           # handed to the next steps as DB_URL.
           DB_URL=$(printf '%s' "$DATABASE_URL" | grep -oE "postgres(ql)?://[^'\"[:space:]]+" | head -n 1 || true)
           if [ -z "$DB_URL" ]; then
-            echo "::error::No postgresql://... address found in DATABASE_URL. In Neon: Connect → Connection pooling off → Show password → copy the connection string."
+            echo "::error::No postgresql://... address found in DATABASE_URL. Neon: Connect → Connection pooling off → Show password → copy. Supabase: Connect → Session pooler → copy and put the password in."
             exit 1
           fi
           echo "::add-mask::$DB_URL"
@@ -55,7 +59,10 @@ jobs:
             echo "::error::DATABASE_URL contains a masked password (****). In Neon click 'Show password' and copy again."; exit 1
           fi
           if printf '%s' "$DB_URL" | grep -q -- '-pooler'; then
-            echo "::error::DATABASE_URL is the pooled connection (-pooler). In Neon turn Connection pooling OFF and copy again."; exit 1
+            echo "::error::DATABASE_URL is Neon's pooled connection (-pooler). In Neon turn Connection pooling OFF and copy again."; exit 1
+          fi
+          if printf '%s' "$DB_URL" | grep -q ':6543/'; then
+            echo "::error::DATABASE_URL is Supabase's Transaction pooler (port 6543), which pg_dump can't use. In Supabase: Connect → Session pooler (port 5432)."; exit 1
           fi
           echo "DB_URL=$DB_URL" >> "$GITHUB_ENV"
 

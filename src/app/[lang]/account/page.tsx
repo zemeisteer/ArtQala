@@ -791,6 +791,8 @@ export default function AccountPage() {
                 </span>
               </div>
             </div>
+
+            {user?.role === 'USER' && <DeleteAccount />}
           </div>
         )}
       </div>
@@ -951,6 +953,113 @@ export default function AccountPage() {
           paintings={wishlistPaintings}
           onClose={() => setShowWishlistInquiry(false)}
         />
+      )}
+    </div>
+  );
+}
+
+// "Delete my account" (/api/user/account): retype the email, plus the
+// password when the account has one.
+function DeleteAccount() {
+  const { user, signOut, t } = useApp();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/user/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        await signOut();
+        router.push('/');
+        return;
+      }
+      setError(
+        data.code === 'wrong_email'
+          ? t.account.deleteWrongEmail
+          : data.code === 'wrong_password'
+            ? t.account.deleteWrongPassword
+            : t.account.deleteError
+      );
+    } catch {
+      setError(t.account.deleteError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="pt-6 border-t border-[#EFE8DE] space-y-3">
+      <h3 className="text-sm font-semibold text-[#9B1C1C]">{t.account.deleteTitle}</h3>
+      <p className="text-xs text-[#6B5E55] leading-relaxed">{t.account.deleteDesc}</p>
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-xs font-semibold text-[#9B1C1C] border border-[#E9C3C3] hover:bg-[#FDF2F2] px-3.5 py-2 rounded-[3px]"
+        >
+          {t.account.deleteBtn}
+        </button>
+      ) : (
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+              {t.account.deleteTypeEmail}
+            </label>
+            <input
+              type="email"
+              required
+              autoComplete="off"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={user?.email || ''}
+              className="w-full text-sm px-3.5 py-2.5 bg-white border border-[#E7E0D8] rounded-[2px] text-[#281C18]"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+              {t.account.deletePassword}
+            </label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full text-sm px-3.5 py-2.5 bg-white border border-[#E7E0D8] rounded-[2px] text-[#281C18]"
+            />
+          </div>
+          {error && <p className="text-xs text-[#9B1C1C]">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={busy || !email}
+              className="text-xs font-semibold text-white bg-[#9B1C1C] hover:bg-[#7F1717] px-3.5 py-2 rounded-[3px] disabled:opacity-50"
+            >
+              {busy ? '…' : t.account.deleteConfirm}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setError(null);
+              }}
+              className="text-xs font-semibold text-[#4D3F38] border border-[#E7E0D8] px-3.5 py-2 rounded-[3px]"
+            >
+              {t.account.deleteCancel}
+            </button>
+          </div>
+        </form>
       )}
     </div>
   );

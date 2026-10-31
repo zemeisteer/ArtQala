@@ -121,6 +121,13 @@ account's `WishlistItem` rows on sign-in and mirrors every add/remove (`/api/use
 (`/api/cron/review-reminders`, which also runs `src/lib/priceAlerts.ts#runPriceAlerts()`) emails a user when
 a saved, unsold painting's visible price drops below `WishlistItem.last_seen_price`; `User.price_alerts`
 opts out (signed one-click unsubscribe link, or the toggle on the account's Saved Artworks tab).
+A visitor can delete their own account (Profile tab → `/api/user/account` DELETE: retype the email, plus the password
+when the account has one; USER role only). The wishlist and sessions go with it; inquiries, service requests and
+reviews stay as the gallery's records with `user_id` cleared (the relations are `onDelete: SetNull`).
+
+**Backups**: `.github/workflows/db-backup.yml` dumps the database and every referenced image nightly, encrypted
+with the `BACKUP_PASSPHRASE` secret (the repo is public), kept 30 days. Its `DATABASE_URL` secret must be a
+direct/session connection (Neon non-pooler, or Supabase's Session pooler — Supabase's direct host is IPv6-only).
 
 **Admin notifications** go through `src/lib/adminNotify.ts#notifyAdmin()` (plus the contact route): an email to
 `SiteSettings.email` and a Telegram message (`src/lib/telegram.ts`) to every `TelegramChat` row, carrying a `ref`
