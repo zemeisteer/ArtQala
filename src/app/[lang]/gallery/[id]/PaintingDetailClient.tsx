@@ -305,9 +305,9 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
         </Link>
 
         {/* 2-Column Split Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[auto_1fr] gap-10 lg:gap-x-14 lg:gap-y-6">
           {/* Left Art View */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 lg:row-start-1 space-y-6">
             <div className="relative aspect-square w-full rounded-[4px] overflow-hidden border border-[#E7E0D8] bg-[#F4ECE1] shadow-md">
               {/* The whole artwork is always visible (contain, not cover) —
                   a tall or wide painting used to get its edges cropped off.
@@ -411,7 +411,241 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                 onClose={() => setLightboxOpen(false)}
               />
             )}
+          </div>
 
+          {/* Right: details, then the inquiry form (high up, so phones reach it early) */}
+          <div className="lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:row-span-2 space-y-6">
+            {/* Meta tags */}
+            <div className="flex items-center gap-2">
+              <span className="bg-[#FDFBF9] border border-[#E7E0D8] text-[#554740] text-[11px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-full">
+                {categoryName}
+              </span>
+              {hasDiscount && (
+                <span className="bg-[#BA4E25] text-white text-[11px] font-bold px-2 py-0.5 rounded-sm">
+                  -{discountPercent}% {t.painting.promotionSuffix}
+                </span>
+              )}
+            </div>
+
+            {/* Title & Artist */}
+            <div>
+              <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#281C18] leading-tight">
+                {title}
+              </h1>
+              <p className="text-sm text-[#726861] mt-1.5">
+                {t.gallery.byArtist}{' '}
+                <Link
+                  href={`/artists/${painting.artist_id}`}
+                  className="font-medium text-[#281C18] hover:text-[#BA4E25] underline decoration-[#E7E0D8] underline-offset-4"
+                >
+                  {painting.artist.name}
+                </Link>{' '}
+                · {painting.year}
+              </p>
+            </div>
+
+            {/* Price section */}
+            <div className="p-4 bg-[#FDFBF9] border border-[#E7E0D8] rounded-[3px] flex items-baseline gap-3">
+              {hasDiscount ? (
+                <>
+                  <span className="font-serif text-3xl font-bold text-[#BA4E25]">
+                    {formatPrice(painting.discount_price)}
+                  </span>
+                  <span className="text-sm text-[#756962] line-through">
+                    {formatPrice(painting.price)}
+                  </span>
+                </>
+              ) : (
+                <span className="font-serif text-3xl font-bold text-[#BA4E25]">
+                  {formatPrice(painting.price)}
+                </span>
+              )}
+              <span className="text-xs text-[#756962] ml-auto">
+                {painting.is_sold ? t.gallery.soldBadge : t.painting.availableStatus}
+              </span>
+            </div>
+
+            {/* Sold: the original is gone, but the artist can make a similar
+                piece — the button pre-fills the inquiry form below. Worded as
+                "similar", never "this one again": originals are unique. */}
+            {painting.is_sold && (
+              <div className="p-4 bg-[#FAF4EC] border border-[#EBE4DA] rounded-[3px] flex flex-col sm:flex-row sm:items-center gap-3">
+                <p className="text-xs text-[#4D3F38] leading-relaxed flex-1 flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 shrink-0 text-[#BA4E25] mt-0.5" />
+                  <span>{t.painting.soldSimilarText}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={orderSimilar}
+                  className="shrink-0 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white text-xs font-semibold px-4 py-2.5 rounded-[3px] transition-colors"
+                >
+                  {t.painting.soldSimilarBtn}
+                </button>
+              </div>
+            )}
+
+            {/* Specifications */}
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
+                <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
+                  {t.painting.size}
+                </span>
+                <span className="font-semibold text-[#281C18] mt-0.5 block">
+                  {painting.size}
+                </span>
+              </div>
+              <div className="border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
+                <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
+                  {t.painting.technique}
+                </span>
+                <span className="font-semibold text-[#281C18] mt-0.5 block">
+                  {technique}
+                </span>
+              </div>
+              {painting.included_accessory_names?.length > 0 && (
+                <div className="col-span-2 border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
+                  <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
+                    {t.accessories.included}
+                  </span>
+                  <span className="font-semibold text-[#281C18] mt-0.5 block">
+                    {painting.included_accessory_names
+                      .map((a: { name_en: string; name_ru: string; name_uz: string }) =>
+                        `✓ ${lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en}`
+                      )
+                      .join('  ·  ')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Artwork Description */}
+            <p className="text-sm text-[#5F534C] leading-relaxed">{description}</p>
+
+            {/* Direct Inquiry Form */}
+            <div id="inquiry-form" className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[3px] p-6 space-y-4 shadow-sm scroll-mt-24">
+              <h3 className="font-serif text-xl font-semibold text-[#281C18]">
+                {t.painting.inquireTitle}
+              </h3>
+              <p className="text-xs text-[#726861] leading-relaxed">
+                {t.painting.inquireDesc}
+              </p>
+
+              {submitted ? (
+                <div className="p-4 bg-[#E8F5E9] border border-[#A5D6A7] rounded-[3px] text-xs text-[#1B5E20] flex items-start gap-2.5">
+                  <CheckCircle2 className="w-5 h-5 shrink-0 text-[#2E7D32]" />
+                  <div>
+                    <span className="font-semibold block">{t.painting.inquirySuccess}</span>
+                    <span className="text-[11px] text-[#2E7D32] mt-1 block">
+                      {t.reviews.eligibleNote}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleInquirySubmit} className="space-y-3">
+                  <div>
+                    <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+                      {t.painting.yourName} *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      placeholder="e.g. Elena Rostova"
+                      className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+                      {t.painting.yourEmail} *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+                      {t.painting.yourPhone} *
+                    </label>
+                    <PhoneInput value={guestPhone} onChange={setGuestPhone} onValidityChange={setPhoneValid} required />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+                      {t.painting.yourMessage} *
+                    </label>
+                    <textarea
+                      id="inquiry-message"
+                      required
+                      rows={3}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="I would like to inquire about reservation, delivery to my hotel in Tashkent, or international shipping..."
+                      className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25] resize-none"
+                    />
+                    <p className="text-[10.5px] text-[#756962] mt-1.5 flex items-start gap-1">
+                      <Info className="w-3 h-3 shrink-0 mt-0.5" />
+                      <span>{t.painting.protectiveCaseHint}</span>
+                    </p>
+                  </div>
+
+                  <AccessoryCheckboxes
+                    productTypes={paintingAccessoryTargets(painting.category)}
+                    sizeBucket={getSizeBucket(painting.size)}
+                    included={painting.included_accessories}
+                    showIncluded={false}
+                    onChange={setSelectedAccessories}
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={submitting || !phoneValid}
+                    className="w-full bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-xs py-2.5 rounded-[3px] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{submitting ? t.painting.sending : t.painting.sendInquiry}</span>
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Shipping Cost Estimator */}
+            <ShippingEstimator sizeString={painting.size} />
+
+            {/* Payment & delivery at a glance (src/lib/deliveryInfo.ts) */}
+            <div className="border border-[#E7E0D8] rounded-[3px] bg-[#FDFBF9] p-4 space-y-2 text-xs text-[#4D3F38] leading-relaxed">
+              <p className="flex gap-2">
+                <CreditCard className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
+                <span>{DELIVERY[lang].short.payment}</span>
+              </p>
+              <p className="flex gap-2">
+                <Truck className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
+                <span>{DELIVERY[lang].short.delivery}</span>
+              </p>
+              <p className="flex gap-2">
+                <FileCheck className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
+                <span>{DELIVERY[lang].short.documents}</span>
+              </p>
+              <Link
+                href="/delivery"
+                className="inline-flex items-center gap-0.5 font-semibold text-[#BA4E25] hover:underline pl-6"
+              >
+                {DELIVERY[lang].short.more}
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Phones show this after the details and the inquiry form; on desktop
+              it stays under the photos. */}
+          <div className="lg:col-span-7 lg:col-start-1 lg:row-start-2 space-y-6">
             {/* Certificate of Authenticity Info Box */}
             <div className="bg-[#FAF4EC] border border-[#E7E0D8] rounded-[3px] p-5 flex items-start gap-3.5">
               <ShieldCheck className="w-6 h-6 text-[#347578] shrink-0 mt-0.5" />
@@ -536,236 +770,6 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                 <div className="py-6 text-center text-xs text-[#756962]">
                   {t.reviews.beFirstReview.replace('{title}', title)}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Details & Inquiry Form */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Meta tags */}
-            <div className="flex items-center gap-2">
-              <span className="bg-[#FDFBF9] border border-[#E7E0D8] text-[#554740] text-[11px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-full">
-                {categoryName}
-              </span>
-              {hasDiscount && (
-                <span className="bg-[#BA4E25] text-white text-[11px] font-bold px-2 py-0.5 rounded-sm">
-                  -{discountPercent}% {t.painting.promotionSuffix}
-                </span>
-              )}
-            </div>
-
-            {/* Title & Artist */}
-            <div>
-              <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#281C18] leading-tight">
-                {title}
-              </h1>
-              <p className="text-sm text-[#726861] mt-1.5">
-                {t.gallery.byArtist}{' '}
-                <Link
-                  href={`/artists/${painting.artist_id}`}
-                  className="font-medium text-[#281C18] hover:text-[#BA4E25] underline decoration-[#E7E0D8] underline-offset-4"
-                >
-                  {painting.artist.name}
-                </Link>{' '}
-                · {painting.year}
-              </p>
-            </div>
-
-            {/* Price section */}
-            <div className="p-4 bg-[#FDFBF9] border border-[#E7E0D8] rounded-[3px] flex items-baseline gap-3">
-              {hasDiscount ? (
-                <>
-                  <span className="font-serif text-3xl font-bold text-[#BA4E25]">
-                    {formatPrice(painting.discount_price)}
-                  </span>
-                  <span className="text-sm text-[#756962] line-through">
-                    {formatPrice(painting.price)}
-                  </span>
-                </>
-              ) : (
-                <span className="font-serif text-3xl font-bold text-[#BA4E25]">
-                  {formatPrice(painting.price)}
-                </span>
-              )}
-              <span className="text-xs text-[#756962] ml-auto">
-                {painting.is_sold ? t.gallery.soldBadge : t.painting.availableStatus}
-              </span>
-            </div>
-
-            {/* Sold: the original is gone, but the artist can make a similar
-                piece — the button pre-fills the inquiry form below. Worded as
-                "similar", never "this one again": originals are unique. */}
-            {painting.is_sold && (
-              <div className="p-4 bg-[#FAF4EC] border border-[#EBE4DA] rounded-[3px] flex flex-col sm:flex-row sm:items-center gap-3">
-                <p className="text-xs text-[#4D3F38] leading-relaxed flex-1 flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 shrink-0 text-[#BA4E25] mt-0.5" />
-                  <span>{t.painting.soldSimilarText}</span>
-                </p>
-                <button
-                  type="button"
-                  onClick={orderSimilar}
-                  className="shrink-0 bg-[#BA4E25] hover:bg-[#9C3E1B] text-white text-xs font-semibold px-4 py-2.5 rounded-[3px] transition-colors"
-                >
-                  {t.painting.soldSimilarBtn}
-                </button>
-              </div>
-            )}
-
-            {/* Specifications */}
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
-                <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
-                  {t.painting.size}
-                </span>
-                <span className="font-semibold text-[#281C18] mt-0.5 block">
-                  {painting.size}
-                </span>
-              </div>
-              <div className="border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
-                <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
-                  {t.painting.technique}
-                </span>
-                <span className="font-semibold text-[#281C18] mt-0.5 block">
-                  {technique}
-                </span>
-              </div>
-              {painting.included_accessory_names?.length > 0 && (
-                <div className="col-span-2 border border-[#E7E0D8] p-3 rounded-[2px] bg-[#FDFBF9]">
-                  <span className="text-[#756962] block uppercase text-[10px] tracking-wider">
-                    {t.accessories.included}
-                  </span>
-                  <span className="font-semibold text-[#281C18] mt-0.5 block">
-                    {painting.included_accessory_names
-                      .map((a: { name_en: string; name_ru: string; name_uz: string }) =>
-                        `✓ ${lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en}`
-                      )
-                      .join('  ·  ')}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Artwork Description */}
-            <p className="text-sm text-[#5F534C] leading-relaxed">{description}</p>
-
-            {/* Shipping Cost Estimator */}
-            <ShippingEstimator sizeString={painting.size} />
-
-            {/* Payment & delivery at a glance (src/lib/deliveryInfo.ts) */}
-            <div className="border border-[#E7E0D8] rounded-[3px] bg-[#FDFBF9] p-4 space-y-2 text-xs text-[#4D3F38] leading-relaxed">
-              <p className="flex gap-2">
-                <CreditCard className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
-                <span>{DELIVERY[lang].short.payment}</span>
-              </p>
-              <p className="flex gap-2">
-                <Truck className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
-                <span>{DELIVERY[lang].short.delivery}</span>
-              </p>
-              <p className="flex gap-2">
-                <FileCheck className="w-4 h-4 shrink-0 text-[#BA4E25] mt-px" />
-                <span>{DELIVERY[lang].short.documents}</span>
-              </p>
-              <Link
-                href="/delivery"
-                className="inline-flex items-center gap-0.5 font-semibold text-[#BA4E25] hover:underline pl-6"
-              >
-                {DELIVERY[lang].short.more}
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            {/* Direct Inquiry Form */}
-            <div id="inquiry-form" className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[3px] p-6 space-y-4 shadow-sm scroll-mt-24">
-              <h3 className="font-serif text-xl font-semibold text-[#281C18]">
-                {t.painting.inquireTitle}
-              </h3>
-              <p className="text-xs text-[#726861] leading-relaxed">
-                {t.painting.inquireDesc}
-              </p>
-
-              {submitted ? (
-                <div className="p-4 bg-[#E8F5E9] border border-[#A5D6A7] rounded-[3px] text-xs text-[#1B5E20] flex items-start gap-2.5">
-                  <CheckCircle2 className="w-5 h-5 shrink-0 text-[#2E7D32]" />
-                  <div>
-                    <span className="font-semibold block">{t.painting.inquirySuccess}</span>
-                    <span className="text-[11px] text-[#2E7D32] mt-1 block">
-                      {t.reviews.eligibleNote}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleInquirySubmit} className="space-y-3">
-                  <div>
-                    <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
-                      {t.painting.yourName} *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="e.g. Elena Rostova"
-                      className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
-                      {t.painting.yourEmail} *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
-                      {t.painting.yourPhone} *
-                    </label>
-                    <PhoneInput value={guestPhone} onChange={setGuestPhone} onValidityChange={setPhoneValid} required />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10.5px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
-                      {t.painting.yourMessage} *
-                    </label>
-                    <textarea
-                      id="inquiry-message"
-                      required
-                      rows={3}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="I would like to inquire about reservation, delivery to my hotel in Tashkent, or international shipping..."
-                      className="w-full text-xs px-3 py-2 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25] resize-none"
-                    />
-                    <p className="text-[10.5px] text-[#756962] mt-1.5 flex items-start gap-1">
-                      <Info className="w-3 h-3 shrink-0 mt-0.5" />
-                      <span>{t.painting.protectiveCaseHint}</span>
-                    </p>
-                  </div>
-
-                  <AccessoryCheckboxes
-                    productTypes={paintingAccessoryTargets(painting.category)}
-                    sizeBucket={getSizeBucket(painting.size)}
-                    included={painting.included_accessories}
-                    showIncluded={false}
-                    onChange={setSelectedAccessories}
-                  />
-
-                  <button
-                    type="submit"
-                    disabled={submitting || !phoneValid}
-                    className="w-full bg-[#BA4E25] hover:bg-[#9C3E1B] text-white font-semibold text-xs py-2.5 rounded-[3px] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{submitting ? t.painting.sending : t.painting.sendInquiry}</span>
-                  </button>
-                </form>
               )}
             </div>
           </div>
