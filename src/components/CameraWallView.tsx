@@ -151,7 +151,9 @@ export default function CameraWallView({ image, title, artist, widthCm, heightCm
 
   // Gyroscope: integrate the rotation rate. Turning the phone left moves the
   // wall (and the artwork on it) right on screen, tilting it up moves it
-  // down, rolling it turns it the other way. Portrait only.
+  // down. Its tilt comes from gravity instead, so it always hangs level with
+  // the real horizon however the phone was held when the view opened
+  // (adding up the roll rate let it start, and drift, crooked). Portrait only.
   useEffect(() => {
     let last = 0;
     let frame = 0;
@@ -161,13 +163,27 @@ export default function CameraWallView({ image, title, artist, widthCm, heightCm
       const f = focalRef.current;
       const dt = last ? (e.timeStamp - last) / 1000 : 0;
       last = e.timeStamp;
-      if (!r || r.beta == null || r.gamma == null || !f || dt <= 0 || dt > 0.2 || screenAngle() !== 0) return;
-      const rad = Math.PI / 180;
+      if (screenAngle() !== 0) return;
       const tr = trackRef.current;
-      tr.x += r.gamma * rad * dt * f;
-      tr.y += r.beta * rad * dt * f;
-      tr.roll += (r.alpha ?? 0) * dt;
-      if (!frame) {
+      let moved = false;
+      if (r && r.beta != null && r.gamma != null && f && dt > 0 && dt <= 0.2) {
+        const rad = Math.PI / 180;
+        tr.x += r.gamma * rad * dt * f;
+        tr.y += r.beta * rad * dt * f;
+        moved = true;
+      }
+      // Gravity in the screen plane: upright it points along the phone's y
+      // axis; turned clockwise by φ it reads (-sin φ, cos φ), and the artwork
+      // turns back by φ. iOS reports the opposite sign on every axis from
+      // Android — dividing out the sign of y makes both read the same.
+      const g = e.accelerationIncludingGravity;
+      if (g && g.x != null && g.y != null && Math.hypot(g.x, g.y) > 3) {
+        const sy = Math.sign(g.y) || 1;
+        const level = (Math.atan2(g.x * sy, g.y * sy) * 180) / Math.PI;
+        tr.roll += (level - tr.roll) * 0.25; // smoothed against hand shake
+        moved = true;
+      }
+      if (moved && !frame) {
         frame = requestAnimationFrame(() => {
           frame = 0;
           setTrack({ ...trackRef.current });
