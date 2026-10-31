@@ -14,10 +14,10 @@ type Ctx = { params: Promise<{ id: string }> };
 // photo detects the artwork in it (see src/lib/wallView.ts).
 export async function GET(_request: Request, { params }: Ctx) {
   const { id } = await params;
-  const painting = await prisma.painting.findUnique({ where: { id }, select: { size: true } });
+  const painting = await prisma.painting.findUnique({ where: { id }, select: { size: true, artist: { select: { name: true } } } });
   if (!painting) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
   const view = await getWallView(id);
-  return NextResponse.json({ success: true, ...wallViewPayload(id, painting.size, view) });
+  return NextResponse.json({ success: true, ...wallViewPayload(id, painting.size, view), artist: painting.artist?.name || null });
 }
 
 // Admin: detect again (Paintings form → "Qayta aniqlash").
@@ -25,8 +25,8 @@ export async function POST(_request: Request, { params }: Ctx) {
   const auth = await requireAdmin();
   if (auth.errorResponse) return auth.errorResponse;
   const { id } = await params;
-  const painting = await prisma.painting.findUnique({ where: { id }, select: { size: true } });
+  const painting = await prisma.painting.findUnique({ where: { id }, select: { size: true, artist: { select: { name: true } } } });
   if (!painting) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
   const view = await getWallView(id, true);
-  return NextResponse.json({ success: true, ...wallViewPayload(id, painting.size, view) });
+  return NextResponse.json({ success: true, ...wallViewPayload(id, painting.size, view), artist: painting.artist?.name || null });
 }

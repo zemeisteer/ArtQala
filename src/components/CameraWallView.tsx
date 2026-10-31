@@ -14,11 +14,13 @@ import { useApp } from '@/context/AppContext';
 // native AR viewers, which measure the wall. The phone's gyroscope keeps the
 // artwork in place on the wall while the phone turns or tilts (walking is
 // not tracked; "re-centre" undoes any drift). A photo of the result can be
-// saved or shared.
+// saved or shared: it carries a small Art Qala label (title, artist, size,
+// site) and, where the share sheet takes text, a caption with the link.
 
 interface CameraWallViewProps {
   image: string; // same-origin cut-out of the artwork (can be drawn to a canvas)
   title: string;
+  artist?: string | null;
   widthCm: number;
   heightCm: number;
   onClose: () => void;
@@ -52,7 +54,7 @@ function screenAngle() {
 const FOV_LONG = 63;
 const FOV_SHORT = 48;
 
-export default function CameraWallView({ image, title, widthCm, heightCm, onClose }: CameraWallViewProps) {
+export default function CameraWallView({ image, title, artist, widthCm, heightCm, onClose }: CameraWallViewProps) {
   const { t, lang } = useApp();
   const cmLabel = lang === 'uz' ? 'sm' : lang === 'ru' ? 'см' : 'cm';
   const boxRef = useRef<HTMLDivElement>(null);
@@ -214,6 +216,15 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
     if (pointers.current.size < 2) gesture.current = null;
   };
 
+  const sizeText = `${Math.round(widthCm)} × ${Math.round(heightCm)} ${cmLabel}`;
+  // The painting's own page, without the "?wall=1" that opened this view.
+  const shareText = () => {
+    const u = new URL(window.location.href);
+    u.search = '';
+    u.hash = '';
+    return `${title}${artist ? ` — ${artist}` : ''}, ${sizeText}\n${u.toString()}`;
+  };
+
   // The screen as a photo: camera frame + artwork with a soft shadow.
   const savePhoto = async () => {
     const v = videoRef.current;
@@ -235,11 +246,17 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
       ctx.translate(center.x, center.y);
       ctx.rotate((track.roll * Math.PI) / 180);
       ctx.drawImage(img, -artW / 2, -artH / 2, artW, artH);
+      ctx.setTransform(k, 0, 0, k, 0, 0);
+      drawLabel(ctx, box.w, box.h, {
+        title,
+        details: [artist, sizeText].filter(Boolean).join(' · '),
+        site: window.location.host.replace(/^www\./, ''),
+      });
       const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', 0.9));
       if (!blob) return;
       const file = new File([blob], 'art-qala-wall.jpg', { type: 'image/jpeg' });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title }).catch(() => {});
+        await navigator.share({ files: [file], title, text: shareText() }).catch(() => {});
       } else {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -378,4 +395,51 @@ export default function CameraWallView({ image, title, widthCm, heightCm, onClos
     </div>,
     document.body
   );
+}
+
+// The Art Qala label along the bottom of a saved photo: a soft dark fade,
+// the title and "artist · size" on the left, the site on the right.
+function drawLabel(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  { title, details, site }: { title: string; details: string; site: string }
+) {
+  const pad = Math.max(14, Math.round(w * 0.04));
+  const band = 96;
+  ctx.save();
+  ctx.shadowColor = 'transparent';
+  const fade = ctx.createLinearGradient(0, h - band - 30, 0, h);
+  fade.addColorStop(0, 'rgba(20,11,7,0)');
+  fade.addColorStop(1, 'rgba(20,11,7,0.82)');
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, h - band - 30, w, band + 30);
+
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '700 13px system-ui, -apple-system, sans-serif';
+  ctx.fillText('ART QALA', w - pad, h - pad - 18);
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.font = '400 12px system-ui, -apple-system, sans-serif';
+  ctx.fillText(site, w - pad, h - pad);
+  const rightW = Math.max(ctx.measureText(site).width, 70) + 16;
+
+  const fit = (text: string, max: number) => {
+    if (ctx.measureText(text).width <= max) return text;
+    let t = text;
+    while (t.length > 1 && ctx.measureText(`${t}…`).width > max) t = t.slice(0, -1);
+    return `${t.trimEnd()}…`;
+  };
+  const maxW = w - pad * 2 - rightW;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '600 19px Georgia, "Times New Roman", serif';
+  ctx.fillText(fit(title, maxW), pad, h - pad - 20);
+  if (details) {
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.font = '400 13px system-ui, -apple-system, sans-serif';
+    ctx.fillText(fit(details, maxW), pad, h - pad);
+  }
+  ctx.restore();
 }
