@@ -43,6 +43,9 @@ model Painting {
   // beyond EN/RU/UZ — JSON, see src/lib/contentTranslations.ts.
   translations         String?
   views_count          Int       @default(0)
+  // When the work was posted to the public Telegram channel (null = never):
+  // saving an unposted, unsold work posts it — see src/lib/telegramChannel.ts.
+  channel_posted_at    DateTime?
 
   artist_id String
   artist    Artist @relation(fields: [artist_id], references: [id], onDelete: Cascade)

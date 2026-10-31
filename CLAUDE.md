@@ -164,7 +164,9 @@ and Admin → Settings "Saytning boshqa tillari"); server pages pass data throug
 (Privacy/Terms) fall back to English; `DELIVERY` and SEO texts (`seoExtra.ts`) exist in all eight.
 
 **Telegram channel**: `SiteSettings.telegram_channel` (Admin → Settings → Telegram; bot must be a channel admin). New
-unsold works are posted on create (`src/lib/telegramChannel.ts`); any work can be re-posted from its edit page.
+unsold works are posted on create (`src/lib/telegramChannel.ts`), and so is any unsold work saved in the admin that was
+never posted (`Painting.channel_posted_at`, set on every successful post); any work can be re-posted from its edit page.
+Posts are English only: title, artist, size in cm and a "View on site" button (the owner's choice — no price).
 
 **Gift certificates** (`GiftCertificate`, `/gift-card`, Admin → Sovg'a sertifikatlari): request → curator arranges
 payment → "To'landi" emails a signed link to the printable certificate (`/gift/<code>?s=`, `src/lib/giftCards.ts`).

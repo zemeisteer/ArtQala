@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { notifyIndexNow } from '@/lib/indexNow';
 import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
-import { postPaintingToChannel } from '@/lib/telegramChannel';
+import { postToChannelIfNew } from '@/lib/telegramChannel';
 import { translateAfterSave } from '@/lib/translateContent';
 import { parseSoldPrice } from '@/lib/salePriceInput';
 
@@ -88,9 +88,7 @@ export async function POST(request: Request) {
 
     notifyIndexNow([`/gallery/${newPainting.id}`, `/artists/${newPainting.artist_id}`]);
     // A new, unsold work goes to the public Telegram channel (if connected).
-    if (!newPainting.is_sold) {
-      await postPaintingToChannel(newPainting.id).catch((error) => console.error('Channel post failed:', error));
-    }
+    await postToChannelIfNew(newPainting.id).catch((error) => console.error('Channel post failed:', error));
     translateAfterSave('painting', newPainting.id);
     return NextResponse.json({ success: true, painting: newPainting });
   } catch (error) {
