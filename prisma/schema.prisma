@@ -167,6 +167,9 @@ model User {
   // Email me when a painting in my wishlist gets cheaper (daily check in
   // src/lib/priceAlerts.ts). Turned off by the unsubscribe link in the email.
   price_alerts         Boolean @default(true)
+  // Admin two-step sign-in (authenticator app), sealed — see src/lib/totp.ts.
+  // Set = the 6-digit code is required at every admin sign-in.
+  totp_secret          String?
 
   inquiries        Inquiry[]
   service_requests ServiceRequest[]

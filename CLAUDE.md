@@ -39,6 +39,10 @@ NextAuth: `src/lib/auth.ts` issues an HMAC-SHA256-signed session token (`base64(
 secret from `NEXTAUTH_SECRET`) stored in a cookie, and `src/middleware.ts` re-verifies that
 signature (via Web Crypto, since middleware runs on the Edge runtime) to gate `/admin/*`.
 Production refuses to boot without `NEXTAUTH_SECRET` set — the in-repo fallback secret is public.
+Admins can turn on two-step sign-in (Admin → Xodimlar, `/api/admin/2fa`, `src/lib/totp.ts`: authenticator-app
+codes, secret sealed with AES-GCM in `User.totp_secret`). `withAdminSession()` then grants a working admin session
+(`sid`) only when the signin route verified the code (`totpVerified`) — Google, password reset and email-code sign-ins
+never open the admin panel for such an account. Lost phone: `UPDATE "User" SET "totp_secret" = NULL WHERE …`.
 
 **Category is a self-referencing tree, one level deep** (`parent_id` on `Category`). A top-level
 category (`parent_id = null`) is a physical **product type** — Kartina, Kulolchilik, Somon
