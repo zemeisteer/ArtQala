@@ -173,6 +173,8 @@ and Admin → Settings "Saytning boshqa tillari"); server pages pass data throug
 `src/lib/contentTranslations.ts#localizeContent(data, lang)`, which copies the page language's translation over the
 `*_en` fields and strips the column — so client code keeps its `lang === 'ru' ? x_ru : … : x_en` fallbacks. Legal pages
 (Privacy/Terms) fall back to English; `DELIVERY` and SEO texts (`seoExtra.ts`) exist in all eight.
+Admin → Hikoyalar has ONE set of fields: the admin writes in Uzbek, English or Russian (`src/lib/detectLang.ts` detects it,
+or they pick it), and the other two are translated on save.
 
 **Telegram channel**: `SiteSettings.telegram_channel` (Admin → Settings → Telegram; bot must be a channel admin). New
 unsold works are posted on create (`src/lib/telegramChannel.ts`), and so is any unsold work saved in the admin that was

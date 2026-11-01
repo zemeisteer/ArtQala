@@ -2,9 +2,9 @@
 
 import React, { useRef, useState } from 'react';
 import { BookOpen, Plus, Pencil, Trash2, Loader2, ImagePlus, X, Eye, EyeOff, ExternalLink } from 'lucide-react';
-import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
-import TranslateStatus from '@/components/TranslateStatus';
+import { fillMissingTranslations } from '@/lib/useAutoTranslate';
 import { storyHtml } from '@/lib/storyMarkdown';
+import { detectLang } from '@/lib/detectLang';
 
 interface Story {
   id: string;
@@ -39,6 +39,14 @@ const EMPTY = {
 };
 type Form = typeof EMPTY;
 type L = 'uz' | 'en' | 'ru';
+// What the admin types: one title / excerpt / body, in any of the three
+// languages; the other two are translated on save.
+interface Draft {
+  title: string;
+  excerpt: string;
+  body: string;
+}
+const LANG_LABEL: Record<L, string> = { uz: "O'zbekcha", en: 'Inglizcha', ru: 'Ruscha' };
 
 const input = 'w-full text-sm px-3 py-2 border border-[#E7E0D8] rounded-[3px] bg-white focus:outline-none focus:border-[#BA4E25]';
 const label = 'flex items-center gap-1.5 text-[11px] font-bold text-[#6B5E55] mb-1';
@@ -51,36 +59,45 @@ async function uploadImage(file: File): Promise<string | null> {
   return data?.success && data.url ? data.url : null;
 }
 
-// Admin → Hikoyalar: articles for /stories. Written in Uzbek; EN/RU are
-// translated on blur and on save, the other site languages by AI after
+// Admin → Hikoyalar: articles for /stories. The admin writes once, in
+// Uzbek, English or Russian (detected — src/lib/detectLang.ts — or picked);
+// the other two are translated on save, the other site languages by AI after
 // saving (src/lib/translateContent.ts).
 export default function AdminStoriesClient({ initial }: { initial: Story[] }) {
   const [list, setList] = useState(initial);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
-  const [tab, setTab] = useState<L>('uz');
+  const [draft, setDraft] = useState<Draft>({ title: '', excerpt: '', body: '' });
+  // The version loaded into the draft (editing), and the language the admin
+  // picked by hand (null = detect from the text).
+  const [loaded, setLoaded] = useState<L>('uz');
+  const [picked, setPicked] = useState<L | null>(null);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const tr = useAutoTranslate();
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const set = (k: keyof Form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
-  const group = (base: 'title' | 'excerpt' | 'body') => ({
-    uz: [form[`${base}_uz`], set(`${base}_uz`)] as const,
-    en: [form[`${base}_en`], set(`${base}_en`)] as const,
-    ru: [form[`${base}_ru`], set(`${base}_ru`)] as const,
-  });
-  const titles = group('title');
-  const excerpts = group('excerpt');
-  const bodies = group('body');
+  const setD = (k: keyof Draft) => (v: string) => setDraft((d) => ({ ...d, [k]: v }));
+  const versionOf = (f: Form, l: L): Draft => ({ title: f[`title_${l}`], excerpt: f[`excerpt_${l}`], body: f[`body_${l}`] });
+  const sameAs = (a: Draft, b: Draft) => a.title === b.title && a.excerpt === b.excerpt && a.body === b.body;
+  const detected = detectLang(`${draft.title}\n${draft.excerpt}\n${draft.body}`);
+  const lang: L = picked || detected || loaded;
+
+  // Editing: show another language's version (only while nothing is changed).
+  const loadVersion = (l: L) => {
+    setLoaded(l);
+    setPicked(null);
+    setDraft(versionOf(form, l));
+  };
 
   const open = (s?: Story) => {
-    tr.reset();
     setError(null);
-    setTab('uz');
     setPreview(false);
+    setPicked(null);
+    setLoaded('uz');
+    setDraft(s ? { title: s.title_uz, excerpt: s.excerpt_uz || '', body: s.body_uz } : { title: '', excerpt: '', body: '' });
     setEditing(s ? s.id : 'new');
     setForm(
       s
@@ -106,24 +123,40 @@ export default function AdminStoriesClient({ initial }: { initial: Story[] }) {
     const url = await uploadImage(file);
     setUploading(false);
     if (!url) return setError('Rasm yuklanmadi');
-    const key = `body_${tab}` as const;
     const el = bodyRef.current;
-    const text = form[key];
+    const text = draft.body;
     const at = el ? el.selectionStart : text.length;
     const snippet = `\n\n![](${url})\n\n`;
-    set(key)(text.slice(0, at) + snippet + text.slice(at));
+    setD('body')(text.slice(0, at) + snippet + text.slice(at));
   };
 
   const save = async (publish?: boolean) => {
     setSaving(true);
     setError(null);
     try {
-      const t = await fillMissingTranslations({ uz: form.title_uz, en: form.title_en, ru: form.title_ru }, 'uz', 'title');
-      const e =
-        form.excerpt_uz.trim() || form.excerpt_en.trim() || form.excerpt_ru.trim()
-          ? await fillMissingTranslations({ uz: form.excerpt_uz, en: form.excerpt_en, ru: form.excerpt_ru }, 'uz', 'description')
+      if (!draft.title.trim() || !draft.body.trim()) {
+        setError('Sarlavha va matnni yozing');
+        return;
+      }
+      // Unchanged since loading: keep every language as it is. Changed (or
+      // new): the draft is the source, the other two are translated afresh.
+      const unchanged = editing !== 'new' && sameAs(draft, versionOf(form, loaded)) && lang === loaded;
+      const only = (v: string) => ({ uz: '', en: '', ru: '', [lang]: v }) as Record<L, string>;
+      const t = unchanged
+        ? { uz: form.title_uz, en: form.title_en, ru: form.title_ru }
+        : await fillMissingTranslations(only(draft.title.trim()), lang, 'title');
+      const e = unchanged
+        ? { uz: form.excerpt_uz, en: form.excerpt_en, ru: form.excerpt_ru }
+        : draft.excerpt.trim()
+          ? await fillMissingTranslations(only(draft.excerpt.trim()), lang, 'description')
           : { uz: '', en: '', ru: '' };
-      const b = await fillMissingTranslations({ uz: form.body_uz, en: form.body_en, ru: form.body_ru }, 'uz', 'description');
+      const b = unchanged
+        ? { uz: form.body_uz, en: form.body_en, ru: form.body_ru }
+        : await fillMissingTranslations(only(draft.body), lang, 'description');
+      if (!t.uz || !t.en || !t.ru || !b.uz || !b.en || !b.ru) {
+        setError("Tarjima qilib bo'lmadi — birozdan keyin qayta saqlab ko'ring.");
+        return;
+      }
       const body = {
         ...form,
         published: publish ?? form.published,
@@ -159,7 +192,6 @@ export default function AdminStoriesClient({ initial }: { initial: Story[] }) {
     setList((l) => l.filter((x) => x.id !== s.id));
   };
 
-  const bodyKey = `body_${tab}` as const;
 
   return (
     <div className="p-6 lg:p-10 space-y-6">
@@ -231,38 +263,39 @@ export default function AdminStoriesClient({ initial }: { initial: Story[] }) {
             </button>
             <h2 className="font-serif text-2xl font-semibold">{editing === 'new' ? 'Yangi hikoya' : 'Tahrirlash'}</h2>
 
-            <div className="flex gap-1 border-b border-[#E7E0D8]">
-              {(['uz', 'en', 'ru'] as L[]).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setTab(l)}
-                  className={`px-4 py-2 text-xs font-bold border-b-2 -mb-px ${tab === l ? 'border-[#BA4E25] text-[#281C18]' : 'border-transparent text-[#8F8178]'}`}
-                >
-                  {l.toUpperCase()}
-                  {l === 'uz' && ' (asosiy)'}
-                </button>
-              ))}
-              <span className="ml-auto self-center">
-                <TranslateStatus
-                  translating={!!tr.translatingGroup}
-                  canUndo={tr.canUndo('title') || tr.canUndo('body')}
-                  onUndo={() => {
-                    tr.undo('title');
-                    tr.undo('excerpt');
-                    tr.undo('body');
-                  }}
-                />
+            {/* One set of fields, in any language — the rest is translated on save. */}
+            <div className="flex flex-wrap items-center gap-2 text-xs bg-[#FAF4EC] border border-[#E7E0D8] rounded-[3px] px-3 py-2">
+              <span className="text-[#554740]">
+                O&apos;zbek, ingliz yoki rus tilida yozing — qolgan tillarga saqlashda o&apos;zi tarjima qilinadi.
+              </span>
+              <span className="ml-auto flex items-center gap-1">
+                <span className="text-[#6B5E55]">Til:</span>
+                {(['uz', 'en', 'ru'] as L[]).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => (editing !== 'new' && sameAs(draft, versionOf(form, loaded)) ? loadVersion(l) : setPicked(l))}
+                    title={editing !== 'new' ? "Shu tildagi variantni ochish" : "Tilni qo'lda tanlash"}
+                    className={`px-2 py-0.5 rounded-full border font-semibold ${
+                      lang === l ? 'bg-[#281C18] text-white border-[#281C18]' : 'bg-white text-[#554740] border-[#E7E0D8]'
+                    }`}
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+                <span className="text-[11px] text-[#756962] ml-1">
+                  {picked ? "(qo'lda)" : detected ? `(${LANG_LABEL[detected]} — aniqlandi)` : ''}
+                </span>
               </span>
             </div>
 
             <div>
               <label className={label}>Sarlavha *</label>
-              <input value={titles[tab][0]} {...tr.bind('title', tab, titles)} onChange={(e) => titles[tab][1](e.target.value)} className={`${input} font-serif text-lg`} />
+              <input value={draft.title} onChange={(e) => setD('title')(e.target.value)} className={`${input} font-serif text-lg`} />
             </div>
             <div>
               <label className={label}>Qisqa tavsif (ro&apos;yxatda va Google&apos;da ko&apos;rinadi)</label>
-              <textarea rows={2} value={excerpts[tab][0]} {...tr.bind('excerpt', tab, excerpts)} onChange={(e) => excerpts[tab][1](e.target.value)} className={`${input} resize-none`} />
+              <textarea rows={2} value={draft.excerpt} onChange={(e) => setD('excerpt')(e.target.value)} className={`${input} resize-none`} />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -280,14 +313,13 @@ export default function AdminStoriesClient({ initial }: { initial: Story[] }) {
                 </div>
               </div>
               {preview ? (
-                <div className="story-body bg-white border border-[#E7E0D8] rounded-[3px] p-4 min-h-[280px]" dangerouslySetInnerHTML={{ __html: storyHtml(form[bodyKey]) }} />
+                <div className="story-body bg-white border border-[#E7E0D8] rounded-[3px] p-4 min-h-[280px]" dangerouslySetInnerHTML={{ __html: storyHtml(draft.body) }} />
               ) : (
                 <textarea
                   ref={bodyRef}
                   rows={14}
-                  value={bodies[tab][0]}
-                  {...tr.bind('body', tab, bodies)}
-                  onChange={(e) => bodies[tab][1](e.target.value)}
+                  value={draft.body}
+                  onChange={(e) => setD('body')(e.target.value)}
                   className={`${input} font-mono text-[13px] leading-relaxed`}
                 />
               )}
@@ -341,7 +373,7 @@ export default function AdminStoriesClient({ initial }: { initial: Story[] }) {
                 disabled={saving || uploading}
                 className="bg-[#BA4E25] hover:bg-[#9C3E1B] disabled:opacity-50 text-white font-semibold text-xs px-6 py-2.5 rounded-[3px] flex items-center gap-2"
               >
-                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Chop etish
+                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} {saving ? 'Tarjima qilinmoqda…' : 'Chop etish'}
               </button>
             </div>
           </div>
