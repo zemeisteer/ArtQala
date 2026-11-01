@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Gift, CheckCircle2, Mail, ExternalLink, XCircle, Ticket, Loader2, Search, X } from 'lucide-react';
 import FilterSelect from '@/components/FilterSelect';
+import { GIFT_VALID_DAYS, giftExpiresAt, isGiftExpired } from '@/lib/giftExpiry';
 
 interface GiftRow {
   id: string;
@@ -27,8 +28,10 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   PAID: { label: "To'langan — amal qiladi", cls: 'bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0]' },
   REDEEMED: { label: 'Ishlatilgan', cls: 'bg-[#E0E7FF] text-[#4338CA] border-[#C7D2FE]' },
   CANCELLED: { label: 'Bekor qilingan', cls: 'bg-[#F3F4F6] text-[#6B7280] border-[#E5E7EB]' },
+  // Not stored: a PAID certificate past its 90 days (src/lib/giftExpiry.ts).
+  EXPIRED: { label: "Muddati o'tgan", cls: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA]' },
 };
-const FILTERS = ['ALL', 'NEW', 'PAID', 'REDEEMED', 'CANCELLED'] as const;
+const FILTERS = ['ALL', 'NEW', 'PAID', 'EXPIRED', 'REDEEMED', 'CANCELLED'] as const;
 const PERIODS = [
   { value: 'all', label: 'Barcha vaqt' },
   { value: '7', label: 'Oxirgi 7 kun' },
@@ -44,7 +47,9 @@ const SORTS = [
 ];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
-const date = (s: string | null) => (s ? new Date(s).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+// 25.01.2027 — browsers have no Uzbek date format ("2027 M01 25").
+const date = (s: string | null) =>
+  s ? new Date(s).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Tashkent' }) : '';
 
 // Admin → Sovg'a sertifikatlari: requests from /gift-card. "To'landi" emails
 // the certificate; "Ishlatildi" once it's spent on a purchase.
@@ -97,6 +102,9 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
     }
   };
 
+  // Shown status: a paid certificate past its 90 days counts as expired.
+  const statusOf = (g: GiftRow) => (isGiftExpired(g, openedAt) ? 'EXPIRED' : g.status);
+
   // Search: code, buyer and recipient name/email/phone, message, notes.
   const q = query.trim().toLowerCase();
   const since = period === 'all' ? 0 : openedAt - Number(period) * DAY_MS;
@@ -109,7 +117,7 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
           .some((v) => String(v).toLowerCase().includes(q)))
   );
   const shown = matching
-    .filter((g) => filter === 'ALL' || g.status === filter)
+    .filter((g) => filter === 'ALL' || statusOf(g) === filter)
     .sort((a, b) =>
       sort === 'big'
         ? b.amount - a.amount
@@ -117,7 +125,7 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
           ? a.amount - b.amount
           : (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) * (sort === 'old' ? -1 : 1)
     );
-  const paidTotal = gifts.filter((g) => g.status === 'PAID').reduce((s, g) => s + g.amount, 0);
+  const paidTotal = gifts.filter((g) => statusOf(g) === 'PAID').reduce((s, g) => s + g.amount, 0);
 
   return (
     <div className="p-6 lg:p-10 space-y-6">
@@ -128,7 +136,8 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
         <p className="text-sm text-[#6B5E55] mt-1 max-w-3xl">
           Saytdagi &laquo;Sovg&apos;a sertifikati&raquo; sahifasidan kelgan so&apos;rovlar. Xaridor bilan to&apos;lovni
           kelishing, keyin <b>To&apos;landi</b> ni bosing — sertifikat (kod va chop etiladigan sahifa) emailga o&apos;zi
-          yuboriladi. Mijoz kodni ishlatganda <b>Ishlatildi</b> ni bosing.
+          yuboriladi. Mijoz kodni ishlatganda <b>Ishlatildi</b> ni bosing. Sertifikat to&apos;lov kunidan {GIFT_VALID_DAYS} kun
+          amal qiladi — muddati o&apos;tganlari &laquo;Muddati o&apos;tgan&raquo; bo&apos;lib ko&apos;rinadi.
         </p>
         {paidTotal > 0 && (
           <p className="text-xs text-[#554740] mt-2">
@@ -172,7 +181,7 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
             }`}
           >
             {f === 'ALL' ? 'Hammasi' : STATUS[f].label.split(' — ')[0]} (
-            {f === 'ALL' ? matching.length : matching.filter((g) => g.status === f).length})
+            {f === 'ALL' ? matching.length : matching.filter((g) => statusOf(g) === f).length})
           </button>
         ))}
       </div>
@@ -188,7 +197,8 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
       ) : (
         <div className="space-y-3">
           {shown.map((g) => {
-            const st = STATUS[g.status] || STATUS.NEW;
+            const st = STATUS[statusOf(g)] || STATUS.NEW;
+            const expired = statusOf(g) === 'EXPIRED';
             const isBusy = busy === g.id;
             return (
               <div
@@ -204,6 +214,11 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
                   <span className="text-[11px] text-[#9E9086]">
                     So&apos;ralgan: {date(g.created_at)}
                     {g.paid_at && ` · To'langan: ${date(g.paid_at)}`}
+                    {g.paid_at && g.status === 'PAID' && (
+                      <b className={expired ? 'text-[#9A3412]' : 'text-[#281C18]'}>
+                        {` · ${expired ? 'Muddati tugagan' : 'Amal qiladi'}: ${date(giftExpiresAt(g.paid_at).toISOString())}${expired ? '' : 'gacha'}`}
+                      </b>
+                    )}
                     {g.redeemed_at && ` · Ishlatilgan: ${date(g.redeemed_at)}`}
                   </span>
                 </div>
@@ -237,7 +252,15 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
                   {g.status === 'PAID' && (
                     <>
                       <button
-                        onClick={() => patch(g, { status: 'REDEEMED' }, `${g.code} ishlatildimi?`)}
+                        onClick={() =>
+                          patch(
+                            g,
+                            { status: 'REDEEMED' },
+                            expired
+                              ? `DIQQAT: ${g.code} ning ${GIFT_VALID_DAYS} kunlik muddati tugagan. Baribir ishlatildi deb belgilaysizmi?`
+                              : `${g.code} ishlatildimi?`
+                          )
+                        }
                         disabled={isBusy}
                         className="inline-flex items-center gap-1.5 bg-[#4338CA] hover:bg-[#3730A3] text-white text-xs font-semibold px-3.5 py-2 rounded-[3px] disabled:opacity-50"
                       >

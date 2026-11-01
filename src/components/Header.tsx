@@ -70,12 +70,13 @@ export default function Header() {
       <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14 h-[76px] flex items-center justify-between gap-6">
         {/* Brand with Original Logo */}
         <Link href="/" className="shrink-0 flex items-center gap-3 group text-decoration-none">
-          {/* CRITICAL: original logo from /assets/logo.png preserved */}
+          {/* /logo-full.png: the owner-approved copy of the logo (Q completed,
+              white made transparent). /assets/logo.png itself stays untouched. */}
           <div className="relative">
             <Image
-              src="/logo.png"
+              src="/logo-full.png"
               alt="Art Qala Gallery"
-              width={140}
+              width={54}
               height={46}
               priority
               className="brand-mark h-[46px] w-auto object-contain transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1"

@@ -211,6 +211,9 @@ export default function GiftCardClient() {
                   <span>{s}</span>
                 </div>
               ))}
+              <p className="text-xs font-semibold text-[#9A3412] bg-[#FFF7ED] border border-[#FED7AA] rounded-[3px] px-3 py-2">
+                {g.validity}
+              </p>
             </div>
           </div>
         </div>

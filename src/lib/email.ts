@@ -1,3 +1,4 @@
+import { GIFT_VALID_DAYS, giftDate } from './giftExpiry';
 import { OTP_TTL_MINUTES } from './otpConfig';
 import { prisma } from './prisma';
 
@@ -763,6 +764,7 @@ export async function sendGiftRequestReceivedEmail(params: {
       `<h2 style="font-family: 'Georgia', serif; font-size: 20px; color: #281C18; margin: 0 0 12px 0;">Thank you, ${escapeHtml(params.buyerName)}</h2>
        <p style="margin: 0 0 10px 0;">We received your request for a <strong>${money}</strong> Art Qala gift certificate for <strong>${escapeHtml(params.recipientName)}</strong>.</p>
        <p style="margin: 0 0 10px 0;">Our curator will contact you shortly to arrange payment. As soon as it is received, we will email the certificate — ready to print or forward.</p>
+       <p style="margin: 0 0 10px 0;"><strong>Please note:</strong> the certificate is valid for ${GIFT_VALID_DAYS} days from the day it is paid. If it is not used by then, it expires.</p>
        <p style="margin: 0; color: #8F8178; font-size: 13px;">Questions? Just reply to this email.</p>`
     ),
   });
@@ -778,6 +780,7 @@ export async function sendGiftCertificateEmail(params: {
   code: string;
   url: string;
   message?: string | null;
+  expires: Date;
 }): Promise<EmailSendResult> {
   const money = `$${Math.round(params.amount).toLocaleString('en-US')}`;
   return sendResendEmail({
@@ -789,6 +792,7 @@ export async function sendGiftCertificateEmail(params: {
        <p style="margin: 0 0 10px 0;"><strong>${escapeHtml(params.fromName)}</strong> has given you an Art Qala gift certificate worth <strong>${money}</strong> — for an original work of art or a service at our gallery.</p>
        ${params.message ? `<p style="margin: 0 0 10px 0; font-style: italic; color: #4D3F38;">&ldquo;${escapeHtml(params.message)}&rdquo;</p>` : ''}
        <p style="margin: 0 0 6px 0;">Certificate code: <strong style="font-family: monospace; font-size: 16px; color: #BA4E25;">${escapeHtml(params.code)}</strong></p>
+       <p style="margin: 0 0 6px 0;">Valid until: <strong>${giftDate(params.expires)}</strong> (${GIFT_VALID_DAYS} days). If it is not used by then, it expires.</p>
        <p style="margin: 18px 0;"><a href="${params.url}" style="display: inline-block; background: #BA4E25; color: #ffffff; text-decoration: none; padding: 12px 22px; border-radius: 3px; font-weight: 600;">Open &amp; print the certificate</a></p>
        <p style="margin: 0; color: #8F8178; font-size: 13px;">To use it, mention the code when you send an inquiry on artqala.com or visit the gallery.</p>`
     ),

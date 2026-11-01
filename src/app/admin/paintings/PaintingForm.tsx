@@ -602,10 +602,27 @@ export default function PaintingForm({
         // photo) so the first visitor doesn't wait for it.
         const savedId = data.painting?.id || initialData?.id;
         if (savedId) fetch(`/api/paintings/${savedId}/wall`, { keepalive: true }).catch(() => {});
-        setMessage('Kartina muvaffaqiyatli saqlandi!');
-        setTimeout(() => {
-          router.push(backHref);
-        }, 1000);
+        // What happened with the Telegram channel post (src/lib/telegramChannel.ts).
+        const ch = data.channel as { status: string; at?: string; error?: string } | undefined;
+        const channelNote =
+          ch?.status === 'posted'
+            ? ' Telegram kanalga yuborildi ✓'
+            : ch?.status === 'already'
+              ? ` Kanalga avval yuborilgan (${new Date(ch.at!).toLocaleDateString('en-GB')}) — qayta yuborish uchun tahrirlash sahifasidagi «Kanalga yuborish» tugmasi.`
+              : ch?.status === 'no_channel'
+                ? ' Telegram kanal ulanmagan: Sozlamalar → Telegram → kanal manzili.'
+                : ch?.status === 'no_token'
+                  ? " Kanalga yuborilmadi: Vercel'da TELEGRAM_BOT_TOKEN yo'q."
+                  : ch?.status === 'failed'
+                    ? ` Kanalga yuborilmadi: ${ch.error}. Bot kanalda admin ekanini tekshiring.`
+                    : '';
+        setMessage(`Kartina muvaffaqiyatli saqlandi!${channelNote}`);
+        setTimeout(
+          () => {
+            router.push(backHref);
+          },
+          channelNote && ch?.status !== 'posted' ? 6000 : 1500
+        );
       } else {
         setMessage(data.error || 'Kartinani saqlashda xatolik yuz berdi.');
       }
