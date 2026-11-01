@@ -121,7 +121,9 @@ export default function ExperiencesClient({ workshops }: { workshops: PublicWork
                         (x.times.length > 0 || x.weekdays.length > 0) && (
                           <span className="flex items-center gap-1 w-full">
                             <CalendarDays className="w-3.5 h-3.5" />
-                            {x.weekdays.length ? x.weekdays.map((d) => weekdayName(d, lang)).join(', ') : w.everyDay}
+                            {x.weekdays.length && x.weekdays.length < 7
+                              ? [...x.weekdays].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => weekdayName(d, lang)).join(', ')
+                              : w.everyDay}
                             {x.times.length > 0 && ` · ${x.times.join(', ')}`}
                           </span>
                         )
