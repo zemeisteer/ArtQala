@@ -16,6 +16,7 @@ export const zh: ExtraDictionary = {
     signOut: '退出',
     wishlist: '收藏',
     tagline: '画廊 & 工作室',
+    more: '更多',
   },
   hero: {
     kicker: '塔什干艺术画廊',
@@ -591,6 +592,8 @@ export const zh: ExtraDictionary = {
     takenTimes: "已被预约：",
     sessions: "场次",
     everyDay: "每天",
+    onlyDates: '日期：',
+    noDates: '新日期即将公布',
   },
   roomMatch: {
     button: '为我的房间找画',

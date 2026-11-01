@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { CalendarDays, Plus, Pencil, Trash2, Loader2, ImagePlus, X, Eye, EyeOff } from 'lucide-react';
 import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
+import DatePicker from '@/components/DatePicker';
+import { parseDateSlots } from '@/lib/workshops';
 import TranslateStatus from '@/components/TranslateStatus';
 
 interface Workshop {
@@ -23,6 +25,14 @@ interface Workshop {
   sort: number;
   times: string[];
   weekdays: number[];
+  date_slots: string | null;
+}
+
+// One row of the date-by-date schedule in the form.
+interface DateRow {
+  date: string;
+  times: string; // empty = the usual session times
+  off: boolean; // the master is away that day
 }
 
 const EMPTY = {
@@ -41,8 +51,12 @@ const EMPTY = {
   sort: '0',
   times: '',
   weekdays: [] as number[],
+  datesOnly: false,
+  dateRows: [] as DateRow[],
 };
 type Form = typeof EMPTY;
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const input = 'w-full text-sm px-3 py-2 border border-[#E7E0D8] rounded-[3px] bg-white focus:outline-none focus:border-[#BA4E25]';
 const label = 'flex items-center gap-1.5 text-[11px] font-bold text-[#6B5E55] mb-1';
@@ -92,6 +106,15 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
             sort: String(w.sort),
             times: (w.times || []).join(', '),
             weekdays: w.weekdays || [],
+            ...(() => {
+              const slots = parseDateSlots(w.date_slots);
+              return {
+                datesOnly: slots.only,
+                dateRows: Object.entries(slots.dates)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([date, slot]) => ({ date, times: (slot.times || []).join(', '), off: !!slot.off })),
+              };
+            })(),
           }
         : EMPTY
     );
@@ -130,6 +153,12 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
         description_uz: descs.uz,
         description_en: descs.en,
         description_ru: descs.ru,
+        date_slots: {
+          only: form.datesOnly,
+          dates: Object.fromEntries(
+            form.dateRows.filter((r) => r.date).map((r) => [r.date, r.off ? { off: true } : { times: r.times }])
+          ),
+        },
       };
       const res = await fetch(editing === 'new' ? '/api/admin/workshops' : `/api/admin/workshops/${editing}`, {
         method: editing === 'new' ? 'POST' : 'PUT',
@@ -214,12 +243,33 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
                   ${w.price} / kishi · {w.duration_minutes} daqiqa{w.max_people ? ` · ${w.max_people} kishigacha` : ''}
                 </div>
                 {w.location && <div className="text-xs text-[#8F8178]">{w.location}</div>}
-                {(w.times?.length > 0 || w.weekdays?.length > 0) && (
-                  <div className="text-xs text-[#554740]">
-                    {w.weekdays?.length ? w.weekdays.map((d) => ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'][d]).join(', ') : 'Har kuni'}
-                    {w.times?.length > 0 && ` · ${w.times.join(', ')}`}
-                  </div>
-                )}
+                {(() => {
+                  const slots = parseDateSlots(w.date_slots);
+                  const upcoming = Object.entries(slots.dates).filter(([d]) => d >= todayIso());
+                  const open = upcoming.filter(([, s]) => !s.off).length;
+                  const off = upcoming.length - open;
+                  return (
+                    <>
+                      {slots.only ? (
+                        <div className="text-xs text-[#554740]">Faqat belgilangan sanalarda</div>
+                      ) : (
+                        (w.times?.length > 0 || w.weekdays?.length > 0) && (
+                          <div className="text-xs text-[#554740]">
+                            {w.weekdays?.length ? w.weekdays.map((d) => ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'][d]).join(', ') : 'Har kuni'}
+                            {w.times?.length > 0 && ` · ${w.times.join(', ')}`}
+                          </div>
+                        )
+                      )}
+                      {upcoming.length > 0 && (
+                        <div className="text-[11px] text-[#6B5E55]">
+                          {open > 0 && `${open} ta qo'shimcha sana`}
+                          {open > 0 && off > 0 && ' · '}
+                          {off > 0 && `${off} ta dam olish kuni`}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 <div className="flex items-center gap-3 pt-2">
                   <button onClick={() => open(w)} className="text-xs font-semibold text-[#BA4E25] hover:underline flex items-center gap-1">
                     <Pencil className="w-3.5 h-3.5" /> Tahrirlash
@@ -346,6 +396,12 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
               </div>
               <p className="text-[11px] text-[#8F8178] mt-1">Hech biri tanlanmasa — har kuni.</p>
             </div>
+            <DateSlotsEditor
+              only={form.datesOnly}
+              rows={form.dateRows}
+              onOnly={(v) => setForm((f) => ({ ...f, datesOnly: v }))}
+              onRows={(rows) => setForm((f) => ({ ...f, dateRows: rows }))}
+            />
             <div>
               <label className={label}>Joyi (manzil)</label>
               <input value={form.location} onChange={(e) => setField('location')(e.target.value)} placeholder="Ichan Qal'a, Xiva" className={input} />
@@ -389,6 +445,78 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
           </form>
         </div>
       )}
+    </div>
+  );
+}
+
+// "When the master is free", date by date (Workshop.date_slots — rules in
+// src/lib/workshops.ts#timesOn): add a date with its own session times, or
+// mark a day off; optionally only the listed dates are bookable.
+function DateSlotsEditor({
+  only,
+  rows,
+  onOnly,
+  onRows,
+}: {
+  only: boolean;
+  rows: DateRow[];
+  onOnly: (v: boolean) => void;
+  onRows: (rows: DateRow[]) => void;
+}) {
+  const set = (i: number, patch: Partial<DateRow>) => onRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const today = todayIso();
+  return (
+    <div className="border border-[#E7E0D8] rounded-[3px] p-3 space-y-3 bg-[#FDFBF9]">
+      <div>
+        <div className={label}>Ustoz bo&apos;sh kunlari (sana bo&apos;yicha)</div>
+        <p className="text-[11px] text-[#756962]">
+          Ustoz qaysi kuni, qaysi soatlarda bo&apos;sh bo&apos;lsa, shu yerga qo&apos;shing. Saytda mehmon faqat shu kunlarni
+          tanlay oladi. &laquo;Dam olish&raquo; belgilangan kuni bron qilib bo&apos;lmaydi.
+        </p>
+      </div>
+      <label className="flex items-start gap-2 text-xs text-[#281C18] cursor-pointer">
+        <input type="checkbox" checked={only} onChange={(e) => onOnly(e.target.checked)} className="mt-0.5 accent-[#BA4E25]" />
+        <span>
+          <b>Faqat shu sanalarda o&apos;tadi</b> — yuqoridagi haftalik jadval ishlatilmaydi
+        </span>
+      </label>
+      {rows.length === 0 && <p className="text-[11px] text-[#8F8178]">Hali sana qo&apos;shilmagan.</p>}
+      {rows.map((r, i) => (
+        <div key={i} className="grid grid-cols-1 sm:grid-cols-[170px_1fr_auto_auto] gap-2 items-center">
+          <DatePicker value={r.date} onChange={(d) => set(i, { date: d })} min={today} placeholder="Sana" todayLabel="" />
+          <input
+            value={r.off ? '' : r.times}
+            disabled={r.off}
+            onChange={(e) => set(i, { times: e.target.value })}
+            placeholder={r.off ? 'Bu kuni ustoz yo\'q' : "Vaqtlar: 10:00, 15:00 (bo'sh = odatiy vaqtlar)"}
+            className={`${input} disabled:bg-[#F3EEE8]`}
+          />
+          <button
+            type="button"
+            onClick={() => set(i, { off: !r.off })}
+            className={`text-xs font-semibold px-3 py-2 rounded-[3px] border whitespace-nowrap ${
+              r.off ? 'bg-[#281C18] text-white border-[#281C18]' : 'bg-white text-[#554740] border-[#E7E0D8]'
+            }`}
+          >
+            {r.off ? '✓ Dam olish' : 'Dam olish'}
+          </button>
+          <button
+            type="button"
+            onClick={() => onRows(rows.filter((_, j) => j !== i))}
+            aria-label="O'chirish"
+            className="p-2 text-[#8F8178] hover:text-[#B91C1C]"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onRows([...rows, { date: '', times: '', off: false }])}
+        className="flex items-center gap-1.5 text-xs font-semibold text-[#BA4E25] hover:underline"
+      >
+        <Plus className="w-3.5 h-3.5" /> Sana qo&apos;shish
+      </button>
     </div>
   );
 }

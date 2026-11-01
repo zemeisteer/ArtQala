@@ -16,6 +16,7 @@ export const ko: ExtraDictionary = {
     signOut: '로그아웃',
     wishlist: '찜 목록',
     tagline: '갤러리 & 스튜디오',
+    more: '더보기',
   },
   hero: {
     kicker: '타슈켄트의 미술 갤러리',
@@ -592,6 +593,8 @@ export const ko: ExtraDictionary = {
     takenTimes: "이미 예약된 시간:",
     sessions: "진행 시간",
     everyDay: "매일",
+    onlyDates: '일정:',
+    noDates: '새 일정이 곧 공개됩니다',
   },
   roomMatch: {
     button: '내 방에 어울리는 작품 찾기',

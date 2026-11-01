@@ -186,7 +186,9 @@ payment → "To'landi" emails a signed link to the printable certificate (`/gift
 start times (`times`) and run days (`weekdays`); a booking is a `WorkshopBooking` for one session (date + time).
 A session holds `max_people` people across its NEW/CONFIRMED bookings (no `max_people` = private: one booking takes
 it) — checked and taken in one Serializable transaction in `/api/workshops/book`; `/api/workshops/[id]/availability`
-tells the form which sessions are full. Bookings are managed in the "Bronlar" tab (confirming emails the customer).
+tells the form which sessions are full. On top of the weekly schedule, `Workshop.date_slots` (JSON, "Ustoz bo'sh kunlari"
+in the admin) adds dates with their own times, days off, or "only these dates" — every check goes through
+`src/lib/workshops.ts#timesOn()` (admin, booking form, availability and booking routes). Bookings are managed in the "Bronlar" tab (confirming emails the customer).
 
 **"Find art for my room"** (`RoomMatch` on the gallery page, `/api/room-match`, `src/lib/roomMatch.ts`): the visitor's
 room photo plus thumbnails of available wall pieces go to Gemini in one request; the photo is never stored.

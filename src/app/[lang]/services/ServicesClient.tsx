@@ -225,7 +225,7 @@ export default function ServicesClient({ muralImages, ceramicsImages, customImag
                 <label className="block text-[11px] font-bold tracking-wider text-[#A8988E] uppercase mb-1">
                   {t.services.phoneLabel} *
                 </label>
-                <PhoneInput value={guestPhone} onChange={setGuestPhone} onValidityChange={setPhoneValid} />
+                <PhoneInput value={guestPhone} onChange={setGuestPhone} onValidityChange={setPhoneValid} dark />
               </div>
 
               <div>

@@ -16,6 +16,7 @@ export const de: ExtraDictionary = {
     signOut: 'Abmelden',
     wishlist: 'Merkliste',
     tagline: 'GALERIE & ATELIER',
+    more: 'Mehr',
   },
   hero: {
     kicker: 'Kunstgalerie in Taschkent',
@@ -609,6 +610,8 @@ export const de: ExtraDictionary = {
     takenTimes: "Bereits gebucht:",
     sessions: "Termine",
     everyDay: "täglich",
+    onlyDates: 'Termine:',
+    noDates: 'Neue Termine folgen bald',
   },
   roomMatch: {
     button: 'Kunst für mein Zimmer finden',

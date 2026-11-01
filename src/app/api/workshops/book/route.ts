@@ -5,7 +5,7 @@ import { sendWorkshopBookingEmail } from '@/lib/email';
 import { checkRateLimit, getClientIp, recordFailedAttempt } from '@/lib/rateLimit';
 import { HONEYPOT_FIELD, checkFormToken, hasLink } from '@/lib/reviewGuard';
 import { validatePhoneOrTelegram } from '@/lib/validation';
-import { ACTIVE_BOOKING_STATUSES, fits, isTime, weekdayOf } from '@/lib/workshops';
+import { ACTIVE_BOOKING_STATUSES, fits, isTime, timesOn } from '@/lib/workshops';
 import { isLang } from '@/lib/i18n/routing';
 
 export const dynamic = 'force-dynamic';
@@ -38,8 +38,9 @@ export async function POST(request: Request) {
   const today = new Date().toISOString().slice(0, 10);
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < today) return fail('date');
-  if (workshop.weekdays.length && !workshop.weekdays.includes(weekdayOf(date))) return fail('date');
-  if (!isTime(time) || (workshop.times.length && !workshop.times.includes(time))) return fail('time');
+  const dayTimes = timesOn(workshop, date);
+  if (dayTimes === null) return fail('date');
+  if (!isTime(time) || (dayTimes.length && !dayTimes.includes(time))) return fail('time');
   if (!(people >= 1 && people <= (workshop.max_people || 50))) return fail('invalid');
   if (!name || !EMAIL_RE.test(email)) return fail('invalid');
   if (!validatePhoneOrTelegram(phone).isValid) return fail('phone');

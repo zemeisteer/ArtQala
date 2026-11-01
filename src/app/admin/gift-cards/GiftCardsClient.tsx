@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Gift, CheckCircle2, Mail, ExternalLink, XCircle, Ticket, Loader2 } from 'lucide-react';
+import { Gift, CheckCircle2, Mail, ExternalLink, XCircle, Ticket, Loader2, Search, X } from 'lucide-react';
+import FilterSelect from '@/components/FilterSelect';
 
 interface GiftRow {
   id: string;
@@ -28,6 +29,20 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   CANCELLED: { label: 'Bekor qilingan', cls: 'bg-[#F3F4F6] text-[#6B7280] border-[#E5E7EB]' },
 };
 const FILTERS = ['ALL', 'NEW', 'PAID', 'REDEEMED', 'CANCELLED'] as const;
+const PERIODS = [
+  { value: 'all', label: 'Barcha vaqt' },
+  { value: '7', label: 'Oxirgi 7 kun' },
+  { value: '30', label: 'Oxirgi 30 kun' },
+  { value: '90', label: 'Oxirgi 3 oy' },
+  { value: '365', label: 'Oxirgi 1 yil' },
+];
+const SORTS = [
+  { value: 'new', label: 'Avval yangilari' },
+  { value: 'old', label: 'Avval eskilari' },
+  { value: 'big', label: 'Summa: kattadan' },
+  { value: 'small', label: 'Summa: kichikdan' },
+];
+const DAY_MS = 24 * 60 * 60 * 1000;
 const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
 const date = (s: string | null) => (s ? new Date(s).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
@@ -36,6 +51,11 @@ const date = (s: string | null) => (s ? new Date(s).toLocaleDateString('uz-UZ', 
 export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[]; openId: string | null }) {
   const [gifts, setGifts] = useState(initial);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('ALL');
+  const [query, setQuery] = useState('');
+  const [period, setPeriod] = useState('all');
+  const [sort, setSort] = useState('new');
+  // "Last N days" counts from when the page was opened.
+  const [openedAt] = useState(() => Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -77,7 +97,26 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
     }
   };
 
-  const shown = gifts.filter((g) => filter === 'ALL' || g.status === filter);
+  // Search: code, buyer and recipient name/email/phone, message, notes.
+  const q = query.trim().toLowerCase();
+  const since = period === 'all' ? 0 : openedAt - Number(period) * DAY_MS;
+  const matching = gifts.filter(
+    (g) =>
+      (!since || new Date(g.created_at).getTime() >= since) &&
+      (!q ||
+        [g.code, g.buyer_name, g.buyer_email, g.buyer_phone, g.recipient_name, g.recipient_email, g.message, g.admin_notes]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q)))
+  );
+  const shown = matching
+    .filter((g) => filter === 'ALL' || g.status === filter)
+    .sort((a, b) =>
+      sort === 'big'
+        ? b.amount - a.amount
+        : sort === 'small'
+          ? a.amount - b.amount
+          : (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) * (sort === 'old' ? -1 : 1)
+    );
   const paidTotal = gifts.filter((g) => g.status === 'PAID').reduce((s, g) => s + g.amount, 0);
 
   return (
@@ -98,6 +137,31 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
         )}
       </div>
 
+      <div className="flex flex-col lg:flex-row gap-3">
+        <div className="relative flex-1 min-w-0">
+          <Search className="w-4 h-4 text-[#8A7C73] absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Qidirish: kod, ism, email, telefon…"
+            className="w-full pl-9 pr-9 py-2.5 text-sm bg-white border border-[#E7E0D8] rounded-md focus:outline-none focus:border-[#BA4E25]"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Tozalash"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A7C73] hover:text-[#281C18]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <FilterSelect value={period} onChange={setPeriod} options={PERIODS} ariaLabel="Davr" className="lg:w-48" />
+        <FilterSelect value={sort} onChange={setSort} options={SORTS} ariaLabel="Saralash" className="lg:w-48" />
+      </div>
+
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
@@ -108,7 +172,7 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
             }`}
           >
             {f === 'ALL' ? 'Hammasi' : STATUS[f].label.split(' — ')[0]} (
-            {f === 'ALL' ? gifts.length : gifts.filter((g) => g.status === f).length})
+            {f === 'ALL' ? matching.length : matching.filter((g) => g.status === f).length})
           </button>
         ))}
       </div>
@@ -119,7 +183,7 @@ export default function GiftCardsClient({ initial, openId }: { initial: GiftRow[
 
       {shown.length === 0 ? (
         <div className="bg-white border border-[#E7E0D8] rounded-[4px] p-10 text-center text-sm text-[#8F8178]">
-          Hozircha so&apos;rov yo&apos;q.
+          {gifts.length === 0 ? <>Hozircha so&apos;rov yo&apos;q.</> : <>Tanlangan filtrga mos sertifikat topilmadi.</>}
         </div>
       ) : (
         <div className="space-y-3">
