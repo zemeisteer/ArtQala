@@ -483,7 +483,7 @@ export default function AccountPage() {
                                       ? inq.painting?.title_uz
                                       : inq.painting?.title_en) || t.account.paintingFallback}
                                   </span>
-                                  <ExternalLink className="w-3.5 h-3.5 text-[#8F8178]" />
+                                  <ExternalLink className="w-3.5 h-3.5 text-[#756962]" />
                                 </Link>
                               )}
                               {hasUnread && (
@@ -511,13 +511,13 @@ export default function AccountPage() {
                                     {l.accessories.map((a) => (
                                       <span
                                         key={a.id}
-                                        className={l.finalPrice != null ? 'line-through text-[#B5A599]' : 'text-[#8F8178]'}
+                                        className={l.finalPrice != null ? 'line-through text-[#B5A599]' : 'text-[#756962]'}
                                       >
                                         + {lang === 'ru' ? a.name_ru : lang === 'uz' ? a.name_uz : a.name_en} ({formatPrice(a.price)})
                                       </span>
                                     ))}
                                     {l.finalPrice != null && (
-                                      <span className="font-semibold text-[#16A34A]">
+                                      <span className="font-semibold text-[#107B38]">
                                         {t.account.agreedPrice}: {formatPrice(l.finalPrice)}
                                       </span>
                                     )}
@@ -538,7 +538,7 @@ export default function AccountPage() {
                                   {inq.customer_total != null && inq.customer_total !== inq.total ? (
                                     <>
                                       <span className="line-through text-[#B5A599] font-normal">{formatPrice(inq.total || 0)}</span>{' '}
-                                      <span className="text-[#16A34A]">{formatPrice(inq.customer_total)}</span>
+                                      <span className="text-[#107B38]">{formatPrice(inq.customer_total)}</span>
                                     </>
                                   ) : (
                                     formatPrice(inq.total || 0)
@@ -553,7 +553,7 @@ export default function AccountPage() {
                                     <span className="line-through text-[#B5A599]">
                                       {formatPrice(inq.total || inq.painting?.price || 0)}
                                     </span>{' '}
-                                    <span className="font-semibold text-[#16A34A]">
+                                    <span className="font-semibold text-[#107B38]">
                                       {t.account.agreedPrice}: {formatPrice(inq.final_price)}
                                     </span>
                                   </>
@@ -576,7 +576,7 @@ export default function AccountPage() {
                         <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#EFE8DE]">
                           <div className="flex items-center gap-2">
                             {getStatusBadge(inq.status)}
-                            <span className="text-[11px] text-[#9E9086]">
+                            <span className="text-[11px] text-[#746A63]">
                               {new Date(inq.created_at).toLocaleDateString()}
                             </span>
                           </div>
@@ -667,7 +667,7 @@ export default function AccountPage() {
                         <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#EFE8DE]">
                           <div className="flex items-center gap-2">
                             {getStatusBadge(sr.status)}
-                            <span className="text-[11px] text-[#9E9086]">
+                            <span className="text-[11px] text-[#746A63]">
                               {new Date(sr.created_at).toLocaleDateString()}
                             </span>
                           </div>
@@ -786,11 +786,13 @@ export default function AccountPage() {
               </div>
 
               <div className="pt-2">
-                <span className="text-xs text-[#8F8178]">
+                <span className="text-xs text-[#756962]">
                   {t.account.accountRoleLabel}: <strong className="text-[#281C18]">{user?.role}</strong>
                 </span>
               </div>
             </div>
+
+            {user?.role === 'USER' && <DeleteAccount />}
           </div>
         )}
       </div>
@@ -845,13 +847,13 @@ export default function AccountPage() {
           <div className="bg-[#FAF4EC] border border-[#E7E0D8] rounded-[4px] max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
             <button
               onClick={() => setReviewInquiry(null)}
-              className="absolute top-5 right-5 text-[#8F8178] hover:text-[#281C18] p-1 transition"
+              className="absolute top-5 right-5 text-[#756962] hover:text-[#281C18] p-1 transition"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div>
-              <span className="text-[11px] font-bold tracking-widest text-[#429599] uppercase">
+              <span className="text-[11px] font-bold tracking-widest text-[#347578] uppercase">
                 {t.reviews.modalEyebrow}
               </span>
               <h3 className="font-serif text-2xl font-semibold text-[#281C18] mt-1">
@@ -870,7 +872,7 @@ export default function AccountPage() {
             </div>
 
             {reviewSuccess ? (
-              <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-xs text-[#16A34A] flex items-center gap-2">
+              <div className="p-4 bg-[#DCFCE7] border border-[#86EFAC] rounded-[3px] text-xs text-[#107B38] flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <span>{reviewSuccess}</span>
               </div>
@@ -951,6 +953,113 @@ export default function AccountPage() {
           paintings={wishlistPaintings}
           onClose={() => setShowWishlistInquiry(false)}
         />
+      )}
+    </div>
+  );
+}
+
+// "Delete my account" (/api/user/account): retype the email, plus the
+// password when the account has one.
+function DeleteAccount() {
+  const { user, signOut, t } = useApp();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/user/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        await signOut();
+        router.push('/');
+        return;
+      }
+      setError(
+        data.code === 'wrong_email'
+          ? t.account.deleteWrongEmail
+          : data.code === 'wrong_password'
+            ? t.account.deleteWrongPassword
+            : t.account.deleteError
+      );
+    } catch {
+      setError(t.account.deleteError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="pt-6 border-t border-[#EFE8DE] space-y-3">
+      <h3 className="text-sm font-semibold text-[#9B1C1C]">{t.account.deleteTitle}</h3>
+      <p className="text-xs text-[#6B5E55] leading-relaxed">{t.account.deleteDesc}</p>
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-xs font-semibold text-[#9B1C1C] border border-[#E9C3C3] hover:bg-[#FDF2F2] px-3.5 py-2 rounded-[3px]"
+        >
+          {t.account.deleteBtn}
+        </button>
+      ) : (
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+              {t.account.deleteTypeEmail}
+            </label>
+            <input
+              type="email"
+              required
+              autoComplete="off"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={user?.email || ''}
+              className="w-full text-sm px-3.5 py-2.5 bg-white border border-[#E7E0D8] rounded-[2px] text-[#281C18]"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+              {t.account.deletePassword}
+            </label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full text-sm px-3.5 py-2.5 bg-white border border-[#E7E0D8] rounded-[2px] text-[#281C18]"
+            />
+          </div>
+          {error && <p className="text-xs text-[#9B1C1C]">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={busy || !email}
+              className="text-xs font-semibold text-white bg-[#9B1C1C] hover:bg-[#7F1717] px-3.5 py-2 rounded-[3px] disabled:opacity-50"
+            >
+              {busy ? '…' : t.account.deleteConfirm}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setError(null);
+              }}
+              className="text-xs font-semibold text-[#4D3F38] border border-[#E7E0D8] px-3.5 py-2 rounded-[3px]"
+            >
+              {t.account.deleteCancel}
+            </button>
+          </div>
+        </form>
       )}
     </div>
   );

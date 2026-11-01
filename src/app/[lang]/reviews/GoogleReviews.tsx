@@ -78,7 +78,7 @@ export default function GoogleReviews({ places, mapLinks }: { places: GooglePlac
               <h2 className="font-serif text-xl font-semibold text-[#281C18] flex items-center gap-2">
                 <GoogleMark /> <span>{g.googleTitle}</span>
               </h2>
-              {withReviews.length > 1 && <p className="text-xs text-[#8F8178]">{p.name}</p>}
+              {withReviews.length > 1 && <p className="text-xs text-[#756962]">{p.name}</p>}
             </div>
             {p.rating !== null && (
               <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ export default function GoogleReviews({ places, mapLinks }: { places: GooglePlac
                       )}
                       <div className="flex items-center gap-1.5">
                         <Stars value={r.rating} size="w-3 h-3" />
-                        <span className="text-[11px] text-[#9E9086]">{r.when}</span>
+                        <span className="text-[11px] text-[#746A63]">{r.when}</span>
                       </div>
                     </div>
                   </div>

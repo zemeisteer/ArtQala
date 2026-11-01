@@ -7,7 +7,7 @@ import KhorezmScrollTrack from '@/components/patterns/KhorezmScrollTrack';
 import RouteLangProvider from '@/components/RouteLangProvider';
 import CookieConsent from '@/components/CookieConsent';
 import WhatsAppButton from '@/components/WhatsAppButton';
-import AssistantChat from '@/components/AssistantChat';
+import AssistantChat from '@/components/AssistantChatLazy';
 import { LANGS, OG_LOCALE, isLang } from '@/lib/i18n/routing';
 import { baseMetadata } from '@/lib/siteMetadata';
 import { getOrganizationJsonLd } from '@/lib/organizationJsonLd';

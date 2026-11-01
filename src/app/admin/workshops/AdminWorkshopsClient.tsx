@@ -21,6 +21,8 @@ interface Workshop {
   image: string | null;
   is_active: boolean;
   sort: number;
+  times: string[];
+  weekdays: number[];
 }
 
 const EMPTY = {
@@ -37,6 +39,8 @@ const EMPTY = {
   image: '',
   is_active: true,
   sort: '0',
+  times: '',
+  weekdays: [] as number[],
 };
 type Form = typeof EMPTY;
 
@@ -86,6 +90,8 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
             image: w.image || '',
             is_active: w.is_active,
             sort: String(w.sort),
+            times: (w.times || []).join(', '),
+            weekdays: w.weekdays || [],
           }
         : EMPTY
     );
@@ -208,6 +214,12 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
                   ${w.price} / kishi · {w.duration_minutes} daqiqa{w.max_people ? ` · ${w.max_people} kishigacha` : ''}
                 </div>
                 {w.location && <div className="text-xs text-[#8F8178]">{w.location}</div>}
+                {(w.times?.length > 0 || w.weekdays?.length > 0) && (
+                  <div className="text-xs text-[#554740]">
+                    {w.weekdays?.length ? w.weekdays.map((d) => ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'][d]).join(', ') : 'Har kuni'}
+                    {w.times?.length > 0 && ` · ${w.times.join(', ')}`}
+                  </div>
+                )}
                 <div className="flex items-center gap-3 pt-2">
                   <button onClick={() => open(w)} className="text-xs font-semibold text-[#BA4E25] hover:underline flex items-center gap-1">
                     <Pencil className="w-3.5 h-3.5" /> Tahrirlash
@@ -293,6 +305,46 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
                 <label className={label}>Tartib raqami</label>
                 <input type="number" value={form.sort} onChange={(e) => setField('sort')(e.target.value)} className={input} />
               </div>
+            </div>
+            <div>
+              <label className={label}>Seans vaqtlari (boshlanishi)</label>
+              <input
+                value={form.times}
+                onChange={(e) => setField('times')(e.target.value)}
+                placeholder="10:00, 14:00, 16:30"
+                className={input}
+              />
+              <p className="text-[11px] text-[#8F8178] mt-1">
+                Mehmon shu vaqtlardan birini tanlaydi. Har bir seansga &laquo;Ko&apos;pi bilan necha kishi&raquo; gacha
+                joy bor — to&apos;lsa, saytda &laquo;Band&raquo; bo&apos;ladi (cheksiz bo&apos;lsa, bitta bron butun seansni
+                band qiladi). Bo&apos;sh qoldirsangiz, mehmon istalgan vaqtni yozadi.
+              </p>
+            </div>
+            <div>
+              <label className={label}>Qaysi kunlari o&apos;tadi</label>
+              <div className="flex flex-wrap gap-1.5">
+                {['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'].map((d, i) => {
+                  const on = form.weekdays.includes(i);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          weekdays: on ? f.weekdays.filter((x) => x !== i) : [...f.weekdays, i].sort(),
+                        }))
+                      }
+                      className={`w-10 h-9 text-xs font-semibold rounded-[3px] border ${
+                        on ? 'bg-[#281C18] text-white border-[#281C18]' : 'bg-white text-[#554740] border-[#E7E0D8]'
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-[#8F8178] mt-1">Hech biri tanlanmasa — har kuni.</p>
             </div>
             <div>
               <label className={label}>Joyi (manzil)</label>

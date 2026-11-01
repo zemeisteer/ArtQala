@@ -120,14 +120,14 @@ export default function ShippingEstimator({ sizeString }: ShippingEstimatorProps
               </span>
             </div>
           )}
-          <p className="text-[10.5px] text-[#8F8178] flex items-start gap-1 pt-1">
+          <p className="text-[10.5px] text-[#756962] flex items-start gap-1 pt-1">
             <Info className="w-3 h-3 shrink-0 mt-0.5" />
             <span>{t.shippingEstimator.refundNote}</span>
           </p>
           <p className="text-[10px] text-[#A8988E]">{t.shippingEstimator.disclaimer}</p>
         </div>
       ) : (
-        <p className="text-xs text-[#8F8178]">{t.shippingEstimator.notAvailable}</p>
+        <p className="text-xs text-[#756962]">{t.shippingEstimator.notAvailable}</p>
       )}
     </div>
   );

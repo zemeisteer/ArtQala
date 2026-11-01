@@ -12,6 +12,9 @@ export default function AdminLoginPage() {
   const { refreshUser } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Two-step sign-in: asked for once the password turned out right.
+  const [totp, setTotp] = useState('');
+  const [needTotp, setNeedTotp] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,12 +27,19 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, ...(needTotp ? { totp } : {}) }),
       });
 
       const data = await res.json();
 
+      if (data.code === 'totp_required') {
+        setNeedTotp(true);
+        setError('');
+        setLoading(false);
+        return;
+      }
       if (!res.ok) {
+        if (data.code === 'totp_invalid') setTotp('');
         setError(data.error || 'Login yoki parol noto\'g\'ri');
         setLoading(false);
         return;
@@ -145,6 +155,32 @@ export default function AdminLoginPage() {
                 />
               </div>
             </div>
+
+            {needTotp && (
+              <div>
+                <label className="block text-xs font-medium text-[#D8CDC4] mb-1.5">
+                  Ilovadagi 6 xonali kod
+                </label>
+                <div className="relative">
+                  <ShieldCheck className="w-4 h-4 text-[#736358] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                    maxLength={7}
+                    value={totp}
+                    onChange={(e) => setTotp(e.target.value.replace(/[^\d]/g, ''))}
+                    placeholder="123456"
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#281C18] border border-[#4A352D] rounded-lg text-sm tracking-[0.3em] text-[#FAF4EC] placeholder-[#736358] focus:outline-none focus:border-[#DAA932] transition-colors"
+                  />
+                </div>
+                <p className="text-[11px] text-[#9E8E82] mt-1.5">
+                  Google Authenticator (yoki shunga o&apos;xshash ilova) dagi Art Qala kodi.
+                </p>
+              </div>
+            )}
 
             <button
               type="submit"

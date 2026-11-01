@@ -51,7 +51,7 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
         {/* Page Head */}
         <AnimatedMadohil />
         <div className="max-w-2xl mb-12 space-y-2">
-          <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+          <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
             {t.artists.eyebrow}
           </span>
           <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-[#281C18]">
@@ -107,7 +107,7 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                           {artist.name}
                         </Link>
                       </h3>
-                      <div className="text-[11px] font-bold tracking-wider text-[#429599] uppercase mt-0.5">
+                      <div className="text-[11px] font-bold tracking-wider text-[#347578] uppercase mt-0.5">
                         {specialty}
                       </div>
                     </div>
@@ -153,7 +153,7 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                       {parseAchievements(artist.achievements).length > 0 && (
                         <Link
                           href={`/artists/${artist.id}`}
-                          className="mt-2 flex w-fit items-center gap-1.5 text-xs font-semibold text-[#429599] hover:underline"
+                          className="mt-2 flex w-fit items-center gap-1.5 text-xs font-semibold text-[#347578] hover:underline"
                         >
                           <Award className="w-3.5 h-3.5" />
                           {t.artists.achievementsHeading} ({parseAchievements(artist.achievements).length})
@@ -189,7 +189,7 @@ export default function ArtistsClient({ artists }: ArtistsClientProps) {
                     ) : (
                       // No placeholder "sample" artworks — they'd look like
                       // this artist's real pieces.
-                      <p className="col-span-3 text-xs text-[#8F8178] italic py-3">
+                      <p className="col-span-3 text-xs text-[#756962] italic py-3">
                         {t.artists.noWorksYet}
                       </p>
                     )}

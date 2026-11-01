@@ -64,7 +64,7 @@ export default async function DeliveryPage({ params }: { params: Promise<{ lang:
       <div className="py-16 sm:py-20 px-6">
         <div className="max-w-4xl mx-auto space-y-10">
           <div className="space-y-3 text-center max-w-2xl mx-auto">
-            <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">{c.eyebrow}</span>
+            <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">{c.eyebrow}</span>
             <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-[#281C18]">{c.title}</h1>
             <p className="text-sm text-[#5F534C] leading-relaxed">{c.intro}</p>
           </div>

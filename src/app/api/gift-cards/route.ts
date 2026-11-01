@@ -6,6 +6,7 @@ import { checkRateLimit, getClientIp, recordFailedAttempt } from '@/lib/rateLimi
 import { HONEYPOT_FIELD, checkFormToken, hasLink } from '@/lib/reviewGuard';
 import { GIFT_MAX, GIFT_MIN, newGiftCode } from '@/lib/giftCards';
 import { isLang } from '@/lib/i18n/routing';
+import { validatePhoneOrTelegram } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   const amount = Math.round(Number(body.amount));
   const buyer_name = str(body.buyer_name, 80);
   const buyer_email = str(body.buyer_email, 120).toLowerCase();
-  const buyer_phone = str(body.buyer_phone, 40) || null;
+  const buyer_phone = str(body.buyer_phone, 60) || null;
   const recipient_name = str(body.recipient_name, 80);
   const recipient_email = str(body.recipient_email, 120).toLowerCase() || null;
   const message = str(body.message, 300) || null;
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
   if (!Number.isFinite(amount) || amount < GIFT_MIN || amount > GIFT_MAX) return fail('amount');
   if (!buyer_name || !recipient_name || !EMAIL_RE.test(buyer_email)) return fail('invalid');
   if (recipient_email && !EMAIL_RE.test(recipient_email)) return fail('invalid');
+  if (buyer_phone && !validatePhoneOrTelegram(buyer_phone).isValid) return fail('phone');
   if (message && hasLink(message)) return fail('links');
 
   const rateKey = `gift:${getClientIp(request)}`;

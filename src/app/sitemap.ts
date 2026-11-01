@@ -29,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   };
 
-  const staticPaths = ['/', '/gallery', '/artists', '/services', '/experiences', '/gift-card', '/delivery', '/contact', '/reviews', '/privacy', '/terms'];
+  const staticPaths = ['/', '/gallery', '/artists', '/services', '/experiences', '/gift-card', '/stories', '/delivery', '/contact', '/reviews', '/privacy', '/terms'];
   const staticRoutes = (lastModified: Date) =>
     staticPaths.flatMap((path) =>
       entriesFor(path, {
@@ -40,9 +40,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
 
   try {
-    const [paintings, artists] = await Promise.all([
+    const [paintings, artists, stories] = await Promise.all([
       prisma.painting.findMany({ select: { id: true, updated_at: true } }),
       prisma.artist.findMany({ select: { id: true, updated_at: true } }),
+      prisma.story.findMany({ where: { published: true }, select: { slug: true, updated_at: true } }).catch(() => []),
     ]);
     // "Last modified" of the listing pages = the newest change in the
     // catalogue, so the date only moves when something really changed
@@ -63,7 +64,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
       })
     );
-    return [...routes, ...paintingRoutes, ...artistRoutes];
+    const storyRoutes = stories.flatMap((st) =>
+      entriesFor(`/stories/${st.slug}`, { lastModified: st.updated_at, changeFrequency: 'weekly', priority: 0.6 })
+    );
+    return [...routes, ...paintingRoutes, ...artistRoutes, ...storyRoutes];
   } catch (error) {
     console.error('Error generating dynamic sitemap:', error);
     return staticRoutes(new Date());

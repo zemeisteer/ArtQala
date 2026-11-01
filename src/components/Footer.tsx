@@ -59,9 +59,9 @@ export default function Footer() {
 
           {/* Visit */}
           <div className="space-y-3">
-            <h4 className="text-[11px] font-bold tracking-[2px] text-[#429599] uppercase">
+            <h2 className="text-[11px] font-bold tracking-[2px] text-[#429599] uppercase">
               {t.footer.visit}
-            </h4>
+            </h2>
             <div className="flex flex-col space-y-2 text-[13.5px] text-[#D8CDC5]">
               {locations.map((loc, idx) => (
                 <div key={idx} className={idx > 0 ? 'pt-2 border-t border-[#3D2C26]' : ''}>
@@ -84,9 +84,9 @@ export default function Footer() {
 
           {/* Contact */}
           <div className="space-y-3">
-            <h4 className="text-[11px] font-bold tracking-[2px] text-[#429599] uppercase">
+            <h2 className="text-[11px] font-bold tracking-[2px] text-[#429599] uppercase">
               {t.footer.contact}
-            </h4>
+            </h2>
             <div className="flex flex-col space-y-2 text-[13.5px] text-[#D8CDC5]">
               {phones.map((p, idx) => (
                 <a
@@ -113,9 +113,9 @@ export default function Footer() {
 
           {/* Explore */}
           <div className="space-y-3">
-            <h4 className="text-[11px] font-bold tracking-[2px] text-[#429599] uppercase">
+            <h2 className="text-[11px] font-bold tracking-[2px] text-[#429599] uppercase">
               {t.footer.explore}
-            </h4>
+            </h2>
             <div className="flex flex-col space-y-2 text-[13.5px] text-[#D8CDC5]">
               <Link href="/gallery" className="hover:text-[#429599] transition-colors">
                 {t.nav.gallery}
@@ -141,12 +141,15 @@ export default function Footer() {
               <Link href="/gift-card" className="hover:text-[#429599] transition-colors">
                 {t.gift.navLabel}
               </Link>
+              <Link href="/stories" className="hover:text-[#429599] transition-colors">
+                {t.stories.navLabel}
+              </Link>
             </div>
           </div>
         </div>
 
         {/* Footer bottom */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#8A7C73]">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#A89A90]">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <span>{t.footer.rights}</span>
             <span>·</span>

@@ -150,7 +150,7 @@ export default function PaintingCard({ painting, sizes = GRID_SIZES, priority = 
           <div className="flex flex-col">
             {hasDiscount ? (
               <div className="flex items-baseline gap-2">
-                <span className="text-xs text-[#8F8178] line-through">
+                <span className="text-xs text-[#756962] line-through">
                   {formatPrice(painting.price)}
                 </span>
                 <span className="text-[15px] font-bold text-[#BA4E25]">

@@ -50,6 +50,16 @@ export default function SiteDocument({
         {/* First thing in <body>: makes wishlist hearts work before the app's
             JavaScript has loaded (see src/lib/earlyWishlist.ts). */}
         <script dangerouslySetInnerHTML={{ __html: EARLY_WISHLIST_SCRIPT }} />
+        {/* Installable app + offline fallback (public/sw.js); production only,
+            so local development never serves stale cached pages. */}
+        {process.env.NODE_ENV === 'production' && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html:
+                "if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}",
+            }}
+          />
+        )}
         {jsonLd && (
           <script
             type="application/ld+json"

@@ -95,6 +95,7 @@ export async function buildLlmsTxt(full: boolean): Promise<string> {
   out.push(`- Services: ${SITE_URL}/services`);
   out.push(`- Masterclasses & tours: ${SITE_URL}/experiences`);
   out.push(`- Gift certificates: ${SITE_URL}/gift-card`);
+  out.push(`- Stories about Uzbek art and crafts: ${SITE_URL}/stories`);
   out.push(`- Reviews: ${SITE_URL}/reviews`);
   out.push(`- Contact & address: ${SITE_URL}/contact`);
   out.push(`- The site is in English (no prefix), Russian (${SITE_URL}/ru), Uzbek (${SITE_URL}/uz), German (${SITE_URL}/de), French (${SITE_URL}/fr), Korean (${SITE_URL}/ko), Japanese (${SITE_URL}/ja) and Chinese (${SITE_URL}/zh).`);

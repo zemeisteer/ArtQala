@@ -23,7 +23,7 @@ export default function TranslateStatus({
       <button
         type="button"
         onClick={onUndo}
-        className="inline-flex items-center gap-0.5 normal-case tracking-normal font-semibold text-[10px] text-[#429599] hover:underline cursor-pointer"
+        className="inline-flex items-center gap-0.5 normal-case tracking-normal font-semibold text-[10px] text-[#347578] hover:underline cursor-pointer"
         title="Avvalgi tarjimani qaytarish"
       >
         <Undo2 className="w-3 h-3" />

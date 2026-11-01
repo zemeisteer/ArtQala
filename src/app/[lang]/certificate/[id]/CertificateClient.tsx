@@ -88,7 +88,7 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
             {/* Artwork Details Block */}
             <div className="grid grid-cols-2 gap-y-4 gap-x-8 py-6 border-y border-[#E7E0D8] text-xs max-w-lg mx-auto my-6">
               <div>
-                <span className="text-[#8F8178] uppercase font-bold text-[10px] block">
+                <span className="text-[#756962] uppercase font-bold text-[10px] block">
                   {t.certificate.titleOfArtwork}
                 </span>
                 <span className="font-serif text-lg font-bold text-[#281C18]">
@@ -97,7 +97,7 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
               </div>
 
               <div>
-                <span className="text-[#8F8178] uppercase font-bold text-[10px] block">
+                <span className="text-[#756962] uppercase font-bold text-[10px] block">
                   {t.certificate.masterArtist}
                 </span>
                 <span className="font-serif text-lg font-bold text-[#281C18]">
@@ -106,7 +106,7 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
               </div>
 
               <div>
-                <span className="text-[#8F8178] uppercase font-bold text-[10px] block">
+                <span className="text-[#756962] uppercase font-bold text-[10px] block">
                   {t.certificate.mediumTechnique}
                 </span>
                 <span className="font-semibold text-[#281C18]">
@@ -115,7 +115,7 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
               </div>
 
               <div>
-                <span className="text-[#8F8178] uppercase font-bold text-[10px] block">
+                <span className="text-[#756962] uppercase font-bold text-[10px] block">
                   {t.certificate.dimensions}
                 </span>
                 <span className="font-semibold text-[#281C18]">
@@ -124,7 +124,7 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
               </div>
 
               <div>
-                <span className="text-[#8F8178] uppercase font-bold text-[10px] block">
+                <span className="text-[#756962] uppercase font-bold text-[10px] block">
                   {t.certificate.yearOfCreation}
                 </span>
                 <span className="font-semibold text-[#281C18]">
@@ -133,7 +133,7 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
               </div>
 
               <div>
-                <span className="text-[#8F8178] uppercase font-bold text-[10px] block">
+                <span className="text-[#756962] uppercase font-bold text-[10px] block">
                   {t.certificate.certificateNumber}
                 </span>
                 <span className="font-mono font-bold text-[#BA4E25]">
@@ -148,7 +148,7 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
                 <div className="font-serif italic text-lg text-[#281C18] border-b border-[#281C18]/40 pb-1 w-44">
                   {painting.artist?.name}
                 </div>
-                <span className="text-[10px] uppercase tracking-wider text-[#8F8178] block font-bold">
+                <span className="text-[10px] uppercase tracking-wider text-[#756962] block font-bold">
                   {t.certificate.artistSignature}
                 </span>
               </div>
@@ -172,7 +172,7 @@ export default function CertificateClient({ painting }: CertificateClientProps) 
                 <div className="font-serif italic text-lg text-[#281C18] border-b border-[#281C18]/40 pb-1 w-44 sm:ml-auto">
                   Anvar Nazarov
                 </div>
-                <span className="text-[10px] uppercase tracking-wider text-[#8F8178] block font-bold">
+                <span className="text-[10px] uppercase tracking-wider text-[#756962] block font-bold">
                   {t.certificate.headCurator}
                 </span>
               </div>

@@ -39,6 +39,10 @@ NextAuth: `src/lib/auth.ts` issues an HMAC-SHA256-signed session token (`base64(
 secret from `NEXTAUTH_SECRET`) stored in a cookie, and `src/middleware.ts` re-verifies that
 signature (via Web Crypto, since middleware runs on the Edge runtime) to gate `/admin/*`.
 Production refuses to boot without `NEXTAUTH_SECRET` set — the in-repo fallback secret is public.
+Admins can turn on two-step sign-in (Admin → Xodimlar, `/api/admin/2fa`, `src/lib/totp.ts`: authenticator-app
+codes, secret sealed with AES-GCM in `User.totp_secret`). `withAdminSession()` then grants a working admin session
+(`sid`) only when the signin route verified the code (`totpVerified`) — Google, password reset and email-code sign-ins
+never open the admin panel for such an account. Lost phone: `UPDATE "User" SET "totp_secret" = NULL WHERE …`.
 
 **Category is a self-referencing tree, one level deep** (`parent_id` on `Category`). A top-level
 category (`parent_id = null`) is a physical **product type** — Kartina, Kulolchilik, Somon
@@ -121,6 +125,13 @@ account's `WishlistItem` rows on sign-in and mirrors every add/remove (`/api/use
 (`/api/cron/review-reminders`, which also runs `src/lib/priceAlerts.ts#runPriceAlerts()`) emails a user when
 a saved, unsold painting's visible price drops below `WishlistItem.last_seen_price`; `User.price_alerts`
 opts out (signed one-click unsubscribe link, or the toggle on the account's Saved Artworks tab).
+A visitor can delete their own account (Profile tab → `/api/user/account` DELETE: retype the email, plus the password
+when the account has one; USER role only). The wishlist and sessions go with it; inquiries, service requests and
+reviews stay as the gallery's records with `user_id` cleared (the relations are `onDelete: SetNull`).
+
+**Backups**: `.github/workflows/db-backup.yml` dumps the database and every referenced image nightly, encrypted
+with the `BACKUP_PASSPHRASE` secret (the repo is public), kept 30 days. Its `DATABASE_URL` secret must be a
+direct/session connection (Neon non-pooler, or Supabase's Session pooler — Supabase's direct host is IPv6-only).
 
 **Admin notifications** go through `src/lib/adminNotify.ts#notifyAdmin()` (plus the contact route): an email to
 `SiteSettings.email` and a Telegram message (`src/lib/telegram.ts`) to every `TelegramChat` row, carrying a `ref`
@@ -164,13 +175,18 @@ and Admin → Settings "Saytning boshqa tillari"); server pages pass data throug
 (Privacy/Terms) fall back to English; `DELIVERY` and SEO texts (`seoExtra.ts`) exist in all eight.
 
 **Telegram channel**: `SiteSettings.telegram_channel` (Admin → Settings → Telegram; bot must be a channel admin). New
-unsold works are posted on create (`src/lib/telegramChannel.ts`); any work can be re-posted from its edit page.
+unsold works are posted on create (`src/lib/telegramChannel.ts`), and so is any unsold work saved in the admin that was
+never posted (`Painting.channel_posted_at`, set on every successful post); any work can be re-posted from its edit page.
+Posts are English only: title, artist, size in cm and a "View on site" button (the owner's choice — no price).
 
 **Gift certificates** (`GiftCertificate`, `/gift-card`, Admin → Sovg'a sertifikatlari): request → curator arranges
 payment → "To'landi" emails a signed link to the printable certificate (`/gift/<code>?s=`, `src/lib/giftCards.ts`).
 
-**Masterclasses** (`Workshop`, Admin → Master-klasslar, public `/experiences`): a booking is a `ServiceRequest` with
-`service_type = 'WORKSHOP'`, so it shares the service-request admin page, Telegram buttons and reply thread.
+**Masterclasses** (`Workshop`, Admin → Master-klasslar, public `/experiences`, header menu): a workshop has session
+start times (`times`) and run days (`weekdays`); a booking is a `WorkshopBooking` for one session (date + time).
+A session holds `max_people` people across its NEW/CONFIRMED bookings (no `max_people` = private: one booking takes
+it) — checked and taken in one Serializable transaction in `/api/workshops/book`; `/api/workshops/[id]/availability`
+tells the form which sessions are full. Bookings are managed in the "Bronlar" tab (confirming emails the customer).
 
 **"Find art for my room"** (`RoomMatch` on the gallery page, `/api/room-match`, `src/lib/roomMatch.ts`): the visitor's
 room photo plus thumbnails of available wall pieces go to Gemini in one request; the photo is never stored.

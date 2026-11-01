@@ -4,6 +4,7 @@ import { notifyIndexNow } from '@/lib/indexNow';
 import { accessoryIdList } from '@/lib/accessoryPricing';
 import { requireAdmin } from '@/lib/auth';
 import { translateAfterSave } from '@/lib/translateContent';
+import { postToChannelIfNew } from '@/lib/telegramChannel';
 import { parseSoldPrice } from '@/lib/salePriceInput';
 
 export const dynamic = 'force-dynamic';
@@ -93,6 +94,8 @@ export async function PUT(request: Request, context: RouteContext) {
     });
 
     notifyIndexNow([`/gallery/${id}`, `/artists/${updated.artist_id}`]);
+    // A work that never reached the Telegram channel goes there now, once.
+    await postToChannelIfNew(id).catch((error) => console.error('Channel post failed:', error));
     translateAfterSave('painting', updated.id);
     return NextResponse.json({ success: true, painting: updated });
   } catch (error) {

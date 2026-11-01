@@ -21,6 +21,7 @@ export const PUBLIC_MODELS = new Set([
   'Review',
   'SiteSettings',
   'Workshop',
+  'Story',
 ]);
 
 export function refreshPublicSite() {

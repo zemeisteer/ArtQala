@@ -27,7 +27,7 @@ export function pick(record: object | null | undefined, field: string, lang: str
   return parseTranslations(r.translations)[lang]?.[field] || own('en');
 }
 
-const FIELDS = ['title', 'description', 'technique', 'name', 'bio', 'specialty'];
+const FIELDS = ['title', 'description', 'technique', 'name', 'bio', 'specialty', 'excerpt', 'body'];
 
 // For a page in `lang`: copies that language's translations over the
 // English fields (which the UI falls back to for every language but RU/UZ)

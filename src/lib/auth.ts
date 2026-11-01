@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { isAdminSessionActive, startAdminSession } from '@/lib/adminSessions';
 import { ADMIN_GATE_COOKIE, hasAdminGateCookie } from '@/lib/adminGate';
+import { prisma } from '@/lib/prisma';
 
 export interface UserSession {
   id: string;
@@ -120,9 +121,18 @@ export async function getServerSession(): Promise<UserSession | null> {
 // ADMIN gets a new tracked sign-in (sid); everyone else is unchanged.
 export async function withAdminSession<T extends { id: string; role: string }>(
   request: Request,
-  user: T
+  user: T,
+  opts: { totpVerified?: boolean } = {}
 ): Promise<T & { sid?: string }> {
   if (user.role !== 'ADMIN') return user;
+
+  // Two-step sign-in (src/lib/totp.ts): an admin who turned it on gets a
+  // working admin session only from the password + code sign-in — never
+  // from Google, a password reset or an email code.
+  if (!opts.totpVerified) {
+    const row = await prisma.user.findUnique({ where: { id: user.id }, select: { totp_secret: true } });
+    if (row?.totp_secret) return user;
+  }
 
   // Hidden admin panel (src/lib/adminGate.ts): whichever way an admin
   // authenticates — password, Google, a password reset — no admin sign-in

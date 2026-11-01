@@ -103,7 +103,7 @@ export default function ChatModal({
         {/* Message Thread History */}
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-[#FAF4EC]">
           {messages.length === 0 ? (
-            <div className="text-center py-16 text-xs text-[#8F8178]">
+            <div className="text-center py-16 text-xs text-[#756962]">
               {t.chat.noMessages}
             </div>
           ) : (
@@ -125,7 +125,7 @@ export default function ChatModal({
                 >
                   <div
                     className={`flex items-center gap-1.5 text-[10.5px] mb-1 font-medium ${
-                      isCustomer ? 'text-[#8F8178] flex-row-reverse' : 'text-[#726861]'
+                      isCustomer ? 'text-[#756962] flex-row-reverse' : 'text-[#726861]'
                     }`}
                   >
                     {isCustomer ? (

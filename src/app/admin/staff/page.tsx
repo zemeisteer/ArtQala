@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import AdminStaffClient from './AdminStaffClient';
 import AdminSessionsPanel from './AdminSessionsPanel';
+import TwoFactorPanel from './TwoFactorPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export default async function AdminStaffPage() {
   return (
     <div className="space-y-10">
       <AdminStaffClient initialStaff={staff} />
+      <TwoFactorPanel />
       <AdminSessionsPanel />
     </div>
   );

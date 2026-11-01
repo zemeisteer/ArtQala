@@ -59,7 +59,7 @@ export default function ArtistDetailClient({ artist }: ArtistDetailClientProps) 
             <div>
               <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-[#281C18]">{artist.name}</h1>
               {specialty && (
-                <div className="text-xs font-bold tracking-[2px] text-[#429599] uppercase mt-2">{specialty}</div>
+                <div className="text-xs font-bold tracking-[2px] text-[#347578] uppercase mt-2">{specialty}</div>
               )}
             </div>
             {bio && <p className="text-[15px] leading-relaxed text-[#5F534C] whitespace-pre-line">{bio}</p>}
@@ -103,7 +103,7 @@ export default function ArtistDetailClient({ artist }: ArtistDetailClientProps) 
                   )}
                   <div className="min-w-0 space-y-1">
                     <p className="text-sm font-semibold text-[#281C18] leading-snug">{achievementTitle(a, lang)}</p>
-                    <div className="flex items-center gap-3 text-xs text-[#8F8178]">
+                    <div className="flex items-center gap-3 text-xs text-[#756962]">
                       {a.year && <span>{a.year}</span>}
                       {a.file && (
                         <a
@@ -127,7 +127,7 @@ export default function ArtistDetailClient({ artist }: ArtistDetailClientProps) 
         {/* Every work of theirs in the gallery */}
         <div className="flex items-baseline justify-between mb-6 border-t border-[#E7E0D8] pt-10">
           <h2 className="font-serif text-3xl font-semibold text-[#281C18]">{t.artists.worksHeading}</h2>
-          <span className="text-xs text-[#8F8178]">{paintings.length}</span>
+          <span className="text-xs text-[#756962]">{paintings.length}</span>
         </div>
         {paintings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -136,7 +136,7 @@ export default function ArtistDetailClient({ artist }: ArtistDetailClientProps) 
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[#8F8178] italic">{t.artists.noWorksYet}</p>
+          <p className="text-sm text-[#756962] italic">{t.artists.noWorksYet}</p>
         )}
       </div>
     </div>

@@ -9,7 +9,7 @@ import { CITY_JOIN, CITY_LOCAL, EXTRA_PAGES } from './seoExtra';
 // each /ru/... and /uz/... page is indexed in its own language, so its title
 // and description must be too. `title` goes through the root layout's
 // "%s | Art Qala Gallery" template (except the home page, which is absolute).
-type PageKey = 'home' | 'gallery' | 'artists' | 'services' | 'contact' | 'reviews' | 'privacy' | 'terms' | 'delivery' | 'gift' | 'workshops';
+type PageKey = 'home' | 'gallery' | 'artists' | 'services' | 'contact' | 'reviews' | 'privacy' | 'terms' | 'delivery' | 'gift' | 'workshops' | 'stories';
 
 const PAGES: Record<PageKey, { path: string } & Record<BaseLanguage, { title: string; description: string }>> = {
   home: {
@@ -180,6 +180,12 @@ const PAGES: Record<PageKey, { path: string } & Record<BaseLanguage, { title: st
       title: 'Master-klasslar va ekskursiyalar',
       description: 'Art Qala galereyasida o‘zbek ustalari bilan master-klasslar — rassomlik, kulolchilik, yog‘och o‘ymakorligi. Onlayn yozilish.',
     },
+  },
+  stories: {
+    path: '/stories',
+    en: { title: 'Stories — Uzbek Art & Crafts', description: 'Stories about Uzbek painting, ceramics, wood carving, the artists of Art Qala and the cities of Tashkent and Khiva.' },
+    ru: { title: 'Истории — узбекское искусство и ремёсла', description: 'Истории об узбекской живописи, керамике, резьбе по дереву, художниках Art Qala и городах Ташкент и Хива.' },
+    uz: { title: 'Hikoyalar — o‘zbek san’ati va hunarmandchiligi', description: 'O‘zbek rassomligi, kulolchilik, yog‘och o‘ymakorligi, Art Qala rassomlari hamda Toshkent va Xiva haqida hikoyalar.' },
   },
   terms: {
     path: '/terms',

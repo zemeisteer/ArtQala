@@ -51,7 +51,7 @@ export default function ReviewsClient({ initialReviews, google, mapLinks }: Revi
         {/* Page Head */}
         <div className="max-w-2xl mb-12 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">
+            <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">
               {t.reviews.pageEyebrow}
             </span>
             <Sparkles className="w-3.5 h-3.5 text-[#DAA932]" />
@@ -99,7 +99,7 @@ export default function ReviewsClient({ initialReviews, google, mapLinks }: Revi
                   <MessageSquarePlus className="w-3.5 h-3.5" />
                   <span>{t.reviews.leaveReview}</span>
                 </a>
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#16A34A] bg-[#DCFCE7] px-3 py-1.5 rounded-full border border-[#BBF7D0]">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#107B38] bg-[#DCFCE7] px-3 py-1.5 rounded-full border border-[#BBF7D0]">
                   <MessageSquareCheck className="w-4 h-4" />
                   <span>{t.reviews.fullyVerifiedBadge}</span>
                 </div>
@@ -127,7 +127,7 @@ export default function ReviewsClient({ initialReviews, google, mapLinks }: Revi
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-[#8F8178]">
+                        <span className="text-[11px] text-[#756962]">
                           {formatReviewDate(r.created_at, lang)}
                         </span>
                       </div>
@@ -144,13 +144,13 @@ export default function ReviewsClient({ initialReviews, google, mapLinks }: Revi
                     </p>
 
                     {!r.painting && (
-                      <div className="text-[10.5px] font-bold tracking-wider text-[#429599] uppercase pt-1 border-t border-[#F0EAE1]">
+                      <div className="text-[10.5px] font-bold tracking-wider text-[#347578] uppercase pt-1 border-t border-[#F0EAE1]">
                         {t.reviews.generalEyebrow}
                       </div>
                     )}
                     {r.painting && (
                       <div className="flex items-center justify-between text-xs pt-1 border-t border-[#F0EAE1]">
-                        <span className="text-[#8F8178]">{t.reviews.artworkLabel}</span>
+                        <span className="text-[#756962]">{t.reviews.artworkLabel}</span>
                         <Link
                           href={`/gallery/${r.painting.id}`}
                           className="font-semibold text-[#BA4E25] hover:underline flex items-center gap-1"
@@ -187,7 +187,7 @@ export default function ReviewsClient({ initialReviews, google, mapLinks }: Revi
 
             {/* How Reviews Work */}
             <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-6 space-y-4 shadow-xs">
-              <div className="flex items-center gap-2 text-[#429599]">
+              <div className="flex items-center gap-2 text-[#347578]">
                 <ShieldCheck className="w-5 h-5" />
                 <h3 className="font-serif text-xl font-semibold text-[#281C18]">
                   {t.reviews.policyTitle}
@@ -228,7 +228,7 @@ export default function ReviewsClient({ initialReviews, google, mapLinks }: Revi
               </p>
               <Link
                 href="/gallery"
-                className="inline-block text-xs font-bold text-[#429599] hover:underline pt-1"
+                className="inline-block text-xs font-bold text-[#347578] hover:underline pt-1"
               >
                 {t.reviews.browseArtworks}
               </Link>

@@ -8,7 +8,9 @@ import { parseSizeCm } from './paintingSize';
 // The gallery's public Telegram channel: a new work added in the admin is
 // posted there in English (photo, title, artist, size, "View on site"
 // button — the owner wants nothing more), and any work can
-// be (re)posted from its edit page. The bot must be an admin of the channel
+// be (re)posted from its edit page. Saving a work that was never posted
+// (Painting.channel_posted_at) posts it once, so older works reach the
+// channel as they get edited. The bot must be an admin of the channel
 // with "Post messages". Set in Admin → Settings → Telegram
 // (SiteSettings.telegram_channel; empty = off).
 
@@ -79,13 +81,28 @@ export async function postPaintingToChannel(
     photo && photo !== PLACEHOLDER_IMAGE
       ? await tg('sendPhoto', { chat_id: channel, photo: absolute(photo), caption, parse_mode: 'HTML', reply_markup })
       : await tg('sendMessage', { chat_id: channel, text: caption, parse_mode: 'HTML', reply_markup });
-  if (!res.ok) {
+  let ok = res.ok;
+  if (!ok && photo !== PLACEHOLDER_IMAGE) {
     // A photo Telegram can't fetch (format/size) — still post the text.
-    if (photo !== PLACEHOLDER_IMAGE) {
-      const text = await tg('sendMessage', { chat_id: channel, text: caption, parse_mode: 'HTML', reply_markup });
-      if (text.ok) return { ok: true };
-    }
-    return { ok: false, error: res.description || 'Telegram xatosi' };
+    ok = (await tg('sendMessage', { chat_id: channel, text: caption, parse_mode: 'HTML', reply_markup })).ok;
   }
+  if (!ok) return { ok: false, error: res.description || 'Telegram xatosi' };
+  await prisma.painting
+    .update({ where: { id: p.id }, data: { channel_posted_at: new Date() } })
+    .catch((error) => console.error('Channel post not recorded:', error));
   return { ok: true };
+}
+
+// After an admin save (create or edit): post an unsold work that has never
+// been posted. Does nothing when no channel is connected.
+export async function postToChannelIfNew(paintingId: string): Promise<void> {
+  const p = await prisma.painting.findUnique({
+    where: { id: paintingId },
+    select: { is_sold: true, channel_posted_at: true },
+  });
+  if (!p || p.is_sold || p.channel_posted_at) return;
+  const channel = await getChannel();
+  if (!channel || !isTelegramConfigured()) return;
+  const result = await postPaintingToChannel(paintingId, channel);
+  if (!result.ok) console.error('Channel post failed:', result.error);
 }

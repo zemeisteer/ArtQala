@@ -43,6 +43,9 @@ model Painting {
   // beyond EN/RU/UZ — JSON, see src/lib/contentTranslations.ts.
   translations         String?
   views_count          Int       @default(0)
+  // When the work was posted to the public Telegram channel (null = never):
+  // saving an unposted, unsold work posts it — see src/lib/telegramChannel.ts.
+  channel_posted_at    DateTime?
 
   artist_id String
   artist    Artist @relation(fields: [artist_id], references: [id], onDelete: Cascade)
@@ -164,6 +167,9 @@ model User {
   // Email me when a painting in my wishlist gets cheaper (daily check in
   // src/lib/priceAlerts.ts). Turned off by the unsubscribe link in the email.
   price_alerts         Boolean @default(true)
+  // Admin two-step sign-in (authenticator app), sealed — see src/lib/totp.ts.
+  // Set = the 6-digit code is required at every admin sign-in.
+  totp_secret          String?
 
   inquiries        Inquiry[]
   service_requests ServiceRequest[]
@@ -372,6 +378,10 @@ model SiteSettings {
   rate_eur     Float   @default(13900)
   rate_rub     Float   @default(140)
   manual_rates Boolean @default(false)
+  // Safety margin (%) added to every non-USD price shown on the site, so a
+  // price paid in so'm/euro/won… still covers the dollar price at the rate
+  // banks actually sell at (the CBU rate is the official mid rate).
+  fx_margin    Float   @default(3)
 
   // Telegram channel (@name or -100… id) new works are posted to; null = off.
   telegram_channel String?
@@ -520,9 +530,8 @@ model GiftCertificate {
   @@index([status])
 }
 
-// Masterclasses / tours bookable on /experiences. A booking is a
-// ServiceRequest with service_type "WORKSHOP" (same admin page, Telegram
-// buttons and reply thread as other service requests).
+// Masterclasses / tours bookable on /experiences (bookings: WorkshopBooking,
+// managed in Admin → Master-klasslar).
 model Workshop {
   id               String   @id @default(cuid())
   title_uz         String
@@ -539,6 +548,61 @@ model Workshop {
   is_active        Boolean  @default(true)
   sort             Int      @default(0)
   translations     String?
+  // Session start times ("HH:MM") a visitor picks from; empty = any time.
+  times            String[] @default([])
+  // Days it runs (0 = Sunday … 6 = Saturday); empty = every day.
+  weekdays         Int[]    @default([])
+  bookings         WorkshopBooking[]
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
+}
+
+// A booking for one session (workshop + date + time). A session holds up to
+// Workshop.max_people people across all NEW/CONFIRMED bookings; with no
+// max_people it is private — one booking takes it. See src/lib/workshops.ts.
+model WorkshopBooking {
+  id          String   @id @default(cuid())
+  workshop_id String
+  workshop    Workshop @relation(fields: [workshop_id], references: [id], onDelete: Cascade)
+  date        String // YYYY-MM-DD
+  time        String // HH:MM
+  people      Int
+  name        String
+  email       String
+  phone       String
+  note        String?
+  lang        String   @default("en")
+  status      String   @default("NEW") // NEW, CONFIRMED, DONE, CANCELLED
+  admin_notes String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([workshop_id, date])
+  @@index([status])
+}
+
+// "Hikoyalar" — articles about the gallery, artists and crafts (public
+// /stories). Written in Uzbek in the admin; EN/RU auto-translated in the form,
+// the other site languages in `translations` (src/lib/translateContent.ts).
+// `body_*` is light Markdown (see src/lib/storyMarkdown.ts).
+model Story {
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  title_uz     String
+  title_en     String
+  title_ru     String
+  excerpt_uz   String?
+  excerpt_en   String?
+  excerpt_ru   String?
+  body_uz      String
+  body_en      String
+  body_ru      String
+  cover        String?
+  published    Boolean   @default(false)
+  published_at DateTime?
+  translations String?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  @@index([published, published_at])
 }

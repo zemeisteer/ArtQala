@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Gift, Send, CheckCircle2 } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import PhoneInput from '@/components/PhoneInput';
 import { useApp } from '@/context/AppContext';
 import { ReviewHoneypot, reviewErrorText, reviewGuardFields, useReviewFormToken } from '@/components/ReviewGuard';
 
@@ -22,6 +23,7 @@ export default function GiftCardClient() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [phoneValid, setPhoneValid] = useState(true);
   const token = useReviewFormToken(!sent);
 
   const value = custom ? Math.round(Number(custom)) : amount;
@@ -36,6 +38,10 @@ export default function GiftCardClient() {
       setError(g.errAmount);
       return;
     }
+    if (!phoneValid) {
+      setError(t.phoneInput.invalidPhone);
+      return;
+    }
     setSending(true);
     try {
       const res = await fetch('/api/gift-cards', {
@@ -46,7 +52,7 @@ export default function GiftCardClient() {
       const data = await res.json();
       if (data.success) setSent(true);
       else {
-        setError(data.code === 'amount' ? g.errAmount : reviewErrorText(data.code, t));
+        setError(data.code === 'amount' ? g.errAmount : data.code === 'phone' ? t.phoneInput.invalidPhone : reviewErrorText(data.code, t));
         if (data.code === 'expired') token.refresh();
       }
     } catch {
@@ -61,7 +67,7 @@ export default function GiftCardClient() {
       <Breadcrumbs items={[{ label: g.navLabel }]} />
       <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14">
         <div className="max-w-2xl mb-10 space-y-2">
-          <span className="text-xs font-semibold tracking-[3px] text-[#429599] uppercase">{g.eyebrow}</span>
+          <span className="text-xs font-semibold tracking-[3px] text-[#347578] uppercase">{g.eyebrow}</span>
           <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-[#281C18]">{g.title}</h1>
           <p className="text-sm sm:text-base text-[#6E6057] leading-relaxed">{g.subtitle}</p>
         </div>
@@ -70,7 +76,7 @@ export default function GiftCardClient() {
           <div className="lg:col-span-7">
             {sent ? (
               <div className="bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] p-8 space-y-3 text-center">
-                <CheckCircle2 className="w-10 h-10 text-[#16A34A] mx-auto" />
+                <CheckCircle2 className="w-10 h-10 text-[#107B38] mx-auto" />
                 <h2 className="font-serif text-2xl font-semibold text-[#281C18]">{g.thanksTitle}</h2>
                 <p className="text-sm text-[#554740]">{g.thanksText}</p>
               </div>
@@ -109,7 +115,7 @@ export default function GiftCardClient() {
                       className={`${input} !w-36`}
                     />
                   </div>
-                  <p className="text-[11px] text-[#8F8178] mt-1">{g.minNote.replace('{min}', String(MIN))}</p>
+                  <p className="text-[11px] text-[#756962] mt-1">{g.minNote.replace('{min}', String(MIN))}</p>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-6">
@@ -125,7 +131,12 @@ export default function GiftCardClient() {
                     </div>
                     <div>
                       <label className={label}>{g.yourPhone}</label>
-                      <input type="tel" maxLength={40} value={f.buyer_phone} onChange={set('buyer_phone')} className={input} />
+                      <PhoneInput
+                        value={f.buyer_phone}
+                        onChange={(v) => setF((x) => ({ ...x, buyer_phone: v }))}
+                        onValidityChange={setPhoneValid}
+                        required={false}
+                      />
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -137,7 +148,7 @@ export default function GiftCardClient() {
                     <div>
                       <label className={label}>{g.recipientEmail}</label>
                       <input type="email" maxLength={120} value={f.recipient_email} onChange={set('recipient_email')} className={input} />
-                      <p className="text-[11px] text-[#8F8178] mt-1">{g.recipientEmailHint}</p>
+                      <p className="text-[11px] text-[#756962] mt-1">{g.recipientEmailHint}</p>
                     </div>
                   </div>
                 </div>

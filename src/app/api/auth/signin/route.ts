@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { createSessionToken, withAdminSession } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, resetRateLimit, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
+import { openSecret, verifyTotp } from '@/lib/totp';
 import { checkOtpSendAllowed, issueSignupOtp, recordOtpSend } from '@/lib/otp';
 import { cookies } from 'next/headers';
 import { ADMIN_GATE_COOKIE, hasAdminGateCookie } from '@/lib/adminGate';
@@ -101,6 +102,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
     }
 
+    // Two-step sign-in (src/lib/totp.ts): the password was right, now the
+    // 6-digit code from the admin's authenticator app. The client asks for
+    // it on `totp_required` and sends the password again with it.
+    let totpVerified = false;
+    if (user.role === 'ADMIN' && user.totp_secret) {
+      const code = typeof body.totp === 'string' ? body.totp : '';
+      if (!code) {
+        return NextResponse.json(
+          { success: false, code: 'totp_required', error: 'Ilovadagi 6 xonali kodni kiriting.' },
+          { status: 401 }
+        );
+      }
+      const secret = openSecret(user.totp_secret);
+      if (!secret || !verifyTotp(secret, code)) {
+        await Promise.all([
+          recordFailedAttempt(comboKey),
+          recordFailedAttempt(ipKey),
+          recordFailedAttempt(emailKey),
+        ]);
+        return NextResponse.json(
+          { success: false, code: 'totp_invalid', error: "Kod noto'g'ri yoki eskirgan. Ilovadagi yangi kodni kiriting." },
+          { status: 401 }
+        );
+      }
+      totpVerified = true;
+    }
+
     // Correct password but the email was never confirmed: send a fresh code
     // (throttled, so this can't be used to flood someone's inbox) and send
     // the user to /verify-otp instead of signing them in.
@@ -138,7 +166,7 @@ export async function POST(request: Request) {
     };
 
     // An admin sign-in is recorded (device, IP, place) — see Admin → Staff.
-    const sessionToken = createSessionToken(await withAdminSession(request, userSession));
+    const sessionToken = createSessionToken(await withAdminSession(request, userSession, { totpVerified }));
 
     const response = NextResponse.json({
       success: true,

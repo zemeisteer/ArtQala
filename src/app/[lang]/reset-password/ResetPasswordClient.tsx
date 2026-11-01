@@ -122,7 +122,7 @@ export default function ResetPasswordClient() {
               {t.auth.newPasswordLabel}
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-[#8F8178] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-[#756962] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
@@ -139,7 +139,7 @@ export default function ResetPasswordClient() {
               {t.auth.passwordConfirmLabel}
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-[#8F8178] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-[#756962] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
