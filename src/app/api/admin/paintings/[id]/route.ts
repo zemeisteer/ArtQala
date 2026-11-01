@@ -95,9 +95,9 @@ export async function PUT(request: Request, context: RouteContext) {
 
     notifyIndexNow([`/gallery/${id}`, `/artists/${updated.artist_id}`]);
     // A work that never reached the Telegram channel goes there now, once.
-    await postToChannelIfNew(id).catch((error) => console.error('Channel post failed:', error));
+    const channel = await postToChannelIfNew(id).catch((error) => ({ status: 'failed' as const, error: String(error) }));
     translateAfterSave('painting', updated.id);
-    return NextResponse.json({ success: true, painting: updated });
+    return NextResponse.json({ success: true, painting: updated, channel });
   } catch (error) {
     console.error('Update error:', error);
     return NextResponse.json({ success: false, error: 'Update failed' }, { status: 500 });

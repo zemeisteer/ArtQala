@@ -41,16 +41,16 @@ export default function Footer() {
           {/* Brand & Mission */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="inline-block">
-              {/* Original logo from /assets/logo.png preserved without modification */}
-              <div className="p-1 rounded inline-block bg-[#FAF4EC]/5">
-                <Image
-                  src="/logo.png"
-                  alt="Art Qala Gallery"
-                  width={150}
-                  height={52}
-                  className="h-[52px] w-auto object-contain brightness-105"
-                />
-              </div>
+              {/* /logo-full.png: the owner-approved copy of the logo (Q completed,
+                  white made transparent, so no white box on the dark footer).
+                  /assets/logo.png itself stays untouched. */}
+              <Image
+                src="/logo-full.png"
+                alt="Art Qala Gallery"
+                width={71}
+                height={60}
+                className="h-[60px] w-auto object-contain"
+              />
             </Link>
             <p className="text-[13.5px] leading-relaxed text-[#B3A49B] max-w-sm">
               {aboutText}

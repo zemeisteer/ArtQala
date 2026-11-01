@@ -94,15 +94,31 @@ export async function postPaintingToChannel(
 }
 
 // After an admin save (create or edit): post an unsold work that has never
-// been posted. Does nothing when no channel is connected.
-export async function postToChannelIfNew(paintingId: string): Promise<void> {
+// been posted. The outcome goes back to the Paintings form, which tells the
+// admin whether it reached the channel and, if not, why.
+export type ChannelOutcome =
+  | { status: 'posted' }
+  | { status: 'already'; at: string }
+  | { status: 'sold' }
+  | { status: 'no_channel' }
+  | { status: 'no_token' }
+  | { status: 'failed'; error: string };
+
+export async function postToChannelIfNew(paintingId: string): Promise<ChannelOutcome> {
   const p = await prisma.painting.findUnique({
     where: { id: paintingId },
     select: { is_sold: true, channel_posted_at: true },
   });
-  if (!p || p.is_sold || p.channel_posted_at) return;
+  if (!p) return { status: 'failed', error: 'Asar topilmadi' };
+  if (p.is_sold) return { status: 'sold' };
+  if (p.channel_posted_at) return { status: 'already', at: p.channel_posted_at.toISOString() };
   const channel = await getChannel();
-  if (!channel || !isTelegramConfigured()) return;
+  if (!channel) return { status: 'no_channel' };
+  if (!isTelegramConfigured()) return { status: 'no_token' };
   const result = await postPaintingToChannel(paintingId, channel);
-  if (!result.ok) console.error('Channel post failed:', result.error);
+  if (!result.ok) {
+    console.error('Channel post failed:', result.error);
+    return { status: 'failed', error: result.error || 'Telegram xatosi' };
+  }
+  return { status: 'posted' };
 }

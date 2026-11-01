@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { sendGiftCertificateEmail } from '@/lib/email';
 import { GIFT_STATUSES, giftCertificateUrl, type GiftStatus } from '@/lib/giftCards';
+import { giftExpiresAt } from '@/lib/giftExpiry';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       code: updated.code,
       url: giftCertificateUrl(updated.code, updated.lang),
       message: updated.message,
+      expires: giftExpiresAt(updated.paid_at || updated.created_at),
     });
     if (!result.success) {
       return NextResponse.json({ success: false, error: `Email yuborilmadi: ${result.error}`, gift: updated }, { status: 502 });

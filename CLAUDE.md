@@ -269,6 +269,9 @@ vars set on Vercel.
 `/design/`, the TZ requirements doc, and one hard rule: never edit, re-color, or replace
 `/assets/logo.png` — treat any request to "fix" the logo as a question to ask the user, not a
 task to do).
+The header and footer show `/logo-full.png`, a copy the owner asked for on 2026-11-01 (the cut-off left side of
+the Q rebuilt by mirroring its right side, the paper white made transparent, built from the owner's 640×640 JPEG);
+the original logo files are unchanged.
 
 ## Deployment
 

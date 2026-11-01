@@ -88,9 +88,9 @@ export async function POST(request: Request) {
 
     notifyIndexNow([`/gallery/${newPainting.id}`, `/artists/${newPainting.artist_id}`]);
     // A new, unsold work goes to the public Telegram channel (if connected).
-    await postToChannelIfNew(newPainting.id).catch((error) => console.error('Channel post failed:', error));
+    const channel = await postToChannelIfNew(newPainting.id).catch((error) => ({ status: 'failed' as const, error: String(error) }));
     translateAfterSave('painting', newPainting.id);
-    return NextResponse.json({ success: true, painting: newPainting });
+    return NextResponse.json({ success: true, painting: newPainting, channel });
   } catch (error) {
     console.error('Create painting error:', error);
     return NextResponse.json({ success: false, error: 'Failed to create painting' }, { status: 500 });

@@ -8,7 +8,7 @@ import { useApp } from '@/context/AppContext';
 export default function GiftCertificateView({
   gift,
 }: {
-  gift: { code: string; amount: number; recipient: string; from: string; message: string | null; redeemed: boolean; issued: string };
+  gift: { code: string; amount: number; recipient: string; from: string; message: string | null; redeemed: boolean; issued: string; expires: string; expired: boolean };
 }) {
   const { t } = useApp();
   const g = t.gift;
@@ -30,6 +30,11 @@ export default function GiftCertificateView({
         {gift.redeemed && (
           <p className="text-center text-sm font-semibold text-[#4338CA] bg-[#E0E7FF] border border-[#C7D2FE] rounded-[3px] py-2">
             {g.certRedeemed}
+          </p>
+        )}
+        {gift.expired && (
+          <p className="text-center text-sm font-semibold text-[#9A3412] bg-[#FFEDD5] border border-[#FED7AA] rounded-[3px] py-2">
+            {g.certExpired}
           </p>
         )}
         <div className="bg-[#FFFDF9] border-[6px] border-[#DAA932] p-3 shadow-2xl">
@@ -56,6 +61,10 @@ export default function GiftCertificateView({
               <span className="font-mono text-xl font-bold text-[#281C18]">{gift.code}</span>
             </div>
             <p className="text-xs text-[#6B5E55] max-w-xl mx-auto leading-relaxed">{g.certUse}</p>
+            <p className="text-sm font-semibold text-[#281C18]">
+              {g.certValidUntil}{' '}
+              {new Date(gift.expires).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
             <p className="text-[11px] text-[#746A63]">
               {new Date(gift.issued).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · artqala.com
             </p>

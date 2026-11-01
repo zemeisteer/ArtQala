@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { giftSignature } from '@/lib/giftCards';
+import { giftExpiresAt, isGiftExpired } from '@/lib/giftExpiry';
 import GiftCertificateView from './GiftCertificateView';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,8 @@ export default async function GiftCertificatePage({
         message: gift.message,
         redeemed: gift.status === 'REDEEMED',
         issued: (gift.paid_at || gift.created_at).toISOString(),
+        expires: giftExpiresAt(gift.paid_at || gift.created_at).toISOString(),
+        expired: isGiftExpired(gift),
       }}
     />
   );
