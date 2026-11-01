@@ -8,7 +8,7 @@ import TimePicker from '@/components/TimePicker';
 import PhoneInput from '@/components/PhoneInput';
 import { useApp } from '@/context/AppContext';
 import { pick } from '@/lib/contentTranslations';
-import { weekdayOf } from '@/lib/workshops';
+import { parseDateSlots, timesOn } from '@/lib/workshops';
 import { ReviewHoneypot, reviewErrorText, reviewGuardFields, useReviewFormToken } from '@/components/ReviewGuard';
 
 export interface PublicWorkshop {
@@ -27,6 +27,7 @@ export interface PublicWorkshop {
   image: string | null;
   times: string[];
   weekdays: number[];
+  date_slots: string | null;
 }
 
 const input = 'w-full text-sm px-3.5 py-2.5 bg-white border border-[#E7E0D8] rounded-[2px] focus:outline-none focus:border-[#BA4E25]';
@@ -40,9 +41,19 @@ const weekdayName = (d: number, lang: string) =>
     ? UZ_WEEKDAYS[d]
     : new Date(Date.UTC(2024, 0, 7 + d)).toLocaleDateString(lang === 'en' ? 'en-GB' : lang, { weekday: 'short', timeZone: 'UTC' });
 
+// "5 Nov", "5 нояб."… — Uzbek spelled out like the weekdays.
+const UZ_MONTHS = ['yan', 'fev', 'mar', 'apr', 'may', 'iyn', 'iyl', 'avg', 'sen', 'okt', 'noy', 'dek'];
+const shortDate = (iso: string, lang: string) => {
+  const d = new Date(`${iso}T12:00:00Z`);
+  return lang === 'uz'
+    ? `${d.getUTCDate()}-${UZ_MONTHS[d.getUTCMonth()]}`
+    : d.toLocaleDateString(lang === 'en' ? 'en-GB' : lang, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+};
+
 export default function ExperiencesClient({ workshops }: { workshops: PublicWorkshop[] }) {
   const { t, lang } = useApp();
   const w = t.workshops;
+  const todayIso = new Date().toISOString().slice(0, 10);
   const [booking, setBooking] = useState<PublicWorkshop | null>(null);
 
   const duration = (m: number) =>
@@ -91,13 +102,31 @@ export default function ExperiencesClient({ workshops }: { workshops: PublicWork
                         <MapPin className="w-3.5 h-3.5" /> {x.location}
                       </span>
                     )}
-                    {(x.times.length > 0 || x.weekdays.length > 0) && (
-                      <span className="flex items-center gap-1 w-full">
-                        <CalendarDays className="w-3.5 h-3.5" />
-                        {x.weekdays.length ? x.weekdays.map((d) => weekdayName(d, lang)).join(', ') : w.everyDay}
-                        {x.times.length > 0 && ` · ${x.times.join(', ')}`}
-                      </span>
-                    )}
+                    {(() => {
+                      // Bookable only on dates the admin listed: show the next few.
+                      const slots = parseDateSlots(x.date_slots);
+                      if (slots.only) {
+                        const upcoming = Object.keys(slots.dates)
+                          .filter((d) => d >= todayIso && !slots.dates[d].off)
+                          .sort()
+                          .slice(0, 4);
+                        return (
+                          <span className="flex items-center gap-1 w-full">
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            {upcoming.length ? `${w.onlyDates} ${upcoming.map((d) => shortDate(d, lang)).join(', ')}` : w.noDates}
+                          </span>
+                        );
+                      }
+                      return (
+                        (x.times.length > 0 || x.weekdays.length > 0) && (
+                          <span className="flex items-center gap-1 w-full">
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            {x.weekdays.length ? x.weekdays.map((d) => weekdayName(d, lang)).join(', ') : w.everyDay}
+                            {x.times.length > 0 && ` · ${x.times.join(', ')}`}
+                          </span>
+                        )
+                      );
+                    })()}
                   </div>
                   <div className="mt-auto pt-2 flex items-center justify-between">
                     <div>
@@ -146,8 +175,11 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
   const [slots, setSlots] = useState<{ runsThatDay: boolean; sessions: SessionState[] } | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const token = useReviewFormToken(!sent);
-  const fixedTimes = workshop.times.length > 0;
   const today = new Date().toISOString().slice(0, 10);
+  // That day's session times (weekly schedule + the admin's date-by-date
+  // availability, src/lib/workshops.ts#timesOn).
+  const dayTimes = date ? timesOn(workshop, date) : null;
+  const fixedTimes = date ? !!dayTimes?.length : workshop.times.length > 0;
 
   const loadSlots = async (d: string) => {
     setLoadingSlots(true);
@@ -179,7 +211,7 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
   const timeFull = !!session?.full;
   // Seats this booking may take in the chosen session.
   const maxHere = workshop.max_people ? Math.max(1, workshop.max_people - takenHere) : 20;
-  const shownTimes = fixedTimes ? workshop.times.map((tm) => slots?.sessions.find((s) => s.time === tm) || { time: tm, taken: 0, left: workshop.max_people, full: false }) : [];
+  const shownTimes = fixedTimes ? (dayTimes || []).map((tm) => slots?.sessions.find((s) => s.time === tm) || { time: tm, taken: 0, left: workshop.max_people, full: false }) : [];
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -252,7 +284,7 @@ function BookingModal({ workshop, onClose }: { workshop: PublicWorkshop; onClose
                 value={date}
                 onChange={pickDate}
                 min={today}
-                isDisabled={(d) => workshop.weekdays.length > 0 && !workshop.weekdays.includes(weekdayOf(d))}
+                isDisabled={(d) => timesOn(workshop, d) === null}
                 locale={lang === 'uz' ? undefined : lang === 'en' ? 'en-GB' : lang}
                 placeholder={w.chooseDate}
                 todayLabel=""

@@ -23,6 +23,7 @@ export const translations = {
       signOut: 'Sign Out',
       wishlist: 'Wishlist',
       tagline: 'GALLERY & STUDIO',
+      more: 'More',
     },
     // Hero
     hero: {
@@ -721,6 +722,8 @@ export const translations = {
       takenTimes: "Already booked at:",
       sessions: "Sessions",
       everyDay: "every day",
+      onlyDates: 'On:',
+      noDates: 'New dates coming soon',
     },
     roomMatch: {
       button: "Find art for my room",
@@ -764,6 +767,7 @@ export const translations = {
       signOut: 'Выйти',
       wishlist: 'Избранное',
       tagline: 'ГАЛЕРЕЯ И СТУДИЯ',
+      more: 'Ещё',
     },
     // Hero
     hero: {
@@ -1461,6 +1465,8 @@ export const translations = {
       takenTimes: "Уже занято:",
       sessions: "Сеансы",
       everyDay: "каждый день",
+      onlyDates: 'Даты:',
+      noDates: 'Скоро новые даты',
     },
     roomMatch: {
       button: "Подобрать картину к интерьеру",
@@ -1504,6 +1510,7 @@ export const translations = {
       signOut: 'Chiqish',
       wishlist: 'Sevimlilar',
       tagline: 'GALEREYA VA STUDIYA',
+      more: 'Yana',
     },
     // Hero
     hero: {
@@ -2201,6 +2208,8 @@ export const translations = {
       takenTimes: "Band qilingan vaqtlar:",
       sessions: "Seanslar",
       everyDay: "har kuni",
+      onlyDates: 'Sanalar:',
+      noDates: 'Yangi sanalar tez orada',
     },
     roomMatch: {
       button: "Xonamga mos asar top",

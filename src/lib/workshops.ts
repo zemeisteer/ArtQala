@@ -25,6 +25,59 @@ export const isTime = (t: string) => TIME_RE.test(t);
 // Day of week (0 = Sunday) of a YYYY-MM-DD date, independent of time zone.
 export const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// When the master is free, date by date (Workshop.date_slots, JSON), on top
+// of the weekly schedule (`weekdays` + `times`):
+//   dates[date] = { off: true }        — away that day, no sessions
+//   dates[date] = { times: [...] }     — sessions at these times that day
+//                                        (also on a day the weekly schedule
+//                                        doesn't run; no times = the usual ones)
+//   only: true                         — bookable ONLY on the listed dates
+export interface DateSlot {
+  off?: boolean;
+  times?: string[];
+}
+export interface DateSlots {
+  only: boolean;
+  dates: Record<string, DateSlot>;
+}
+
+export function parseDateSlots(raw: unknown): DateSlots {
+  let v: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      v = JSON.parse(raw);
+    } catch {
+      v = null;
+    }
+  }
+  const o = (v && typeof v === 'object' ? v : {}) as { only?: unknown; dates?: unknown };
+  const dates: Record<string, DateSlot> = {};
+  if (o.dates && typeof o.dates === 'object') {
+    for (const [d, slot] of Object.entries(o.dates as Record<string, unknown>)) {
+      if (!DATE_RE.test(d) || !slot || typeof slot !== 'object') continue;
+      const s = slot as { off?: unknown; times?: unknown };
+      dates[d] = s.off === true ? { off: true } : { times: parseTimes(s.times) };
+    }
+  }
+  return { only: o.only === true, dates };
+}
+
+// The session times of a workshop on a date: null = no sessions that day,
+// [] = the visitor names a time (no fixed sessions).
+export function timesOn(
+  w: { times: string[]; weekdays: number[]; date_slots?: string | null },
+  date: string
+): string[] | null {
+  const { only, dates } = parseDateSlots(w.date_slots);
+  const slot = dates[date];
+  if (slot) return slot.off ? null : slot.times?.length ? slot.times : w.times;
+  if (only) return null;
+  if (w.weekdays.length && !w.weekdays.includes(weekdayOf(date))) return null;
+  return w.times;
+}
+
 export interface SessionState {
   time: string;
   taken: number; // people already booked
@@ -69,6 +122,7 @@ export interface WorkshopInput {
   sort: number;
   times: string[];
   weekdays: number[];
+  date_slots: string | null;
 }
 
 const text = (v: unknown, max = 4000) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -106,6 +160,10 @@ export function parseWorkshopInput(body: Record<string, unknown>): { data: Works
       weekdays: Array.isArray(body.weekdays)
         ? Array.from(new Set(body.weekdays.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))).sort()
         : [],
+      date_slots: (() => {
+        const slots = parseDateSlots(body.date_slots ?? null);
+        return slots.only || Object.keys(slots.dates).length ? JSON.stringify(slots) : null;
+      })(),
     },
   };
 }

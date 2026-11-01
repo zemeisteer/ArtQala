@@ -552,6 +552,10 @@ model Workshop {
   times            String[] @default([])
   // Days it runs (0 = Sunday … 6 = Saturday); empty = every day.
   weekdays         Int[]    @default([])
+  // Date-by-date availability on top of the weekly schedule (JSON, see
+  // src/lib/workshops.ts#parseDateSlots): extra dates, days off, or "only
+  // these dates".
+  date_slots       String?
   bookings         WorkshopBooking[]
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt

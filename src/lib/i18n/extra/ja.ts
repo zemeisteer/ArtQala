@@ -16,6 +16,7 @@ export const ja: ExtraDictionary = {
     signOut: 'ログアウト',
     wishlist: 'お気に入り',
     tagline: 'ギャラリー & スタジオ',
+    more: 'その他',
   },
   hero: {
     kicker: 'タシケントのアートギャラリー',
@@ -591,6 +592,8 @@ export const ja: ExtraDictionary = {
     takenTimes: "予約済みの時間：",
     sessions: "開催時間",
     everyDay: "毎日",
+    onlyDates: '日程:',
+    noDates: '新しい日程は近日公開',
   },
   roomMatch: {
     button: 'お部屋に合う作品を探す',

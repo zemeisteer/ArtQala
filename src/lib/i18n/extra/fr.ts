@@ -16,6 +16,7 @@ export const fr: ExtraDictionary = {
     signOut: 'Déconnexion',
     wishlist: 'Favoris',
     tagline: 'GALERIE & ATELIER',
+    more: 'Plus',
   },
   hero: {
     kicker: 'Galerie d’art à Tachkent',
@@ -605,6 +606,8 @@ export const fr: ExtraDictionary = {
     takenTimes: "Déjà réservé :",
     sessions: "Séances",
     everyDay: "tous les jours",
+    onlyDates: 'Dates :',
+    noDates: 'Nouvelles dates bientôt',
   },
   roomMatch: {
     button: 'Trouver une œuvre pour ma pièce',

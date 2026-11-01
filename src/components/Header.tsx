@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useApp, Currency } from '@/context/AppContext';
 import { Language } from '@/lib/i18n/translations';
 import { splitLangPath } from '@/lib/i18n/routing';
-import { Heart, Menu, X, Shield, UserCircle } from 'lucide-react';
+import { Heart, Menu, X, Shield, UserCircle, ChevronDown } from 'lucide-react';
 import AnimatedChorgul from '@/components/patterns/AnimatedChorgul';
 import { LANGS, LANG_NAMES } from '@/lib/i18n/routing';
 import FilterSelect from '@/components/FilterSelect';
@@ -45,22 +45,31 @@ export default function Header() {
     return false;
   };
 
-  const navItems = [
+  // Every public section is in the menu. On desktop the first ones sit in
+  // the bar and the rest open from "More" — all of them in one row pushed
+  // the logo out of the header. The phone menu lists them all.
+  const mainItems = [
     { href: '/', label: t.nav.home },
     { href: '/gallery', label: t.nav.gallery },
     { href: '/artists', label: t.nav.artists },
     { href: '/services', label: t.nav.services },
-    { href: '/delivery', label: t.nav.delivery },
     { href: '/experiences', label: t.workshops.navLabel },
-    { href: '/reviews', label: t.nav.reviews },
     { href: '/contact', label: t.nav.contact },
   ];
+  const moreItems = [
+    { href: '/delivery', label: t.nav.delivery },
+    { href: '/reviews', label: t.nav.reviews },
+    { href: '/gift-card', label: t.gift.navLabel },
+    { href: '/stories', label: t.stories.navLabel },
+  ];
+  const navItems = [...mainItems, ...moreItems];
+  const moreActive = moreItems.some((item) => isActive(item.href));
 
   return (
     <header className="sticky top-0 z-50 bg-[#FAF4EC]/95 backdrop-blur-md border-b border-[#E7E0D8] transition-all">
-      <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14 h-[76px] flex items-center justify-between">
+      <div className="max-w-[1240px] mx-auto px-6 sm:px-10 lg:px-14 h-[76px] flex items-center justify-between gap-6">
         {/* Brand with Original Logo */}
-        <Link href="/" className="flex items-center gap-3 group text-decoration-none">
+        <Link href="/" className="shrink-0 flex items-center gap-3 group text-decoration-none">
           {/* CRITICAL: original logo from /assets/logo.png preserved */}
           <div className="relative">
             <Image
@@ -72,8 +81,9 @@ export default function Header() {
               className="brand-mark h-[46px] w-auto object-contain transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1"
             />
           </div>
-          {/* Hidden where the full menu is tight (xl), shown again on 2xl. */}
-          <div className="hidden sm:flex xl:hidden 2xl:flex flex-col leading-none">
+          {/* Only while the menu is folded into the button — next to the full
+              menu it squeezed the logo itself out of the header. */}
+          <div className="hidden sm:flex xl:hidden flex-col leading-none">
             <span className="text-[9.5px] tracking-[3px] text-[#BA4E25] font-semibold mt-1 whitespace-nowrap">
               {t.nav.tagline}
             </span>
@@ -84,8 +94,8 @@ export default function Header() {
         {/* The full nav needs ~1150px (more with the longer Uzbek labels) —
             below xl it used to wrap "Sign In" and the tagline onto several
             lines on tablets/small laptops, so those get the menu button. */}
-        <nav className="hidden xl:flex items-center gap-5 2xl:gap-8">
-          {navItems.map((item) => {
+        <nav className="hidden xl:flex items-center gap-5 2xl:gap-7">
+          {mainItems.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
@@ -99,17 +109,33 @@ export default function Header() {
             );
           })}
 
-          {/* Admin link shortcut (only for authenticated admins) */}
-          {user && user.role === 'ADMIN' && (
-            <Link
-              href="/admin"
-              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded bg-[#1D100B]/5 hover:bg-[#1D100B]/10 text-[#4D3F38] transition-colors"
-              title={t.nav.admin}
+          {/* The other sections — opens on hover, on tap and on keyboard focus. */}
+          <div className="relative group">
+            <button
+              type="button"
+              aria-haspopup="true"
+              className={`nav-link whitespace-nowrap flex items-center gap-1 ${moreActive ? 'active text-[#BA4E25]' : 'text-[#3E332E]'}`}
             >
-              <Shield className="w-3.5 h-3.5 text-[#BA4E25]" />
-              <span className="hidden 2xl:inline">{t.nav.admin}</span>
-            </Link>
-          )}
+              {t.nav.more}
+              <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180 group-focus-within:rotate-180" />
+            </button>
+            <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-full pt-3 z-50">
+              <div className="min-w-[200px] bg-[#FDFBF9] border border-[#E7E0D8] rounded-[4px] shadow-lg py-2">
+                {moreItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    prefetch={true}
+                    className={`block px-4 py-2 text-sm whitespace-nowrap hover:bg-[#FAF4EC] hover:text-[#BA4E25] transition-colors ${
+                      isActive(item.href) ? 'text-[#BA4E25] font-semibold' : 'text-[#3E332E]'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* Wishlist Link */}
           <Link
@@ -131,7 +157,7 @@ export default function Header() {
               {user.role === 'ADMIN' && (
                 <Link
                   href="/admin"
-                  className="text-[10px] font-bold px-2 py-1 rounded-[3px] bg-[#281C18] hover:bg-[#BA4E25] text-[#DAA932] hover:text-white transition-all uppercase tracking-wider border border-[#DAA932]/40"
+                  className="whitespace-nowrap text-[10px] font-bold px-2 py-1 rounded-[3px] bg-[#281C18] hover:bg-[#BA4E25] text-[#DAA932] hover:text-white transition-all uppercase tracking-wider border border-[#DAA932]/40"
                   title={t.nav.admin}
                 >
                   {t.nav.admin}
