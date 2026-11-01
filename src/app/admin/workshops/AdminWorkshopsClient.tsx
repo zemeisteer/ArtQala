@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CalendarDays, Plus, Pencil, Trash2, Loader2, ImagePlus, X, Eye, EyeOff } from 'lucide-react';
 import { fillMissingTranslations, useAutoTranslate } from '@/lib/useAutoTranslate';
 import DatePicker from '@/components/DatePicker';
+import TimePicker from '@/components/TimePicker';
 import { parseDateSlots } from '@/lib/workshops';
 import TranslateStatus from '@/components/TranslateStatus';
 
@@ -105,7 +106,8 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
             is_active: w.is_active,
             sort: String(w.sort),
             times: (w.times || []).join(', '),
-            weekdays: w.weekdays || [],
+            // No days stored = it ran every day: show that as all seven on.
+            weekdays: w.weekdays?.length ? w.weekdays : [0, 1, 2, 3, 4, 5, 6],
             ...(() => {
               const slots = parseDateSlots(w.date_slots);
               return {
@@ -138,6 +140,12 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Working days are always set explicitly (an empty set used to mean
+    // "every day", which nobody could tell from the form).
+    if (form.weekdays.length === 0 && !form.datesOnly) {
+      setError('Ish kunlarini belgilang (yoki «Har kuni»).');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -255,7 +263,9 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
                       ) : (
                         (w.times?.length > 0 || w.weekdays?.length > 0) && (
                           <div className="text-xs text-[#554740]">
-                            {w.weekdays?.length ? w.weekdays.map((d) => ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'][d]).join(', ') : 'Har kuni'}
+                            {w.weekdays?.length && w.weekdays.length < 7
+                              ? [...w.weekdays].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'][d]).join(', ')
+                              : 'Har kuni'}
                             {w.times?.length > 0 && ` · ${w.times.join(', ')}`}
                           </div>
                         )
@@ -356,51 +366,13 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
                 <input type="number" value={form.sort} onChange={(e) => setField('sort')(e.target.value)} className={input} />
               </div>
             </div>
-            <div>
-              <label className={label}>Seans vaqtlari (boshlanishi)</label>
-              <input
-                value={form.times}
-                onChange={(e) => setField('times')(e.target.value)}
-                placeholder="10:00, 14:00, 16:30"
-                className={input}
-              />
-              <p className="text-[11px] text-[#8F8178] mt-1">
-                Mehmon shu vaqtlardan birini tanlaydi. Har bir seansga &laquo;Ko&apos;pi bilan necha kishi&raquo; gacha
-                joy bor — to&apos;lsa, saytda &laquo;Band&raquo; bo&apos;ladi (cheksiz bo&apos;lsa, bitta bron butun seansni
-                band qiladi). Bo&apos;sh qoldirsangiz, mehmon istalgan vaqtni yozadi.
-              </p>
-            </div>
-            <div>
-              <label className={label}>Qaysi kunlari o&apos;tadi</label>
-              <div className="flex flex-wrap gap-1.5">
-                {['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'].map((d, i) => {
-                  const on = form.weekdays.includes(i);
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() =>
-                        setForm((f) => ({
-                          ...f,
-                          weekdays: on ? f.weekdays.filter((x) => x !== i) : [...f.weekdays, i].sort(),
-                        }))
-                      }
-                      className={`w-10 h-9 text-xs font-semibold rounded-[3px] border ${
-                        on ? 'bg-[#281C18] text-white border-[#281C18]' : 'bg-white text-[#554740] border-[#E7E0D8]'
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[11px] text-[#8F8178] mt-1">Hech biri tanlanmasa — har kuni.</p>
-            </div>
-            <DateSlotsEditor
-              only={form.datesOnly}
+            <ScheduleEditor
+              weekdays={form.weekdays}
+              times={form.times}
               rows={form.dateRows}
-              onOnly={(v) => setForm((f) => ({ ...f, datesOnly: v }))}
-              onRows={(rows) => setForm((f) => ({ ...f, dateRows: rows }))}
+              onWeekdays={(weekdays) => setForm((f) => ({ ...f, weekdays }))}
+              onTimes={(times) => setForm((f) => ({ ...f, times }))}
+              onRows={(dateRows) => setForm((f) => ({ ...f, dateRows }))}
             />
             <div>
               <label className={label}>Joyi (manzil)</label>
@@ -449,74 +421,133 @@ export default function AdminWorkshopsClient({ initial }: { initial: Workshop[] 
   );
 }
 
-// "When the master is free", date by date (Workshop.date_slots — rules in
-// src/lib/workshops.ts#timesOn): add a date with its own session times, or
-// mark a day off; optionally only the listed dates are bookable.
-function DateSlotsEditor({
-  only,
+const DAYS = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
+const DAY_INDEX = [1, 2, 3, 4, 5, 6, 0]; // Monday first; 0 = Sunday as stored
+const timeList = (v: string) =>
+  Array.from(new Set(v.split(/[\s,;]+/).filter((t) => /^\d{1,2}:\d{2}$/.test(t)).map((t) => t.padStart(5, '0')))).sort();
+const shortDate = (d: string) => {
+  const [y, m, day] = d.split('-');
+  return `${day}.${m}.${y}`;
+};
+
+// The schedule in one box: working days, session times, days off. (Extra
+// dates with their own times / "only these dates" from earlier saves stay in
+// date_slots untouched — src/lib/workshops.ts#timesOn still honours them.)
+function ScheduleEditor({
+  weekdays,
+  times,
   rows,
-  onOnly,
+  onWeekdays,
+  onTimes,
   onRows,
 }: {
-  only: boolean;
+  weekdays: number[];
+  times: string;
   rows: DateRow[];
-  onOnly: (v: boolean) => void;
-  onRows: (rows: DateRow[]) => void;
+  onWeekdays: (v: number[]) => void;
+  onTimes: (v: string) => void;
+  onRows: (v: DateRow[]) => void;
 }) {
-  const set = (i: number, patch: Partial<DateRow>) => onRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const [newTime, setNewTime] = useState('10:00');
+  const list = timeList(times);
+  const offDays = rows.filter((r) => r.off && r.date).sort((a, b) => a.date.localeCompare(b.date));
   const today = todayIso();
+  const everyDay = weekdays.length === 7;
+  const addTime = () => {
+    if (!list.includes(newTime)) onTimes([...list, newTime].sort().join(', '));
+  };
+  const addOffDay = (date: string) => {
+    if (!date || rows.some((r) => r.date === date)) return;
+    onRows([...rows, { date, times: '', off: true }]);
+  };
+
   return (
-    <div className="border border-[#E7E0D8] rounded-[3px] p-3 space-y-3 bg-[#FDFBF9]">
+    <div className="border border-[#E7E0D8] rounded-[3px] p-4 space-y-4 bg-[#FDFBF9]">
+      <div className="text-sm font-semibold text-[#281C18]">Jadval</div>
+
+      {/* 1. Working days */}
       <div>
-        <div className={label}>Ustoz bo&apos;sh kunlari (sana bo&apos;yicha)</div>
-        <p className="text-[11px] text-[#756962]">
-          Ustoz qaysi kuni, qaysi soatlarda bo&apos;sh bo&apos;lsa, shu yerga qo&apos;shing. Saytda mehmon faqat shu kunlarni
-          tanlay oladi. &laquo;Dam olish&raquo; belgilangan kuni bron qilib bo&apos;lmaydi.
-        </p>
-      </div>
-      <label className="flex items-start gap-2 text-xs text-[#281C18] cursor-pointer">
-        <input type="checkbox" checked={only} onChange={(e) => onOnly(e.target.checked)} className="mt-0.5 accent-[#BA4E25]" />
-        <span>
-          <b>Faqat shu sanalarda o&apos;tadi</b> — yuqoridagi haftalik jadval ishlatilmaydi
-        </span>
-      </label>
-      {rows.length === 0 && <p className="text-[11px] text-[#8F8178]">Hali sana qo&apos;shilmagan.</p>}
-      {rows.map((r, i) => (
-        <div key={i} className="grid grid-cols-1 sm:grid-cols-[170px_1fr_auto_auto] gap-2 items-center">
-          <DatePicker value={r.date} onChange={(d) => set(i, { date: d })} min={today} placeholder="Sana" todayLabel="" />
-          <input
-            value={r.off ? '' : r.times}
-            disabled={r.off}
-            onChange={(e) => set(i, { times: e.target.value })}
-            placeholder={r.off ? 'Bu kuni ustoz yo\'q' : "Vaqtlar: 10:00, 15:00 (bo'sh = odatiy vaqtlar)"}
-            className={`${input} disabled:bg-[#F3EEE8]`}
-          />
+        <div className={label}>1. Ish kunlari</div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {DAYS.map((d, k) => {
+            const i = DAY_INDEX[k];
+            const on = weekdays.includes(i);
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => onWeekdays(on ? weekdays.filter((x) => x !== i) : [...weekdays, i].sort())}
+                className={`w-11 h-9 text-xs font-semibold rounded-[3px] border ${
+                  on ? 'bg-[#BA4E25] text-white border-[#BA4E25]' : 'bg-white text-[#8F8178] border-[#E7E0D8] line-through'
+                }`}
+              >
+                {d}
+              </button>
+            );
+          })}
           <button
             type="button"
-            onClick={() => set(i, { off: !r.off })}
-            className={`text-xs font-semibold px-3 py-2 rounded-[3px] border whitespace-nowrap ${
-              r.off ? 'bg-[#281C18] text-white border-[#281C18]' : 'bg-white text-[#554740] border-[#E7E0D8]'
-            }`}
+            onClick={() => onWeekdays(everyDay ? [] : [0, 1, 2, 3, 4, 5, 6])}
+            className="ml-1 text-xs font-semibold text-[#BA4E25] hover:underline"
           >
-            {r.off ? '✓ Dam olish' : 'Dam olish'}
-          </button>
-          <button
-            type="button"
-            onClick={() => onRows(rows.filter((_, j) => j !== i))}
-            aria-label="O'chirish"
-            className="p-2 text-[#8F8178] hover:text-[#B91C1C]"
-          >
-            <X className="w-4 h-4" />
+            {everyDay ? 'Hammasini olib tashlash' : 'Har kuni'}
           </button>
         </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => onRows([...rows, { date: '', times: '', off: false }])}
-        className="flex items-center gap-1.5 text-xs font-semibold text-[#BA4E25] hover:underline"
-      >
-        <Plus className="w-3.5 h-3.5" /> Sana qo&apos;shish
-      </button>
+        <p className="text-[11px] text-[#756962] mt-1">To&apos;q sariq — ishlaydigan kun. Ustiga bosib yoqing yoki o&apos;chiring.</p>
+      </div>
+
+      {/* 2. Session times */}
+      <div>
+        <div className={label}>2. Seans vaqtlari</div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {list.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1 text-sm font-semibold bg-white border border-[#E7E0D8] rounded-full pl-3 pr-1.5 py-1">
+              {t}
+              <button
+                type="button"
+                aria-label={`${t} ni olib tashlash`}
+                onClick={() => onTimes(list.filter((x) => x !== t).join(', '))}
+                className="text-[#8F8178] hover:text-[#B91C1C]"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          ))}
+          <TimePicker value={newTime} onChange={setNewTime} className="w-32" />
+          <button type="button" onClick={addTime} className="flex items-center gap-1 text-xs font-semibold text-[#BA4E25] hover:underline">
+            <Plus className="w-3.5 h-3.5" /> Vaqt qo&apos;shish
+          </button>
+        </div>
+        <p className="text-[11px] text-[#756962] mt-1">
+          {list.length
+            ? "Mehmon shu vaqtlardan birini tanlaydi; seans to'lsa saytda «Band» bo'ladi."
+            : "Vaqt qo'shilmasa, mehmon o'zi qulay vaqtni yozadi."}
+        </p>
+      </div>
+
+      {/* 3. Days off */}
+      <div>
+        <div className={label}>3. Dam olish kunlari (ustoz yo&apos;q kunlar)</div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {offDays.map((r) => (
+            <span key={r.date} className="inline-flex items-center gap-1 text-xs font-semibold bg-[#F3EEE8] border border-[#E7E0D8] rounded-full pl-3 pr-1.5 py-1 text-[#554740]">
+              {shortDate(r.date)}
+              <button
+                type="button"
+                aria-label="Olib tashlash"
+                onClick={() => onRows(rows.filter((x) => x.date !== r.date))}
+                className="text-[#8F8178] hover:text-[#B91C1C]"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          ))}
+          <div className="w-48">
+            <DatePicker value="" onChange={addOffDay} min={today} placeholder="+ Sana qo'shish" todayLabel="" />
+          </div>
+        </div>
+        <p className="text-[11px] text-[#756962] mt-1">Bu kunlarda saytda bron qilib bo&apos;lmaydi.</p>
+      </div>
     </div>
   );
 }
