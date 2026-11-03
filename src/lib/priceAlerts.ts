@@ -1,3 +1,4 @@
+import { withCategoryTags } from './paintingCategories';
 import { prisma } from './prisma';
 import { applyDiscountRules, getActiveDiscountRules } from './discounts';
 import { sendPriceDropEmail } from './email';
@@ -40,6 +41,7 @@ export async function runPriceAlerts(): Promise<{ checked: number; emailed: numb
             discount_ends_at: true,
             artist_id: true,
             category_id: true,
+            extra_category_ids: true,
             images: true,
             category: { select: { parent_id: true } },
           },
@@ -49,10 +51,7 @@ export async function runPriceAlerts(): Promise<{ checked: number; emailed: numb
     getActiveDiscountRules(),
   ]);
 
-  const priced = applyDiscountRules(
-    items.map((it) => it.painting),
-    rules
-  );
+  const priced = applyDiscountRules(await withCategoryTags(items.map((it) => it.painting)), rules);
   const currentById = new Map(priced.map((p) => [p.id, p.discount_price || p.price]));
 
   const dropsByUser = new Map<

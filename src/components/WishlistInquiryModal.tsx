@@ -21,6 +21,7 @@ interface WishlistPaintingLite {
   price?: number;
   discount_price?: number | null;
   category?: { slug: string; parent?: { slug: string } | null };
+  category_slugs?: string[];
   included_accessories?: string[];
 }
 
@@ -32,7 +33,7 @@ interface WishlistInquiryModalProps {
 const paintingThumb = (images: string) => mainImage(images);
 
 // What this painting's accessories are scoped to (its product type).
-const productTypesOf = (p: WishlistPaintingLite) => paintingAccessoryTargets(p.category);
+const productTypesOf = (p: WishlistPaintingLite) => paintingAccessoryTargets(p.category, p.category_slugs);
 
 export default function WishlistInquiryModal({ paintings, onClose }: WishlistInquiryModalProps) {
   const { t, lang, user, formatPrice } = useApp();

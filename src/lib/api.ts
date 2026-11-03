@@ -3,6 +3,7 @@ import { prisma } from './prisma';
 import { getBestsellerPaintingIds, withBestsellerFlag } from './bestseller';
 import { applyDiscountRules, getActiveDiscountRules } from './discounts';
 import { withMainImageOnly } from './paintingImages';
+import { withCategoryTags } from './paintingCategories';
 
 const FEATURED_COUNT = 8;
 const FEATURED_MAX_PER_ARTIST = 2;
@@ -79,7 +80,7 @@ export async function getFeaturedPaintings() {
       FEATURED_COUNT - featured.length
     );
 
-    return withBestsellerFlag(applyDiscountRules([...featured, ...topUp], rules), bestsellerIds);
+    return withBestsellerFlag(applyDiscountRules(await withCategoryTags([...featured, ...topUp]), rules), bestsellerIds);
   } catch (error) {
     console.error('Error fetching featured paintings:', error);
     return [];
@@ -101,7 +102,9 @@ export function slimPainting<
   }
 >(painting: T) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { description_en, description_ru, description_uz, artist, ...rest } = painting;
+  const { description_en, description_ru, description_uz, artist, extra_categories, ...rest } = painting as T & {
+    extra_categories?: unknown;
+  };
   return withMainImageOnly({ ...rest, artist: artist ? { id: artist.id, name: artist.name } : artist });
 }
 
@@ -124,7 +127,7 @@ export async function getAllPaintings(categorySlug?: string) {
       getBestsellerPaintingIds(),
       getActiveDiscountRules(),
     ]);
-    return withBestsellerFlag(applyDiscountRules(paintings, rules), bestsellerIds);
+    return withBestsellerFlag(applyDiscountRules(await withCategoryTags(paintings), rules), bestsellerIds);
   } catch (error) {
     console.error('Error fetching paintings:', error);
     return [];
@@ -147,7 +150,7 @@ export const getPaintingById = cache(async (id: string) => {
       getActiveDiscountRules(),
     ]);
     if (!painting) return null;
-    const [discounted] = applyDiscountRules([painting], rules);
+    const [discounted] = applyDiscountRules(await withCategoryTags([painting]), rules);
     // What physically comes with it (e.g. its own frame), for the specs.
     const included_accessory_names = painting.included_accessories.length
       ? await prisma.accessory.findMany({
@@ -183,7 +186,7 @@ export async function getRelatedPaintings(
         getBestsellerPaintingIds(),
         getActiveDiscountRules(),
       ]);
-      return withBestsellerFlag(applyDiscountRules(byArtist, rules), bestsellerIds);
+      return withBestsellerFlag(applyDiscountRules(await withCategoryTags(byArtist), rules), bestsellerIds);
     }
 
     const byCategory = await prisma.painting.findMany({
@@ -200,7 +203,7 @@ export async function getRelatedPaintings(
       getBestsellerPaintingIds(),
       getActiveDiscountRules(),
     ]);
-    return withBestsellerFlag(applyDiscountRules([...byArtist, ...byCategory], rules), bestsellerIds);
+    return withBestsellerFlag(applyDiscountRules(await withCategoryTags([...byArtist, ...byCategory]), rules), bestsellerIds);
   } catch (error) {
     console.error('Error fetching related paintings:', error);
     return [];
@@ -252,7 +255,9 @@ export const getArtistWithPaintings = cache(async (id: string) => {
     const { paintings, ...rest } = artist;
     return {
       ...rest,
-      paintings: withBestsellerFlag(applyDiscountRules(paintings, rules), bestsellerIds).map(slimPainting),
+      paintings: withBestsellerFlag(applyDiscountRules(await withCategoryTags(paintings), rules), bestsellerIds).map(
+        slimPainting
+      ),
     };
   } catch (error) {
     console.error('Error fetching artist:', error);

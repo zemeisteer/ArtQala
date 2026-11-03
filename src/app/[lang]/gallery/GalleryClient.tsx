@@ -27,6 +27,15 @@ interface GalleryClientProps {
   categories: any[];
 }
 
+// Is the painting in this category (a product type or a subject)? Its main
+// category, its extra ones and their parents all count
+// (category_slugs — src/lib/paintingCategories.ts).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function inCategory(p: any, slug: string): boolean {
+  if (Array.isArray(p.category_slugs)) return p.category_slugs.includes(slug);
+  return p.category?.slug === slug || effectiveProductType(p.category) === slug;
+}
+
 export default function GalleryClient({ paintings, categories }: GalleryClientProps) {
   const { lang, t, wishlist, toggleWishlist, currency, currencyRate } = useApp();
   // A list someone shared (?shared=id1,id2): shown on its own, with a
@@ -141,8 +150,8 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
   // used to silently return zero results.
   const categoryScopedPaintings = useMemo(() => {
     return paintings.filter((p) => {
-      if (selectedSubCategory !== 'all') return p.category?.slug === selectedSubCategory;
-      if (selectedCategory !== 'all') return effectiveProductType(p.category) === selectedCategory;
+      if (selectedSubCategory !== 'all') return inCategory(p, selectedSubCategory);
+      if (selectedCategory !== 'all') return inCategory(p, selectedCategory);
       return true;
     });
   }, [paintings, selectedCategory, selectedSubCategory]);
@@ -236,14 +245,12 @@ export default function GalleryClient({ paintings, categories }: GalleryClientPr
     const maxUsd = maxPrice ? Number(maxPrice) / currencyRate : null;
 
     const matches = paintings.filter((p) => {
-      // Theme (bola kategoriya) filter — exact match. Otherwise fall back
-      // to the product-type (ota kategoriya) pill, matched via the shared
-      // effectiveProductType() helper so a painting tagged with any theme
-      // under that product type still shows up.
+      // Theme (bola kategoriya) filter, else the product-type (ota
+      // kategoriya) pill — a painting counts for every category it is in.
       if (selectedSubCategory !== 'all') {
-        if (p.category?.slug !== selectedSubCategory) return false;
+        if (!inCategory(p, selectedSubCategory)) return false;
       } else if (selectedCategory !== 'all') {
-        if (effectiveProductType(p.category) !== selectedCategory) return false;
+        if (!inCategory(p, selectedCategory)) return false;
       }
 
       // Wishlist filter

@@ -416,10 +416,19 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
           {/* Right: details, then the inquiry form (high up, so phones reach it early) */}
           <div className="lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:row-span-2 space-y-6">
             {/* Meta tags */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="bg-[#FDFBF9] border border-[#E7E0D8] text-[#554740] text-[11px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-full">
                 {categoryName}
               </span>
+              {/* Other categories the work is also in (src/lib/paintingCategories.ts). */}
+              {(painting.extra_categories || []).map((c: { id: string; name_en: string; name_ru: string; name_uz: string }) => (
+                <span
+                  key={c.id}
+                  className="bg-[#FDFBF9] border border-[#E7E0D8] text-[#554740] text-[11px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-full"
+                >
+                  {lang === 'ru' ? c.name_ru : lang === 'uz' ? c.name_uz : c.name_en}
+                </span>
+              ))}
               {hasDiscount && (
                 <span className="bg-[#BA4E25] text-white text-[11px] font-bold px-2 py-0.5 rounded-sm">
                   -{discountPercent}% {t.painting.promotionSuffix}
@@ -597,7 +606,7 @@ export default function PaintingDetailClient({ painting, relatedPaintings = [] }
                   </div>
 
                   <AccessoryCheckboxes
-                    productTypes={paintingAccessoryTargets(painting.category)}
+                    productTypes={paintingAccessoryTargets(painting.category, painting.category_slugs)}
                     sizeBucket={getSizeBucket(painting.size)}
                     included={painting.included_accessories}
                     showIncluded={false}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Search, Pencil, Trash2, Palette, QrCode } from 'lucide-react';
@@ -51,6 +51,13 @@ export default function AdminPaintingsClient({
   // must check both the exact category and its parent, not just an exact
   // id match against a flat list that mixed ota and bola together.
   const topLevelCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
+  // In the filtered category: main category or an extra one, or under it.
+  const parentOf = useMemo(() => new Map(categories.map((c) => [c.id, c.parent_id])), [categories]);
+  const inCategory = useCallback(
+    (p: any, id: string) =>
+      [p.category_id, ...(p.extra_category_ids || [])].some((c: string) => c === id || parentOf.get(c) === id),
+    [parentOf]
+  );
 
   // Scope the artist dropdown to whichever product type is selected.
   // Artist.category_id (the field the Paintings form auto-fills from) is
@@ -66,7 +73,7 @@ export default function AdminPaintingsClient({
 
     const artistIdsWithPaintingHere = new Set(
       paintings
-        .filter((p) => p.category_id === categoryFilter || p.category?.parent_id === categoryFilter)
+        .filter((p) => inCategory(p, categoryFilter))
         .map((p) => p.artist_id)
     );
     const artistIdsWithAnyPainting = new Set(paintings.map((p) => p.artist_id));
@@ -77,7 +84,7 @@ export default function AdminPaintingsClient({
       if (!a.category_id && !artistIdsWithAnyPainting.has(a.id)) return true;
       return false;
     });
-  }, [artists, paintings, categoryFilter]);
+  }, [artists, paintings, categoryFilter, inCategory]);
 
   // If switching category makes the current artist selection invalid,
   // reset it instead of silently filtering everything to zero results.
@@ -90,7 +97,7 @@ export default function AdminPaintingsClient({
 
   const filtered = useMemo(() => {
     return paintings.filter((p) => {
-      if (categoryFilter !== 'ALL' && p.category_id !== categoryFilter && p.category?.parent_id !== categoryFilter) {
+      if (categoryFilter !== 'ALL' && !inCategory(p, categoryFilter)) {
         return false;
       }
       if (artistFilter !== 'ALL' && p.artist_id !== artistFilter) return false;
@@ -102,7 +109,7 @@ export default function AdminPaintingsClient({
       }
       return true;
     });
-  }, [paintings, search, categoryFilter, artistFilter]);
+  }, [paintings, search, categoryFilter, artistFilter, inCategory]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);

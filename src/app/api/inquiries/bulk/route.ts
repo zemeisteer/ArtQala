@@ -6,6 +6,7 @@ import { getServerSession } from '@/lib/auth';
 import { getSizeBucket, largestSizeBucket } from '@/lib/paintingSize';
 import { applyDiscountRules, getActiveDiscountRules } from '@/lib/discounts';
 import { accessoryIdsFrom, paintingAccessoryTargets, resolveAccessories } from '@/lib/accessoryPricing';
+import { withCategoryTags } from '@/lib/paintingCategories';
 import { inquiryItemsInclude, inquiryLines, inquiryTotal } from '@/lib/inquiryItems';
 import { notifyAdmin } from '@/lib/adminNotify';
 
@@ -116,6 +117,7 @@ export async function POST(request: Request) {
           discount_ends_at: true,
           artist_id: true,
           category_id: true,
+          extra_category_ids: true,
           included_accessories: true,
           category: { select: { slug: true, parent_id: true, parent: { select: { slug: true } } } },
         },
@@ -123,7 +125,8 @@ export async function POST(request: Request) {
       getActiveDiscountRules(),
     ]);
     // The price the visitor actually saw (own discount or matching rule).
-    const byId = new Map(applyDiscountRules(found, rules).map((p) => [p.id, p]));
+    // Category tags first: a category discount may match an extra category.
+    const byId = new Map(applyDiscountRules(await withCategoryTags(found), rules).map((p) => [p.id, p]));
     const lines = wanted.filter((w) => byId.has(w.painting_id));
 
     if (lines.length === 0) {
@@ -142,7 +145,7 @@ export async function POST(request: Request) {
         const accessories = await resolveAccessories(
           line.accessory_ids,
           getSizeBucket(p.size),
-          paintingAccessoryTargets(p.category),
+          paintingAccessoryTargets(p.category, p.category_slugs),
           p.included_accessories
         );
         return {
@@ -163,7 +166,7 @@ export async function POST(request: Request) {
     const shared = await resolveAccessories(
       sharedAccessoryIds,
       largestSizeBucket(batch.map((p) => p.size)),
-      Array.from(new Set(batch.flatMap((p) => paintingAccessoryTargets(p.category)))),
+      Array.from(new Set(batch.flatMap((p) => paintingAccessoryTargets(p.category, p.category_slugs)))),
       batch[0].included_accessories.filter((id) => batch.every((p) => p.included_accessories.includes(id)))
     );
 

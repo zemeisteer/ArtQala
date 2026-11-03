@@ -5,6 +5,7 @@ import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimi
 import { getServerSession } from '@/lib/auth';
 import { getSizeBucket } from '@/lib/paintingSize';
 import { accessoryIdsFrom, paintingAccessoryTargets, resolveAccessories } from '@/lib/accessoryPricing';
+import { withCategoryTags } from '@/lib/paintingCategories';
 import { inquiryLines } from '@/lib/inquiryItems';
 import { notifyAdmin } from '@/lib/adminNotify';
 
@@ -67,7 +68,13 @@ export async function POST(request: Request) {
 
     const painting = await prisma.painting.findUnique({
       where: { id: painting_id },
-      select: { size: true, included_accessories: true, category: { select: { slug: true, parent: { select: { slug: true } } } } },
+      select: {
+        size: true,
+        included_accessories: true,
+        category_id: true,
+        extra_category_ids: true,
+        category: { select: { slug: true, parent: { select: { slug: true } } } },
+      },
     });
     if (!painting) {
       return NextResponse.json({ success: false, error: 'Painting not found' }, { status: 404 });
@@ -79,7 +86,7 @@ export async function POST(request: Request) {
     const accessories = await resolveAccessories(
       accessoryIdsFrom(selected_accessories),
       getSizeBucket(painting.size),
-      paintingAccessoryTargets(painting.category),
+      paintingAccessoryTargets(painting.category, (await withCategoryTags([painting]))[0].category_slugs),
       painting.included_accessories
     );
     const accessoriesSnapshot = accessories.length > 0 ? JSON.stringify(accessories) : null;

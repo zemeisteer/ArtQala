@@ -26,6 +26,9 @@ interface DiscountablePainting {
   artist_id: string;
   category_id: string;
   category?: { parent_id?: string | null } | null;
+  // Every category it is in, extras and parents included
+  // (src/lib/paintingCategories.ts) — when the loader added them.
+  category_ids?: string[];
 }
 
 export function isRuleActive(rule: DiscountRule, now = new Date()): boolean {
@@ -54,25 +57,22 @@ export const getActiveDiscountRules = cache(async (): Promise<DiscountRule[]> =>
 });
 
 // The best matching rule for a painting, most specific first. A CATEGORY
-// rule may target either the painting's own (leaf) category or its parent
-// product type, so a rule on "Kartina" covers every subject under it.
+// rule may target any category the painting is in (main or extra) or a
+// parent product type, so a rule on "Kartina" covers every subject under it.
 export function findRuleFor(
-  painting: Pick<DiscountablePainting, 'artist_id' | 'category_id' | 'category'>,
+  painting: Pick<DiscountablePainting, 'artist_id' | 'category_id' | 'category' | 'category_ids'>,
   rules: DiscountRule[]
 ): DiscountRule | null {
   const pickMax = (list: DiscountRule[]) =>
     list.length ? list.reduce((a, b) => (b.percent > a.percent ? b : a)) : null;
 
   const parentId = painting.category?.parent_id || null;
+  const inCategory = (id: string | null) =>
+    !!id &&
+    (painting.category_ids ? painting.category_ids.includes(id) : id === painting.category_id || (!!parentId && id === parentId));
   return (
     pickMax(rules.filter((r) => r.scope === 'ARTIST' && r.target_id === painting.artist_id)) ||
-    pickMax(
-      rules.filter(
-        (r) =>
-          r.scope === 'CATEGORY' &&
-          (r.target_id === painting.category_id || (!!parentId && r.target_id === parentId))
-      )
-    ) ||
+    pickMax(rules.filter((r) => r.scope === 'CATEGORY' && inCategory(r.target_id))) ||
     pickMax(rules.filter((r) => r.scope === 'SITE'))
   );
 }
