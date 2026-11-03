@@ -1,3 +1,4 @@
+import { extraCategoryIdsFrom } from '@/lib/paintingCategories';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { notifyIndexNow } from '@/lib/indexNow';
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
       images,
       artist_id,
       category_id,
+      extra_category_ids,
     } = body;
 
     const newPainting = await prisma.painting.create({
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
         images: images || JSON.stringify(['/assets/p-arch.svg']),
         artist_id,
         category_id,
+        extra_category_ids: await extraCategoryIdsFrom(extra_category_ids, category_id),
       },
     });
 

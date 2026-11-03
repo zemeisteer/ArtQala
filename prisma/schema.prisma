@@ -50,6 +50,11 @@ model Painting {
   artist_id String
   artist    Artist @relation(fields: [artist_id], references: [id], onDelete: Cascade)
 
+  // More categories the work also belongs to (any level — e.g. a carved
+  // panel with a painting in it is Kartina AND Yog'och o'ymakorligi); the
+  // main one stays category_id. See src/lib/paintingCategories.ts.
+  extra_category_ids String[] @default([])
+
   category_id String
   category    Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
 

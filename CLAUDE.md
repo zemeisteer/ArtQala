@@ -54,6 +54,12 @@ at a top-level one directly, for a product type with no subjects, e.g. Kulolchil
 walking up to the parent (or using the category itself if it has none) — use this, not
 `painting.category.slug` directly, anywhere that needs to know what kind of physical object a
 painting is (accessory scoping, etc.), as opposed to what it depicts.
+A painting can also be in more categories (`Painting.extra_category_ids`, either level — e.g. carving + painting;
+"Qo'shimcha kategoriyalar" chips in the Paintings form). `src/lib/paintingCategories.ts#withCategoryTags()` adds
+`category_ids` / `category_slugs` (main + extras + their parents) and `extra_categories`; the gallery filters, category
+discounts (`findRuleFor`) and accessory scoping (`paintingAccessoryTargets(category, category_slugs)`) all go through
+them — when loading paintings for any of those, tag them first. The main `category_id` still drives breadcrumbs,
+related works and llms/Telegram texts.
 
 **Accessory pricing and scoping follow the same product-type split**: `Accessory.product_types`
 holds either a *top-level* Category slug or one of the fixed Services codes (`MURAL`, `CERAMICS`,

@@ -1,3 +1,4 @@
+import { extraCategoryIdsFrom } from '@/lib/paintingCategories';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { notifyIndexNow } from '@/lib/indexNow';
@@ -90,6 +91,10 @@ export async function PUT(request: Request, context: RouteContext) {
         images: body.images || undefined,
         artist_id: body.artist_id,
         category_id: body.category_id,
+        // Older cached forms don't send it — leave it as is then.
+        extra_category_ids: Array.isArray(body.extra_category_ids)
+          ? await extraCategoryIdsFrom(body.extra_category_ids, body.category_id)
+          : undefined,
       },
     });
 

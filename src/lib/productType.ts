@@ -17,10 +17,14 @@ export function accessoryAppliesTo(productTypes: string[] | null | undefined, ta
   return productTypes.some((t) => targets.includes(t));
 }
 
-// What a painting's accessories are scoped against.
+// What a painting's accessories are scoped against: its main category and
+// product type, plus every extra category's (`allSlugs` — category_slugs from
+// src/lib/paintingCategories.ts), so a carved panel that is also a painting
+// is offered the painting accessories too.
 export function paintingAccessoryTargets(
-  category?: { slug: string; parent?: { slug: string } | null } | null
+  category?: { slug: string; parent?: { slug: string } | null } | null,
+  allSlugs?: string[] | null
 ): string[] {
-  if (!category) return [];
-  return Array.from(new Set([category.parent?.slug, category.slug].filter((s): s is string => Boolean(s))));
+  const own = category ? [category.parent?.slug, category.slug] : [];
+  return Array.from(new Set([...own, ...(allSlugs || [])].filter((s): s is string => Boolean(s))));
 }

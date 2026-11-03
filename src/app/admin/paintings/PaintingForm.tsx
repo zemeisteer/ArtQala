@@ -134,6 +134,12 @@ export default function PaintingForm({
   const [topCategoryId, setTopCategoryId] = useState<string>(
     (initialCategory as any)?.parent_id || initialCategory?.id || ''
   );
+  // Other categories the work also belongs to — either level, e.g. a carved
+  // panel with a painting is Kartina AND Yog'och o'ymakorligi. The site's
+  // filters, category discounts and accessories count all of them.
+  const [extraCategoryIds, setExtraCategoryIds] = useState<string[]>(
+    Array.isArray(initialData?.extra_category_ids) ? initialData.extra_category_ids : []
+  );
 
   // Images array
   const initialImages: string[] = (() => {
@@ -565,6 +571,7 @@ export default function PaintingForm({
       year: parseInt(year) || new Date().getFullYear(),
       artist_id: artistId,
       category_id: categoryId,
+      extra_category_ids: extraCategoryIds.filter((id) => id !== categoryId && id !== topCategoryId),
       price: numPrice,
       // An artist/category rule applies on its own at read time — the
       // painting's own discount is cleared so it doesn't override the rule.
@@ -1041,6 +1048,61 @@ export default function PaintingForm({
                       </div>
                     );
                   })()}
+                </div>
+
+                {/* Extra categories: tick every other product type / subject
+                    the work also belongs to. The main ones above are fixed. */}
+                <div className="pt-1">
+                  <label className="block text-[11px] font-bold tracking-wider text-[#6B5E55] uppercase mb-1">
+                    QO&apos;SHIMCHA KATEGORIYALAR (IXTIYORIY)
+                  </label>
+                  <p className="text-[11px] text-[#8F7E73] mb-2">
+                    Asar boshqa kategoriyalarga ham tegishli bo&apos;lsa, belgilang — saytda o&apos;sha kategoriyalarda ham
+                    chiqadi (masalan, yog&apos;och o&apos;ymakorligi + rasm).
+                  </p>
+                  <div className="space-y-2">
+                    {categoriesList
+                      .filter((c: any) => !c.parent_id)
+                      .map((top: any) => {
+                        const kids = categoriesList.filter((c: any) => c.parent_id === top.id);
+                        const chip = (c: any, isTop: boolean) => {
+                          const main = c.id === categoryId || c.id === topCategoryId;
+                          const on = main || extraCategoryIds.includes(c.id);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              disabled={main}
+                              title={main ? 'Asosiy kategoriya' : undefined}
+                              onClick={() =>
+                                setExtraCategoryIds((list) =>
+                                  list.includes(c.id) ? list.filter((x) => x !== c.id) : [...list, c.id]
+                                )
+                              }
+                              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                                isTop ? 'font-bold' : 'font-medium'
+                              } ${
+                                main
+                                  ? 'bg-[#281C18] text-white border-[#281C18] cursor-default'
+                                  : on
+                                    ? 'bg-[#BA4E25] text-white border-[#BA4E25]'
+                                    : 'bg-white text-[#554740] border-[#E7E0D8] hover:border-[#BA4E25]'
+                              }`}
+                            >
+                              {on && '✓ '}
+                              {c.name_uz || c.name_en}
+                            </button>
+                          );
+                        };
+                        return (
+                          <div key={top.id} className="flex flex-wrap items-center gap-1.5">
+                            {chip(top, true)}
+                            {kids.length > 0 && <span className="text-[#C9BCB1]">›</span>}
+                            {kids.map((k: any) => chip(k, false))}
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
             </div>
