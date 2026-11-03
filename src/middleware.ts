@@ -228,8 +228,12 @@ function routePublicPage(request: NextRequest): NextResponse | null {
 }
 
 export const config = {
-  // Broadened from just /admin/* so the legacy-host redirect above applies
-  // site-wide (e.g. the homepage) — Next's own static assets are excluded
-  // since they never need the domain check or the admin auth check.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Every page (for the legacy-host redirect and the language routing) and
+  // the admin. Left out: public API calls (several per page view — rates,
+  // visit and view counters, clicks), files and images, which need nothing
+  // from here — on Vercel every middleware run costs CPU time. /api/admin
+  // stays matched (its routes also check the session themselves).
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|monitoring|api/(?!admin)|.*\\.(?:png|jpe?g|webp|avif|gif|svg|ico|txt|xml|webmanifest|js|css|map|woff2?|glb|usdz|pdf|html)$).*)',
+  ],
 };

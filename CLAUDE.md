@@ -275,6 +275,13 @@ The header and footer show `/logo-full.png`, a copy the owner asked for on 2026-
 the Q rebuilt by mirroring its right side, the paper white made transparent, built from the owner's 640×640 JPEG);
 the original logo files are unchanged.
 
+**Vercel CPU budget** (the Hobby plan paused the site on 2026-11-03 for Fluid Active CPU; now Pro with a $10 on-demand
+budget): every public-model write drops the whole site's cache (`refreshPublicSite()`), after which every page re-renders
+in 8 languages on its next visit. `src/lib/prisma.ts#INVISIBLE_FIELDS` lists the writes that must NOT do that (view
+counter, wall-view box, channel mark, exchange rates, `translations` — translation batches refresh once at the end), and
+a new, unapproved Review doesn't either. Keep it that way when adding columns or background writes. The middleware
+matcher skips public API routes and static files for the same reason.
+
 ## Deployment
 
 Vercel, auto-deploys `main` from `github.com/zemeisteer/ArtQala`. The canonical domain is

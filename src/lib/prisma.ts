@@ -32,9 +32,33 @@ const WRITES = new Set([
   'delete',
   'deleteMany',
 ]);
-// Painting columns the public pages don't show — a view counter or the
-// cached wall-view box must not drop the whole site's cache.
-const INVISIBLE_PAINTING_FIELDS = new Set(['views_count', 'wall_view']);
+// Columns whose writes must not drop the whole site's cache. Every drop
+// makes each page re-render (8 languages) on its next visit, which is what
+// used up Vercel's CPU: the view counter, the cached wall-view box, the
+// Telegram channel mark and the exchange rates (prices are converted in the
+// browser from /api/rates) aren't on the pages at all, and the machine
+// translations refresh the site once per batch themselves
+// (src/lib/translateContent.ts).
+const INVISIBLE_FIELDS: Record<string, Set<string>> = {
+  Painting: new Set(['views_count', 'wall_view', 'channel_posted_at', 'translations']),
+  Artist: new Set(['translations']),
+  Category: new Set(['translations']),
+  Workshop: new Set(['translations']),
+  Story: new Set(['translations']),
+  SiteSettings: new Set(['rate_usd', 'rate_eur', 'rate_rub']),
+};
+
+function changesWhatThePublicSees(model: string, operation: string, args: unknown): boolean {
+  const a = (args || {}) as { data?: unknown; update?: unknown };
+  // A new review waits for approval — only approving it shows it.
+  if (model === 'Review' && operation === 'create') {
+    return (a.data as { is_approved?: unknown } | undefined)?.is_approved === true;
+  }
+  const data = operation === 'upsert' ? a.update : a.data;
+  const fields = data && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data) : null;
+  const invisible = INVISIBLE_FIELDS[model];
+  return !(invisible && fields?.length && fields.every((f) => invisible.has(f)));
+}
 
 // Any write to what the public site shows drops its caches (see
 // src/lib/publicCache.ts), so pages can be cached for a day and still show
@@ -45,11 +69,8 @@ const withPublicRefresh = (client: ReturnType<typeof createClient>) =>
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
           const result = await query(args);
-          if (WRITES.has(operation) && PUBLIC_MODELS.has(model)) {
-            const data = (args as { data?: unknown }).data;
-            const fields = data && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data) : null;
-            const invisible = model === 'Painting' && fields?.length && fields.every((f) => INVISIBLE_PAINTING_FIELDS.has(f));
-            if (!invisible) refreshPublicSite();
+          if (WRITES.has(operation) && PUBLIC_MODELS.has(model) && changesWhatThePublicSees(model, operation, args)) {
+            refreshPublicSite();
           }
           return result;
         },
