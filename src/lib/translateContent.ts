@@ -1,3 +1,4 @@
+import { refreshPublicSite } from './publicCache';
 import crypto from 'crypto';
 import { after } from 'next/server';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
@@ -140,7 +141,11 @@ export async function translateRecord(model: TranslatableModel, id: string): Pro
 // sent (the admin doesn't wait for it).
 export function translateAfterSave(model: TranslatableModel, id: string) {
   after(() =>
-    translateRecord(model, id).catch((error) => console.error(`Translation of ${model} ${id} failed:`, error))
+    translateRecord(model, id)
+      // Writing `translations` doesn't refresh the site by itself (see
+      // INVISIBLE_FIELDS in src/lib/prisma.ts) — once here, per save.
+      .then((r) => r === 'done' && refreshPublicSite())
+      .catch((error) => console.error(`Translation of ${model} ${id} failed:`, error))
   );
 }
 
@@ -172,5 +177,7 @@ export async function translatePending(limit: number, budgetMs: number) {
       if (failed >= 2) break;
     }
   }
+  // One refresh for the whole batch, not one per record.
+  if (done > 0) refreshPublicSite();
   return { done, failed, remaining: Math.max(0, pending.length - done) };
 }
