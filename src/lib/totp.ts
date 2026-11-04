@@ -115,3 +115,29 @@ export function openSetup(token: string, userId: string): string | null {
     return null;
   }
 }
+
+// "Remember this device": after a correct code the browser may get a signed
+// cookie that skips the code on that device for 30 days. It is bound to the
+// user and to their current 2FA secret, so turning 2FA off and on again (a
+// new secret) forgets every remembered device.
+export const TRUST_COOKIE = 'aq_tfa';
+export const TRUST_DAYS = 30;
+
+const fingerprint = (sealed: string) => crypto.createHash('sha256').update(sealed).digest('hex').slice(0, 16);
+const trustMac = (userId: string, exp: number, sealed: string) =>
+  crypto.createHmac('sha256', KEY).update(`trust:${userId}.${exp}.${fingerprint(sealed)}`).digest('base64url');
+
+export function deviceTrustToken(userId: string, sealedSecret: string): string {
+  const exp = Date.now() + TRUST_DAYS * 24 * 60 * 60 * 1000;
+  return `${userId}.${exp}.${trustMac(userId, exp, sealedSecret)}`;
+}
+
+export function isDeviceTrusted(token: string | undefined | null, userId: string, sealedSecret: string): boolean {
+  if (!token) return false;
+  const [uid, expRaw, mac] = token.split('.');
+  const exp = Number(expRaw);
+  if (uid !== userId || !Number.isFinite(exp) || exp < Date.now() || !mac) return false;
+  const want = Buffer.from(trustMac(userId, exp, sealedSecret));
+  const got = Buffer.from(mac);
+  return want.length === got.length && crypto.timingSafeEqual(want, got);
+}

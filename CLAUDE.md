@@ -43,6 +43,10 @@ Admins can turn on two-step sign-in (Admin → Xodimlar, `/api/admin/2fa`, `src/
 codes, secret sealed with AES-GCM in `User.totp_secret`). `withAdminSession()` then grants a working admin session
 (`sid`) only when the signin route verified the code (`totpVerified`) — Google, password reset and email-code sign-ins
 never open the admin panel for such an account. Lost phone: `UPDATE "User" SET "totp_secret" = NULL WHERE …`.
+After a correct code the login can remember the device for 30 days (`aq_tfa` cookie, `deviceTrustToken()` — bound to the
+user and their current secret, so re-enabling 2FA forgets every device). Admin tokens expire 12 h after issue, but the
+open admin panel renews them (`/api/auth/refresh`, called by `AdminShell` on load, every 15 min and on tab focus), so in
+practice only 12 h of inactivity signs an admin out.
 
 **Category is a self-referencing tree, one level deep** (`parent_id` on `Category`). A top-level
 category (`parent_id = null`) is a physical **product type** — Kartina, Kulolchilik, Somon
