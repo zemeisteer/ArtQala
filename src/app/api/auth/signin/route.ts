@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { createSessionToken, withAdminSession } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, resetRateLimit, getClientIp } from '@/lib/rateLimit';
 import { validateEmail } from '@/lib/validation';
-import { openSecret, verifyTotp } from '@/lib/totp';
+import { TRUST_COOKIE, TRUST_DAYS, deviceTrustToken, isDeviceTrusted, openSecret, verifyTotp } from '@/lib/totp';
 import { checkOtpSendAllowed, issueSignupOtp, recordOtpSend } from '@/lib/otp';
 import { cookies } from 'next/headers';
 import { ADMIN_GATE_COOKIE, hasAdminGateCookie } from '@/lib/adminGate';
@@ -105,8 +105,16 @@ export async function POST(request: Request) {
     // Two-step sign-in (src/lib/totp.ts): the password was right, now the
     // 6-digit code from the admin's authenticator app. The client asks for
     // it on `totp_required` and sends the password again with it.
+    // A device remembered after an earlier correct code (30 days, see
+    // deviceTrustToken) skips the code.
     let totpVerified = false;
-    if (user.role === 'ADMIN' && user.totp_secret) {
+    let rememberDevice = false;
+    const trusted =
+      user.role === 'ADMIN' &&
+      !!user.totp_secret &&
+      isDeviceTrusted((await cookies()).get(TRUST_COOKIE)?.value, user.id, user.totp_secret);
+    if (trusted) totpVerified = true;
+    if (user.role === 'ADMIN' && user.totp_secret && !trusted) {
       const code = typeof body.totp === 'string' ? body.totp : '';
       if (!code) {
         return NextResponse.json(
@@ -127,6 +135,7 @@ export async function POST(request: Request) {
         );
       }
       totpVerified = true;
+      rememberDevice = body.rememberDevice === true;
     }
 
     // Correct password but the email was never confirmed: send a fresh code
@@ -181,6 +190,15 @@ export async function POST(request: Request) {
       maxAge: 30 * 24 * 60 * 60,
       path: '/',
     });
+    if (rememberDevice && user.totp_secret) {
+      response.cookies.set(TRUST_COOKIE, deviceTrustToken(user.id, user.totp_secret), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: TRUST_DAYS * 24 * 60 * 60,
+        path: '/',
+      });
+    }
 
     return response;
   } catch (error) {

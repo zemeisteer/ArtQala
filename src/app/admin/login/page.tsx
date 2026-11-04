@@ -15,6 +15,7 @@ export default function AdminLoginPage() {
   // Two-step sign-in: asked for once the password turned out right.
   const [totp, setTotp] = useState('');
   const [needTotp, setNeedTotp] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +28,7 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, ...(needTotp ? { totp } : {}) }),
+        body: JSON.stringify({ email, password, ...(needTotp ? { totp, rememberDevice } : {}) }),
       });
 
       const data = await res.json();
@@ -179,6 +180,15 @@ export default function AdminLoginPage() {
                 <p className="text-[11px] text-[#9E8E82] mt-1.5">
                   Google Authenticator (yoki shunga o&apos;xshash ilova) dagi Art Qala kodi.
                 </p>
+                <label className="mt-3 flex items-center gap-2 text-xs text-[#D8CDC4] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberDevice}
+                    onChange={(e) => setRememberDevice(e.target.checked)}
+                    className="accent-[#BA4E25]"
+                  />
+                  Bu qurilmada 30 kun kod so&apos;ralmasin
+                </label>
               </div>
             )}
 

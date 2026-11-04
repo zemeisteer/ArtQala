@@ -61,6 +61,27 @@ export default function AdminShell({ children }: AdminLayoutProps) {
     }
   }, [isLoginPage, user, authLoading, router]);
 
+  // Keep the sign-in alive while the panel is in use: the session token is
+  // renewed on opening, every 15 minutes and when the tab comes back into
+  // view (/api/auth/refresh), so only 12 hours of inactivity sign you out.
+  useEffect(() => {
+    if (isLoginPage || !user || user.role !== 'ADMIN') return;
+    let last = 0;
+    const renew = () => {
+      if (Date.now() - last < 5 * 60 * 1000) return;
+      last = Date.now();
+      fetch('/api/auth/refresh', { method: 'POST' }).catch(() => {});
+    };
+    renew();
+    const timer = window.setInterval(renew, 15 * 60 * 1000);
+    const onVisible = () => document.visibilityState === 'visible' && renew();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isLoginPage, user]);
+
   // 2. If on /admin/login, bypass the sidebar layout completely
   if (isLoginPage) {
     return <>{children}</>;
