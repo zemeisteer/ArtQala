@@ -4,6 +4,7 @@ import { OG_LOCALE, languageAlternates } from './routing';
 import { isBaseLang, type BaseLanguage } from './translations';
 import type { ExtraLanguage } from './dictionary';
 import { CITY_JOIN, CITY_LOCAL, EXTRA_PAGES } from './seoExtra';
+import { OG_IMAGE } from '../siteMetadata';
 
 // Search/social titles and descriptions for the public pages, per language —
 // each /ru/... and /uz/... page is indexed in its own language, so its title
@@ -208,16 +209,20 @@ export function pageMetadata(key: PageKey, lang: Language): Metadata {
   const page = PAGES[key];
   const { title, description } = isBaseLang(lang) ? page[lang] : EXTRA_PAGES[lang as ExtraLanguage][key];
   const alternates = languageAlternates(page.path, lang);
+  const shareTitle = key === 'home' ? title : `${title} | Art Qala Gallery`;
   return {
     title: key === 'home' ? { absolute: title } : title,
     description,
     alternates,
     openGraph: {
-      title: key === 'home' ? title : `${title} | Art Qala Gallery`,
+      title: shareTitle,
       description,
       url: alternates.canonical,
       locale: OG_LOCALE[lang],
+      siteName: 'Art Qala Gallery',
+      images: [OG_IMAGE],
     },
+    twitter: { card: 'summary_large_image', title: shareTitle, description, images: [OG_IMAGE.url] },
   };
 }
 
@@ -240,7 +245,13 @@ export function homeMetadata(lang: Language, cities: string[]): Metadata {
     const meta = pageMetadata('home', lang);
     const title = fill(EXTRA_PAGES[l].home.title);
     const description = fill(EXTRA_PAGES[l].home.description);
-    return { ...meta, title: { absolute: title }, description, openGraph: { ...meta.openGraph, title, description } };
+    return {
+      ...meta,
+      title: { absolute: title },
+      description,
+      openGraph: { ...meta.openGraph, title, description },
+      twitter: { ...meta.twitter, title, description },
+    };
   }
   const meta = pageMetadata('home', lang);
   const known = cities.filter((c) => CITY_NAMES[c]);
@@ -268,5 +279,6 @@ export function homeMetadata(lang: Language, cities: string[]): Metadata {
     title: { absolute: next.title },
     description: next.description,
     openGraph: { ...meta.openGraph, title: next.title, description: next.description },
+    twitter: { ...meta.twitter, title: next.title, description: next.description },
   };
 }

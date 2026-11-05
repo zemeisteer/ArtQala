@@ -106,7 +106,9 @@ viewer (Telegram/Instagram in-app browsers) and a "didn't work?" fallback elsewh
 Khiva/Tashkent?"): `/llms.txt` and `/llms-full.txt` (`src/lib/llmsTxt.ts`, Markdown built from Settings + catalogue —
 never a static file in `public/`, which would go stale), `robots.ts` names the AI crawlers, the ArtGallery JSON-LD lists
 every Settings address with its city (`src/lib/galleryFacts.ts#cityOf()` reads the city from the address text) and the
-home title/description name those cities (`homeMetadata()`); painting pages are `Product` + `VisualArtwork`. Admin
+home title/description name those cities (`homeMetadata()`); painting pages are `Product` + `VisualArtwork`. Link previews (Telegram, WhatsApp…): every page has og/twitter title, description and image — the static
+`public/og-image.jpg` (`OG_IMAGE` in `src/lib/siteMetadata.ts`, used by `pageMetadata()` and the layout) unless the page
+has its own (painting photo — never the SVG placeholder —, story cover, artist photo). Admin
 painting/artist saves ping IndexNow (`src/lib/indexNow.ts`, Bing → ChatGPT search; key served at `/indexnow.txt`).
 
 **Artist awards & certificates** live in `Artist.achievements` (JSON text, read/written only through
