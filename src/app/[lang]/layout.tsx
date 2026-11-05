@@ -37,6 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   return {
     ...baseMetadata,
     openGraph: {
+      ...baseMetadata.openGraph,
       locale: OG_LOCALE[lang],
       alternateLocale: LANGS.filter((l) => l !== lang).map((l) => OG_LOCALE[l]),
     },

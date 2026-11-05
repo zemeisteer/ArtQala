@@ -1,3 +1,4 @@
+import { OG_IMAGE } from '@/lib/siteMetadata';
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -48,7 +49,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const imageUrl = mainImage(painting.images);
+  // Link previews can't show an SVG (the placeholder for a work without a
+  // photo yet) — the gallery's own preview picture stands in.
+  const photo = mainImage(painting.images);
+  const imageUrl = /\.svg($|\?)/i.test(photo) ? OG_IMAGE.url : photo;
 
   const loc = localized(painting, lang);
   const title = `${loc.title} — ${painting.artist.name}`;

@@ -1,3 +1,4 @@
+import { OG_IMAGE } from '@/lib/siteMetadata';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -43,8 +44,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: alternates.canonical,
       locale: OG_LOCALE[lang],
-      ...(s.cover && { images: [absolute(s.cover)] }),
+      siteName: 'Art Qala Gallery',
+      images: s.cover ? [absolute(s.cover)] : [OG_IMAGE],
     },
+    twitter: { card: 'summary_large_image', title, description, images: [s.cover ? absolute(s.cover) : OG_IMAGE.url] },
   };
 }
 
